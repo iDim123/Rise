@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -7,7 +6,6 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local HealthManager = {}
 
--- Хранилище HP для всех сущностей (игроки + враги)
 local healthData = {}
 
 -- === Инициализация ===
@@ -19,7 +17,6 @@ function HealthManager.init(entity, maxHP)
 		IsDead = false,
 	}
 
-	-- Создаём атрибуты для чтения клиентом
 	entity:SetAttribute("MaxHP", maxHP)
 	entity:SetAttribute("CurrentHP", maxHP)
 	entity:SetAttribute("IsDead", false)
@@ -34,7 +31,6 @@ function HealthManager.takeDamage(entity, damage, attacker)
 	data.CurrentHP = math.max(0, data.CurrentHP - damage)
 	entity:SetAttribute("CurrentHP", data.CurrentHP)
 
-	-- Оповещаем клиентов
 	Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP)
 
 	print(entity.Name .. " took " .. damage .. " damage. HP: " .. data.CurrentHP .. "/" .. data.MaxHP)
@@ -57,23 +53,49 @@ function HealthManager.die(entity, attacker)
 
 	print(entity.Name .. " died!")
 
-	-- Определяем: игрок или враг
 	local player = Players:GetPlayerFromCharacter(entity)
 
 	if player then
-		-- Игрок: респавн через N секунд
 		task.delay(Config.Player.RespawnTime, function()
 			player:LoadCharacter()
 		end)
 	else
-		-- Враг: убираем модель, респавн позже
 		local spawnPos = entity:GetAttribute("SpawnPosition")
 		local enemyType = entity:GetAttribute("EnemyType")
 
 		entity:Destroy()
 		healthData[entity] = nil
 
-		-- Респавн врага (будет реализован в EnemyManager)
+		if spawnPos and enemyType then
+			local config = Config.Enemies[enemyType]
+			if config then
+				task.delay(config.RespawnTime, function()
+					local ServerStorage = game:GetService("ServerStorage")
+					local template = ServerStorage.enemies:FindFirstChild(enemyType)
+					if template then
+						local newEnemy = template:Clone()
+						newEnemy.Parent = workspace:FindFirstChild("Enemies")
+
+						local rootPart = newEnemy:FindFirstChild("HumanoidRootPart")
+						if rootPart then
+							rootPart.Anchored = false
+							rootPart.CFrame = CFrame.new(spawnPos)
+						end
+
+						local humanoid = newEnemy:FindFirstChild("Humanoid")
+						if humanoid then
+							humanoid.WalkSpeed = config.WalkSpeed
+						end
+
+						newEnemy:SetAttribute("EnemyType", enemyType)
+						newEnemy:SetAttribute("SpawnPosition", spawnPos)
+
+						HealthManager.init(newEnemy, config.MaxHP)
+						print("[HealthManager] Respawned: " .. enemyType)
+					end
+				end)
+			end
+		end
 	end
 end
 

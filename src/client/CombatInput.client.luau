@@ -58,8 +58,7 @@ local function playAttackAnimation()
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-
+	-- Убираем проверку gameProcessed для атаки мечом
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if isAttacking then return end
 
@@ -72,10 +71,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		local mousePos = getMouseWorldPosition()
 		if not mousePos then return end
 
-		-- Отправляем запрос на сервер
+		print("[Client] AttackRequest sent!")
+
 		Remotes.AttackRequest:FireServer(mousePos)
 
-		-- Проигрываем анимацию на клиенте
 		task.spawn(playAttackAnimation)
 	end
 end)
