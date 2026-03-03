@@ -3,16 +3,10 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-
-local getServants = ReplicatedStorage:WaitForChild("GetServants")
-local summonServant = ReplicatedStorage:WaitForChild("SummonServant")
-local dismissServant = ReplicatedStorage:WaitForChild("DismissServant")
-local setServantMode = ReplicatedStorage:WaitForChild("SetServantMode")
-local servantCommand = ReplicatedStorage:WaitForChild("ServantCommand")
-local renameServant = ReplicatedStorage:WaitForChild("RenameServant")
 
 local isOpen = false
 
@@ -118,8 +112,12 @@ modeLabel.Text = "Режим:"
 modeLabel.Parent = detailFrame
 
 -- Кнопки режимов
-local modes = { "Aggressive", "Defensive", "Passive" }
-local modeNames = { Aggressive = "Агрессивный", Defensive = "Защитный", Passive = "Пассивный" }
+local modes = {"Aggressive", "Defensive", "Passive"}
+local modeNames = {
+    Aggressive = "Агрессивный",
+    Defensive = "Защитный",
+    Passive = "Пассивный"
+}
 local modeButtons = {}
 local currentMode = "Aggressive"
 
@@ -140,7 +138,7 @@ for i, mode in modes do
 
     btn.MouseButton1Click:Connect(function()
         currentMode = mode
-        setServantMode:FireServer(mode)
+        Remotes.SetServantMode:FireServer(mode)
         updateModeButtons()
     end)
 
@@ -160,8 +158,12 @@ function updateModeButtons()
 end
 
 -- Кнопки команд
-local commandNames = { Follow = "Следуй", Stay = "Стой", AttackTarget = "Атакуй" }
-local commandList = { "Follow", "Stay", "AttackTarget" }
+local commandNames = {
+    Follow = "Следуй",
+    Stay = "Стой",
+    AttackTarget = "Атакуй"
+}
+local commandList = {"Follow", "Stay", "AttackTarget"}
 
 for i, cmd in commandList do
     local btn = Instance.new("TextButton")
@@ -179,7 +181,7 @@ for i, cmd in commandList do
     btnCorner.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
-        servantCommand:FireServer(cmd)
+        Remotes.ServantCommand:FireServer(cmd)
     end)
 end
 
@@ -250,8 +252,10 @@ local function clearList()
 end
 
 local function refreshUI()
-    local data = getServants:InvokeServer()
-    if not data then return end
+    local data = Remotes.GetServants:InvokeServer()
+    if not data then
+        return
+    end
 
     clearList()
     selectedServantId = selectedServantId or data.activeId
@@ -259,9 +263,7 @@ local function refreshUI()
     for i, servant in data.captured do
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -6, 0, 35)
-        btn.BackgroundColor3 = servant.id == data.activeId
-            and Color3.fromRGB(50, 100, 50)
-            or Color3.fromRGB(50, 50, 70)
+        btn.BackgroundColor3 = servant.id == data.activeId and Color3.fromRGB(50, 100, 50) or Color3.fromRGB(50, 50, 70)
         btn.TextColor3 = Color3.fromRGB(220, 220, 220)
         btn.TextSize = 12
         btn.Font = Enum.Font.Gotham
@@ -287,10 +289,8 @@ end
 
 function showDetails(servant, activeId)
     nameInput.Text = servant.name
-    statsLabel.Text = "Тип: " .. servant.enemyType
-        .. "\nКровь: " .. servant.bloodQuality .. "%"
-        .. "\nАтака: " .. servant.atk
-        .. "\nHP: " .. servant.hp .. " / " .. servant.maxHP
+    statsLabel.Text = "Тип: " .. servant.enemyType .. "\nКровь: " .. servant.bloodQuality .. "%" ..
+                          "\nАтака: " .. servant.atk .. "\nHP: " .. servant.hp .. " / " .. servant.maxHP
 
     local isActive = servant.id == activeId
     summonBtn.Visible = not isActive
@@ -305,21 +305,21 @@ end
 -- Кнопки
 summonBtn.MouseButton1Click:Connect(function()
     if selectedServantId then
-        summonServant:FireServer(selectedServantId)
+        Remotes.SummonServant:FireServer(selectedServantId)
         task.wait(0.3)
         refreshUI()
     end
 end)
 
 dismissBtn.MouseButton1Click:Connect(function()
-    dismissServant:FireServer()
+    Remotes.DismissServant:FireServer()
     task.wait(0.3)
     refreshUI()
 end)
 
 nameInput.FocusLost:Connect(function(enterPressed)
     if enterPressed and selectedServantId then
-        renameServant:FireServer(selectedServantId, nameInput.Text)
+        Remotes.RenameServant:FireServer(selectedServantId, nameInput.Text)
         task.wait(0.2)
         refreshUI()
     end
@@ -327,13 +327,15 @@ end)
 
 -- Открытие/закрытие по V Esc
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+    if gameProcessed then
+        return
+    end
 
-	if input.KeyCode == Enum.KeyCode.V then
-		isOpen = not isOpen
-		mainFrame.Visible = isOpen
-		if isOpen then
-			refreshUI()
-		end
-	end
+    if input.KeyCode == Enum.KeyCode.V then
+        isOpen = not isOpen
+        mainFrame.Visible = isOpen
+        if isOpen then
+            refreshUI()
+        end
+    end
 end)

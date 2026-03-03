@@ -3,29 +3,65 @@ local RunService = game:GetService("RunService")
 
 local Remotes = {}
 
-local remoteNames = {
+-- RemoteEvents
+local events = {
     "AttackRequest",
     "DamageEvent",
     "EntityDied",
     "HealEvent",
+    "UpdateInventory",
+    "SwapSlots",
+    "EquipItem",
+    "UnequipItem",
+    "SetActiveWeapon",
+    "CraftItem",
+    "CraftQueueUpdate",
+    "UseItem",
+    "DrinkBloodRequest",
+    "CaptureRequest",
+    "CaptureResult",
+    "SummonServant",
+    "DismissServant",
+    "SetServantMode",
+    "ServantCommand",
+    "RenameServant",
+    "PickupLoot",
+}
+
+-- RemoteFunctions
+local functions = {
+    "GetInventory",
+    "GetServants",
 }
 
 if RunService:IsServer() then
-	-- Сервер: создаём RemoteEvents
-	for _, name in remoteNames do
-		local remote = ReplicatedStorage:FindFirstChild(name)
-		if not remote then
-			remote = Instance.new("RemoteEvent")
-			remote.Name = name
-			remote.Parent = ReplicatedStorage
-		end
-		Remotes[name] = remote
-	end
+    for _, name in events do
+        local remote = ReplicatedStorage:FindFirstChild(name)
+        if not remote then
+            remote = Instance.new("RemoteEvent")
+            remote.Name = name
+            remote.Parent = ReplicatedStorage
+        end
+        Remotes[name] = remote
+    end
+
+    for _, name in functions do
+        local remote = ReplicatedStorage:FindFirstChild(name)
+        if not remote then
+            remote = Instance.new("RemoteFunction")
+            remote.Name = name
+            remote.Parent = ReplicatedStorage
+        end
+        Remotes[name] = remote
+    end
 else
-	-- Клиент: ждём пока сервер создаст
-	for _, name in remoteNames do
-		Remotes[name] = ReplicatedStorage:WaitForChild(name)
-	end
+    for _, name in events do
+        Remotes[name] = ReplicatedStorage:WaitForChild(name)
+    end
+
+    for _, name in functions do
+        Remotes[name] = ReplicatedStorage:WaitForChild(name)
+    end
 end
 
 return Remotes

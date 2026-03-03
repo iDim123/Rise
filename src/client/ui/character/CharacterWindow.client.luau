@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local EquipmentPanel = require(script.Parent:WaitForChild("EquipmentPanel"))
@@ -9,21 +11,9 @@ local CraftPanel = require(script.Parent:WaitForChild("CraftPanel"))
 local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-
--- Remotes
-local getInventory = ReplicatedStorage:WaitForChild("GetInventory")
-local updateInventory = ReplicatedStorage:WaitForChild("UpdateInventory")
-local swapSlots = ReplicatedStorage:WaitForChild("SwapSlots")
-local equipItem = ReplicatedStorage:WaitForChild("EquipItem")
-local unequipItem = ReplicatedStorage:WaitForChild("UnequipItem")
-local setActiveWeapon = ReplicatedStorage:WaitForChild("SetActiveWeapon")
-local craftItem = ReplicatedStorage:WaitForChild("CraftItem")
-local useItem = ReplicatedStorage:WaitForChild("UseItem")
-
 
 local isOpen = false
 local currentData = nil
@@ -63,7 +53,7 @@ title.Font = Enum.Font.GothamBold
 title.Parent = mainFrame
 
 -- Tabs
-local tabs = { "Equipment", "Crafting", "Blood Pool", "Attributes" }
+local tabs = {"Equipment", "Crafting", "Blood Pool", "Attributes"}
 local tabButtons = {}
 local tabWidth = math.floor((UC.windowWidth - 10) / #tabs) - 5
 
@@ -86,17 +76,18 @@ for i, tab in tabs do
 end
 
 -- Build panels
-local equipPanelFrame = EquipmentPanel.build(mainFrame, UC.contentY, unequipItem)
-local craftPanelFrame = CraftPanel.build(mainFrame, UC.contentY, craftItem, screenGui)
+local equipPanelFrame = EquipmentPanel.build(mainFrame, UC.contentY, Remotes.UnequipItem)
+local craftPanelFrame = CraftPanel.build(mainFrame, UC.contentY, Remotes.CraftItem, screenGui)
 
--- Build inventory (always visible)
-InventoryGrid.build(mainFrame, swapSlots, equipItem, function() return currentData end, useItem)
+-- Build inventory
+InventoryGrid.build(mainFrame, Remotes.SwapSlots, Remotes.EquipItem, function()
+    return currentData
+end, Remotes.UseItem)
 
--- Recalculate window height
 mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)
 
 -- Build bottom ActionBar
-ActionBarHUD.build(playerGui, setActiveWeapon, useItem)
+ActionBarHUD.build(playerGui, Remotes.SetActiveWeapon, Remotes.UseItem)
 
 -- Tab switching
 local function switchTab(tabName)
@@ -119,7 +110,9 @@ end
 
 -- Refresh all
 local function refreshUI(data)
-    if not data then return end
+    if not data then
+        return
+    end
     currentData = data
     InventoryGrid.refresh(data.slots, data.activeWeaponSlot)
     ActionBarHUD.refresh(data.slots, data.activeWeaponSlot)
@@ -131,26 +124,36 @@ end
 
 -- Hotkeys
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if gameProcessed then
+        return
+    end
 
     if input.KeyCode == Enum.KeyCode.C then
         isOpen = not isOpen
         mainFrame.Visible = isOpen
         if isOpen then
-            local data = getInventory:InvokeServer()
+            local data = Remotes.GetInventory:InvokeServer()
             refreshUI(data)
         end
     end
 
     local keyNumber = nil
-    if input.KeyCode == Enum.KeyCode.One then keyNumber = 1
-    elseif input.KeyCode == Enum.KeyCode.Two then keyNumber = 2
-    elseif input.KeyCode == Enum.KeyCode.Three then keyNumber = 3
-    elseif input.KeyCode == Enum.KeyCode.Four then keyNumber = 4
-    elseif input.KeyCode == Enum.KeyCode.Five then keyNumber = 5
-    elseif input.KeyCode == Enum.KeyCode.Six then keyNumber = 6
-    elseif input.KeyCode == Enum.KeyCode.Seven then keyNumber = 7
-    elseif input.KeyCode == Enum.KeyCode.Eight then keyNumber = 8
+    if input.KeyCode == Enum.KeyCode.One then
+        keyNumber = 1
+    elseif input.KeyCode == Enum.KeyCode.Two then
+        keyNumber = 2
+    elseif input.KeyCode == Enum.KeyCode.Three then
+        keyNumber = 3
+    elseif input.KeyCode == Enum.KeyCode.Four then
+        keyNumber = 4
+    elseif input.KeyCode == Enum.KeyCode.Five then
+        keyNumber = 5
+    elseif input.KeyCode == Enum.KeyCode.Six then
+        keyNumber = 6
+    elseif input.KeyCode == Enum.KeyCode.Seven then
+        keyNumber = 7
+    elseif input.KeyCode == Enum.KeyCode.Eight then
+        keyNumber = 8
     end
 
     if keyNumber then
@@ -160,21 +163,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
 
         if slotData and slotData ~= false and slotData.Type == "Consumable" then
-            -- Проверяем cooldown на клиенте
             if not CooldownManager.isOnCooldown(slotData.Id) then
                 local itemDef = Config.Items[slotData.Id]
                 if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
                     CooldownManager.startCooldown(slotData.Id, itemDef.UseEffect.Cooldown)
                 end
-                useItem:FireServer(keyNumber)
+                Remotes.UseItem:FireServer(keyNumber)
             end
         else
-            setActiveWeapon:FireServer(keyNumber)
+            Remotes.SetActiveWeapon:FireServer(keyNumber)
         end
     end
 end)
 
--- Cancel drag on mouse release outside slots
+-- Cancel drag
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         if DragManager.isDragging() then
@@ -184,13 +186,13 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 -- Server updates
-updateInventory.OnClientEvent:Connect(function(data)
+Remotes.UpdateInventory.OnClientEvent:Connect(function(data)
     refreshUI(data)
 end)
 
 -- Load on start
 task.spawn(function()
-    local data = getInventory:InvokeServer()
+    local data = Remotes.GetInventory:InvokeServer()
     if data then
         refreshUI(data)
     end

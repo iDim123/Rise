@@ -12,7 +12,7 @@ local currentData = nil
 local queueCounts = {}
 local craftProgress = {} -- [recipeId] = 0..1
 
-local craftQueueUpdate = ReplicatedStorage:WaitForChild("CraftQueueUpdate")
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 -- ===== TOOLTIP =====
 local function createTooltip(screenGui)
@@ -150,7 +150,9 @@ local function createTooltip(screenGui)
 end
 
 local function updateTooltip(recipe)
-    if not tooltip then return end
+    if not tooltip then
+        return
+    end
 
     local titleLabel = tooltip:FindFirstChild("Title")
     local iconFrame = tooltip:FindFirstChild("IconFrame")
@@ -172,8 +174,7 @@ local function updateTooltip(recipe)
         iconText.Visible = true
     end
 
-    local craftTimeStr = recipe.CraftTime and recipe.CraftTime > 0
-        and (recipe.CraftTime .. "s") or "Instant"
+    local craftTimeStr = recipe.CraftTime and recipe.CraftTime > 0 and (recipe.CraftTime .. "s") or "Instant"
     subtitleLabel.Text = (recipe.Result.Type or "Item") .. "    " .. craftTimeStr
 
     local desc = recipe.Description or recipe.Result.Description or ""
@@ -232,9 +233,7 @@ local function updateTooltip(recipe)
             img.Parent = miniIcon
         end
 
-        local countColor = have >= ing.Amount
-            and Color3.fromRGB(100, 200, 100)
-            or Color3.fromRGB(200, 100, 100)
+        local countColor = have >= ing.Amount and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(200, 100, 100)
 
         local countLabel = Instance.new("TextLabel")
         countLabel.Size = UDim2.new(0, 60, 0, 28)
@@ -270,13 +269,17 @@ end
 local activeRow = nil
 
 local function positionTooltip()
-    if not tooltip then return end
+    if not tooltip then
+        return
+    end
     local x = 40 + UC.windowWidth + 8
     tooltip.Position = UDim2.new(0, x, 0, 40)
 end
 
 local function showTooltip(recipe, row)
-    if not tooltip then return end
+    if not tooltip then
+        return
+    end
     activeRow = row
     updateTooltip(recipe)
     positionTooltip()
@@ -284,7 +287,9 @@ local function showTooltip(recipe, row)
 end
 
 local function hideTooltip()
-    if tooltip then tooltip.Visible = false end
+    if tooltip then
+        tooltip.Visible = false
+    end
     activeRow = nil
 end
 
@@ -462,7 +467,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
             recipe = recipe,
             queueLabel = queueLabel,
             progressBg = progressBg,
-            progressFill = progressFill,
+            progressFill = progressFill
         }
 
         totalH = totalH + recipeRowH + recipePadding
@@ -471,7 +476,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
     craftPanel.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
     -- Слушаем обновления очереди с сервера
-    craftQueueUpdate.OnClientEvent:Connect(function(counts, progressRecipeId, progressValue)
+    Remotes.craftQueueUpdate.OnClientEvent:Connect(function(counts, progressRecipeId, progressValue)
         if counts then
             queueCounts = counts
         end
@@ -485,8 +490,12 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
 end
 
 function CraftPanel.refresh(slotsData)
-    if not slotsData then return end
-    currentData = { slots = slotsData }
+    if not slotsData then
+        return
+    end
+    currentData = {
+        slots = slotsData
+    }
 
     if tooltip and tooltip.Visible then
         for _, entry in recipeButtons do
@@ -499,8 +508,12 @@ function CraftPanel.refresh(slotsData)
 end
 
 function CraftPanel.setVisible(v)
-    if craftPanel then craftPanel.Visible = v end
-    if not v then hideTooltip() end
+    if craftPanel then
+        craftPanel.Visible = v
+    end
+    if not v then
+        hideTooltip()
+    end
 end
 
 return CraftPanel

@@ -3,19 +3,14 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local modules = ReplicatedStorage:WaitForChild("modules")
 local BloodManager = require(modules:WaitForChild("BloodManager"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 
--- Связываем менеджеры
 BloodManager.setHealthManager(HealthManager)
 
--- RemoteEvent для питья крови
-local drinkBloodRemote = Instance.new("RemoteEvent")
-drinkBloodRemote.Name = "DrinkBloodRequest"
-drinkBloodRemote.Parent = ReplicatedStorage
-
-drinkBloodRemote.OnServerEvent:Connect(function(player)
+Remotes.DrinkBloodRequest.OnServerEvent:Connect(function(player)
     local character = player.Character
     if not character then return end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
