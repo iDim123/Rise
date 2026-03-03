@@ -25,19 +25,21 @@ end
 -- === Нанесение урона ===
 
 function HealthManager.takeDamage(entity, damage, attacker)
-	local data = healthData[entity]
-	if not data or data.IsDead then return end
+    local data = healthData[entity]
+    if not data or data.IsDead then return end
 
-	data.CurrentHP = math.max(0, data.CurrentHP - damage)
-	entity:SetAttribute("CurrentHP", data.CurrentHP)
+    data.CurrentHP = math.max(0, data.CurrentHP - damage)
+    entity:SetAttribute("CurrentHP", data.CurrentHP)
 
-	Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP)
+    -- Отправляем урон клиентам (добавлены damage и имя атакующего)
+    local attackerName = attacker and attacker.Name or "Unknown"
+    Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
 
-	print(entity.Name .. " took " .. damage .. " damage. HP: " .. data.CurrentHP .. "/" .. data.MaxHP)
+    print(entity.Name .. " took " .. damage .. " damage. HP: " .. data.CurrentHP .. "/" .. data.MaxHP)
 
-	if data.CurrentHP <= 0 then
-		HealthManager.die(entity, attacker)
-	end
+    if data.CurrentHP <= 0 then
+        HealthManager.die(entity, attacker)
+    end
 end
 
 -- === Смерть ===
@@ -109,11 +111,17 @@ end
 -- === Лечение ===
 
 function HealthManager.heal(entity, amount)
-	local data = healthData[entity]
-	if not data or data.IsDead then return end
+    local data = healthData[entity]
+    if not data or data.IsDead then return end
 
-	data.CurrentHP = math.min(data.MaxHP, data.CurrentHP + amount)
-	entity:SetAttribute("CurrentHP", data.CurrentHP)
+    local oldHP = data.CurrentHP
+    data.CurrentHP = math.min(data.MaxHP, data.CurrentHP + amount)
+    local actualHeal = data.CurrentHP - oldHP
+    entity:SetAttribute("CurrentHP", data.CurrentHP)
+
+    if actualHeal > 0 then
+        Remotes.HealEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, actualHeal)
+    end
 end
 
 -- === Получение данных ===

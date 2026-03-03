@@ -4,9 +4,10 @@ local RunService = game:GetService("RunService")
 local Remotes = {}
 
 local remoteNames = {
-	"AttackRequest",
-	"DamageEvent",
-	"EntityDied",
+    "AttackRequest",
+    "DamageEvent",
+    "EntityDied",
+    "HealEvent",
 }
 
 if RunService:IsServer() then
