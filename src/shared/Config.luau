@@ -7,7 +7,7 @@ Config.Player = {
 
 Config.Enemies = {
     Warrior = {
-        MaxHP = 80,
+        MaxHP = 120,
         Damage = 10,
         AttackRange = 5,
         AggroRange = 25,
@@ -53,7 +53,7 @@ Config.Weapons = {
         ComboWindow = 1.2, -- секунд на следующий клик, иначе сброс
         Combo = {
             [1] = {
-                Damage = 35,
+                Damage = 25,
                 AnimationId = "rbxassetid://70662356098178" -- твоя анимация
             },
             [2] = {

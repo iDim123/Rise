@@ -476,7 +476,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
     craftPanel.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
     -- Слушаем обновления очереди с сервера
-    Remotes.craftQueueUpdate.OnClientEvent:Connect(function(counts, progressRecipeId, progressValue)
+    Remotes.CraftQueueUpdate.OnClientEvent:Connect(function(counts, progressRecipeId, progressValue)
         if counts then
             queueCounts = counts
         end

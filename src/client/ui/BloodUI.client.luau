@@ -87,7 +87,7 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Config.Blood.DrinkKey then
-        Remotes.DrinkBloodRemote:FireServer()
+        Remotes.DrinkBloodRequest:FireServer()
     end
 end)
 
