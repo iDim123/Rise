@@ -1,7 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 
 -- RemoteFunctions / RemoteEvents
 local getInventory = Instance.new("RemoteFunction")

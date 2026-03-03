@@ -3,8 +3,9 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local BloodManager = require(script.Parent:WaitForChild("BloodManager"))
-local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local BloodManager = require(modules:WaitForChild("BloodManager"))
+local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 -- Связываем менеджеры
 BloodManager.setHealthManager(HealthManager)

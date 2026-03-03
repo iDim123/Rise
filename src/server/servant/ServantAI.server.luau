@@ -3,7 +3,8 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 local TICK_RATE = 0.2
 local lastAttackTimes = {} -- [servantEntity] = tick

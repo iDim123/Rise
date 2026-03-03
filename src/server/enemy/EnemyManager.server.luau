@@ -2,9 +2,9 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local HealthManager = require(modules:WaitForChild("HealthManager"))
 
-local enemiesFolder = ServerStorage:WaitForChild("enemies")
 
 -- Папка для живых врагов в Workspace
 local activeEnemies = Instance.new("Folder")

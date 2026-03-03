@@ -4,7 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local HealthManager = require(modules:WaitForChild("HealthManager"))
+local BloodManager = require(modules:WaitForChild("BloodManager"))
 
 local weaponsFolder = ServerStorage:WaitForChild("weapons")
 

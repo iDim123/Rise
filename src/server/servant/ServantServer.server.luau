@@ -2,8 +2,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local ServantManager = require(script.Parent:WaitForChild("ServantManager"))
-local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local ServantManager = require(modules:WaitForChild("ServantManager"))
+local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 -- Remote Events / Functions
 local captureRequest = Instance.new("RemoteEvent")

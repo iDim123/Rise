@@ -121,7 +121,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
                 newEnemy:SetAttribute("EnemyType", respawnType)
                 newEnemy:SetAttribute("SpawnPosition", spawnPos)
 
-                local HealthMgr = require(script.Parent:WaitForChild("HealthManager"))
+                local HealthMgr = require(ReplicatedStorage:WaitForChild("modules"):WaitForChild("HealthManager"))
                 HealthMgr.init(newEnemy, respawnConfig.MaxHP)
 
                 local bloodType = respawnConfig.BloodType or "Outcast"
