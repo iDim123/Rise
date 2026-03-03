@@ -1,6 +1,5 @@
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
@@ -14,6 +13,15 @@ activeEnemies.Parent = workspace
 
 -- Спавн одного врага
 local function spawnEnemy(template, spawnPosition)
+	local enemyType = template:GetAttribute("EnemyType")
+	if not enemyType then return nil end
+
+	local config = Config.Enemies[enemyType]
+	if not config then
+		warn("[EnemyManager] No config for enemy type: " .. enemyType)
+		return nil
+	end
+
 	local enemy = template:Clone()
 	enemy.Parent = activeEnemies
 
@@ -26,17 +34,17 @@ local function spawnEnemy(template, spawnPosition)
 
 	local humanoid = enemy:FindFirstChild("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = Config.Enemies.Warrior.WalkSpeed
+		humanoid.WalkSpeed = config.WalkSpeed
 	end
 
 	-- Сохраняем данные
-	enemy:SetAttribute("EnemyType", "Warrior")
+	enemy:SetAttribute("EnemyType", enemyType)
 	enemy:SetAttribute("SpawnPosition", spawnPosition)
 
 	-- Инициализируем HP
-	HealthManager.init(enemy, Config.Enemies.Warrior.MaxHP)
+	HealthManager.init(enemy, config.MaxHP)
 
-	print("[EnemyManager] Spawned: " .. enemy.Name .. " at " .. tostring(spawnPosition))
+	print("[EnemyManager] Spawned: " .. enemyType .. " at " .. tostring(spawnPosition))
 
 	return enemy
 end
@@ -57,10 +65,19 @@ end
 -- Начальный спавн всех врагов
 local function initEnemies()
 	for _, template in enemiesFolder:GetChildren() do
+		local enemyType = template:GetAttribute("EnemyType")
+		if not enemyType then continue end
+
 		local spawnPos = template:GetAttribute("SpawnPosition")
-		if spawnPos then
-			spawnEnemy(template, spawnPos)
+		if not spawnPos then continue end
+
+		local config = Config.Enemies[enemyType]
+		if not config then
+			warn("[EnemyManager] Skipping " .. template.Name .. ": no config for type " .. enemyType)
+			continue
 		end
+
+		spawnEnemy(template, spawnPos)
 	end
 end
 

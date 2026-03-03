@@ -45,30 +45,31 @@ local function getTargets(attacker)
 	return targets
 end
 
-Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition)
+Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comboIndex)
 	local character = player.Character
-	if not character then print("[Server] No character") return end
+	if not character then return end
 
 	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then print("[Server] No humanoid") return end
+	if not humanoid or humanoid.Health <= 0 then return end
 
 	local now = tick()
 	local lastAttack = attackCooldowns[player.UserId] or 0
-	if now - lastAttack < Config.Weapons.Sword.Cooldown then print("[Server] Cooldown") return end
+	if now - lastAttack < Config.Weapons.Sword.Cooldown then return end
 	attackCooldowns[player.UserId] = now
 
 	local tool = character:FindFirstChildOfClass("Tool")
-	if not tool then print("[Server] No tool equipped") return end
+	if not tool then return end
 
 	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then print("[Server] No rootPart") return end
+	if not rootPart then return end
 
+	-- Получаем урон из комбо
+	local comboConfig = Config.Weapons.Sword.Combo
+	comboIndex = math.clamp(comboIndex or 1, 1, #comboConfig)
+	local attackDamage = comboConfig[comboIndex].Damage
 	local attackRange = Config.Weapons.Sword.Range
-	local attackDamage = Config.Weapons.Sword.Damage
 
-	local targets = getTargets(character)
-
-	for _, target in targets do
+	for _, target in getTargets(character) do
 		local targetRoot = target:FindFirstChild("HumanoidRootPart")
 		if not targetRoot then continue end
 
@@ -80,7 +81,6 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition)
 			attackDirection = Vector3.new(attackDirection.X, 0, attackDirection.Z).Unit
 
 			local dot = directionToTarget:Dot(attackDirection)
-
 			if dot > 0.3 then
 				HealthManager.takeDamage(target, attackDamage, character)
 			end
