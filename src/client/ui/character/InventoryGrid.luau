@@ -3,6 +3,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
+local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 
 local InventoryGrid = {}
 
@@ -29,6 +30,17 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
 
         InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
         slotFrames[index] = slot
+        
+        CooldownManager.registerSlot(slot, function()
+            local data = getCurrentData()
+            if data and data.slots then
+                local item = data.slots[index]
+                if item and item ~= false then
+                    return item.Id
+                end
+            end
+            return nil
+        end)
     end
 
     -- Separator
@@ -49,6 +61,17 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
             InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
             slotFrames[index] = slot
+            
+            CooldownManager.registerSlot(slot, function()
+                local data = getCurrentData()
+                if data and data.slots then
+                    local item = data.slots[index]
+                    if item and item ~= false then
+                        return item.Id
+                    end
+                end
+                return nil
+            end)
         end
     end
 
@@ -115,7 +138,14 @@ function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCur
                 if item.EquipSlot then
                     equipRemote:FireServer(index)
                 elseif item.Type == "Consumable" then
-                    useItemRemote:FireServer(index)
+                    if not CooldownManager.isOnCooldown(item.Id) then
+                        local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Config"))
+                        local itemDef = Config.Items[item.Id]
+                        if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
+                            CooldownManager.startCooldown(item.Id, itemDef.UseEffect.Cooldown)
+                        end
+                        useItemRemote:FireServer(index)
+                    end
                 end
             end
         end

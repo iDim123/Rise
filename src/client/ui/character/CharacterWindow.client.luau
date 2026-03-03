@@ -8,7 +8,8 @@ local EquipmentPanel = require(script.Parent:WaitForChild("EquipmentPanel"))
 local CraftPanel = require(script.Parent:WaitForChild("CraftPanel"))
 local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
-local useItem = ReplicatedStorage:WaitForChild("UseItem")
+local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -22,6 +23,7 @@ local unequipItem = ReplicatedStorage:WaitForChild("UnequipItem")
 local setActiveWeapon = ReplicatedStorage:WaitForChild("SetActiveWeapon")
 local craftItem = ReplicatedStorage:WaitForChild("CraftItem")
 local useItem = ReplicatedStorage:WaitForChild("UseItem")
+
 
 local isOpen = false
 local currentData = nil
@@ -94,7 +96,7 @@ InventoryGrid.build(mainFrame, swapSlots, equipItem, function() return currentDa
 mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)
 
 -- Build bottom ActionBar
-ActionBarHUD.build(playerGui, setActiveWeapon)
+ActionBarHUD.build(playerGui, setActiveWeapon, useItem)
 
 -- Tab switching
 local function switchTab(tabName)
@@ -152,7 +154,23 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 
     if keyNumber then
-        setActiveWeapon:FireServer(keyNumber)
+        local slotData = nil
+        if currentData and currentData.slots then
+            slotData = currentData.slots[keyNumber]
+        end
+
+        if slotData and slotData ~= false and slotData.Type == "Consumable" then
+            -- Проверяем cooldown на клиенте
+            if not CooldownManager.isOnCooldown(slotData.Id) then
+                local itemDef = Config.Items[slotData.Id]
+                if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
+                    CooldownManager.startCooldown(slotData.Id, itemDef.UseEffect.Cooldown)
+                end
+                useItem:FireServer(keyNumber)
+            end
+        else
+            setActiveWeapon:FireServer(keyNumber)
+        end
     end
 end)
 

@@ -69,6 +69,41 @@ function SlotFactory.createSlot(parent, name, posX, posY)
     activeCorner.CornerRadius = UDim.new(0, 4)
     activeCorner.Parent = activeFrame
 
+        -- Cooldown overlay (затемнение)
+    local cooldownOverlay = Instance.new("Frame")
+    cooldownOverlay.Name = "CooldownOverlay"
+    cooldownOverlay.Size = UDim2.new(1, 0, 1, 0)
+    cooldownOverlay.Position = UDim2.new(0, 0, 0, 0)
+    cooldownOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    cooldownOverlay.BackgroundTransparency = 0.35
+    cooldownOverlay.BorderSizePixel = 0
+    cooldownOverlay.ZIndex = slot.ZIndex + 3
+    cooldownOverlay.Visible = false
+    cooldownOverlay.Parent = slot
+
+    local overlayCorner = Instance.new("UICorner")
+    overlayCorner.CornerRadius = UDim.new(0, 4)
+    overlayCorner.Parent = cooldownOverlay
+
+    -- Cooldown text (секунды по центру)
+    local cooldownText = Instance.new("TextLabel")
+    cooldownText.Name = "CooldownText"
+    cooldownText.Size = UDim2.new(1, 0, 1, 0)
+    cooldownText.Position = UDim2.new(0, 0, 0, 0)
+    cooldownText.BackgroundTransparency = 1
+    cooldownText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cooldownText.TextSize = 20
+    cooldownText.Font = Enum.Font.GothamBold
+    cooldownText.Text = ""
+    cooldownText.ZIndex = slot.ZIndex + 4
+    cooldownText.Visible = false
+    cooldownText.Parent = slot
+
+    local textStroke = Instance.new("UIStroke")
+    textStroke.Color = Color3.fromRGB(0, 0, 0)
+    textStroke.Thickness = 2
+    textStroke.Parent = cooldownText
+    
     return slot
 end
 
