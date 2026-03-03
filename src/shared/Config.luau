@@ -56,10 +56,32 @@ Config.Weapons = {
 
 
 Config.Inventory = {
-    Rows = 2,
-    Columns = 6,
-    SlotSize = 60,  -- пиксели
+    Rows = 5,
+    Columns = 8,
+    SlotSize = 50,
     Padding = 4,
+    ActionBarRow = 1, -- первая строка = ActionBar
+}
+
+Config.Equipment = {
+    Slots = {
+        { Id = "Head",  Name = "Head",  Row = 1 },
+        { Id = "Chest", Name = "Chest", Row = 2 },
+        { Id = "Legs",  Name = "Legs",  Row = 3 },
+        { Id = "Feet",  Name = "Feet",  Row = 4 },
+        { Id = "Hands", Name = "Hands", Row = 5 },
+    },
+}
+
+Config.ItemTypes = {
+    Weapon = "Weapon",
+    HeadArmor = "Head",
+    ChestArmor = "Chest",
+    LegsArmor = "Legs",
+    FeetArmor = "Feet",
+    HandsArmor = "Hands",
+    Consumable = "Consumable",
+    Misc = "Misc",
 }
 
 Config.Blood = {

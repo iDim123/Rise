@@ -2,15 +2,26 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local InventoryManager = {}
-local inventories = {} -- [userId] = { slots = { [1..12] = itemData or nil } }
+local inventories = {}
 
 function InventoryManager.create(player)
     local totalSlots = Config.Inventory.Rows * Config.Inventory.Columns
     local slots = {}
     for i = 1, totalSlots do
-        slots[i] = false  -- false вместо nil
+        slots[i] = false
     end
-    inventories[player.UserId] = { slots = slots, size = totalSlots }
+
+    local equipment = {}
+    for _, slotConfig in Config.Equipment.Slots do
+        equipment[slotConfig.Id] = false
+    end
+
+    inventories[player.UserId] = {
+        slots = slots,
+        size = totalSlots,
+        equipment = equipment,
+        activeWeaponSlot = nil, -- номер слота ActionBar с активным оружием
+    }
     print("[Inventory] Created for " .. player.Name .. " (" .. totalSlots .. " slots)")
 end
 
@@ -18,11 +29,32 @@ function InventoryManager.getInventory(player)
     return inventories[player.UserId]
 end
 
+function InventoryManager.getSlots(player)
+    local inv = inventories[player.UserId]
+    if not inv then return {} end
+    local result = {}
+    for i = 1, inv.size do
+        result[i] = inv.slots[i] or false
+    end
+    return result
+end
+
+function InventoryManager.getEquipment(player)
+    local inv = inventories[player.UserId]
+    if not inv then return {} end
+    return inv.equipment
+end
+
+function InventoryManager.getActiveWeaponSlot(player)
+    local inv = inventories[player.UserId]
+    if not inv then return nil end
+    return inv.activeWeaponSlot
+end
+
 function InventoryManager.addItem(player, itemData)
     local inv = inventories[player.UserId]
     if not inv then return false, "No inventory" end
 
-    -- Стакаемые: ищем существующий стак
     if itemData.Stackable and itemData.MaxStack then
         for i = 1, inv.size do
             local slot = inv.slots[i]
@@ -38,7 +70,6 @@ function InventoryManager.addItem(player, itemData)
         end
     end
 
-    -- Ищем пустой слот
     for i = 1, inv.size do
         if inv.slots[i] == false or inv.slots[i] == nil then
             inv.slots[i] = {
@@ -49,6 +80,8 @@ function InventoryManager.addItem(player, itemData)
                 Stackable = itemData.Stackable or false,
                 MaxStack = itemData.MaxStack or 1,
                 Type = itemData.Type or "Misc",
+                EquipSlot = itemData.EquipSlot or nil,
+                Stats = itemData.Stats or {},
             }
             return true, i
         end
@@ -60,41 +93,94 @@ end
 function InventoryManager.removeItem(player, slotIndex, amount)
     local inv = inventories[player.UserId]
     if not inv then return false end
-
     local slot = inv.slots[slotIndex]
     if not slot or slot == false then return false end
 
     amount = amount or 1
     slot.Amount = slot.Amount - amount
-
     if slot.Amount <= 0 then
         inv.slots[slotIndex] = false
     end
-
     return true
 end
 
 function InventoryManager.swapSlots(player, fromIndex, toIndex)
     local inv = inventories[player.UserId]
     if not inv then return false end
-
-    local totalSlots = #inv.slots
-    if fromIndex < 1 or fromIndex > totalSlots then return false end
-    if toIndex < 1 or toIndex > totalSlots then return false end
-
+    if fromIndex < 1 or fromIndex > inv.size then return false end
+    if toIndex < 1 or toIndex > inv.size then return false end
     inv.slots[fromIndex], inv.slots[toIndex] = inv.slots[toIndex], inv.slots[fromIndex]
     return true
 end
 
-function InventoryManager.getSlots(player)
+function InventoryManager.equipItem(player, slotIndex)
     local inv = inventories[player.UserId]
-    if not inv then return {} end
+    if not inv then return false end
 
-    local result = {}
-    for i = 1, inv.size do
-        result[i] = inv.slots[i] or false
+    local item = inv.slots[slotIndex]
+    if not item or item == false then return false end
+
+    local equipSlot = item.EquipSlot
+    if not equipSlot then return false end
+
+    -- Проверяем что слот экипировки существует
+    local validSlot = false
+    for _, sc in Config.Equipment.Slots do
+        if sc.Id == equipSlot then validSlot = true break end
     end
-    return result
+    if not validSlot then return false end
+
+    -- Если в слоте экипировки уже что-то есть — возвращаем в инвентарь
+    local currentEquip = inv.equipment[equipSlot]
+    inv.equipment[equipSlot] = item
+    inv.slots[slotIndex] = false
+
+    if currentEquip and currentEquip ~= false then
+        -- Пытаемся вернуть в тот же слот
+        inv.slots[slotIndex] = currentEquip
+    end
+
+    return true
+end
+
+function InventoryManager.unequipItem(player, equipSlotId)
+    local inv = inventories[player.UserId]
+    if not inv then return false end
+
+    local item = inv.equipment[equipSlotId]
+    if not item or item == false then return false end
+
+    -- Ищем свободный слот в инвентаре
+    for i = 1, inv.size do
+        if inv.slots[i] == false or inv.slots[i] == nil then
+            inv.slots[i] = item
+            inv.equipment[equipSlotId] = false
+            return true
+        end
+    end
+
+    return false, "Inventory full"
+end
+
+function InventoryManager.setActiveWeapon(player, slotIndex)
+    local inv = inventories[player.UserId]
+    if not inv then return false end
+
+    -- slotIndex должен быть в пределах ActionBar (первая строка)
+    local maxActionBar = Config.Inventory.Columns
+    if slotIndex < 1 or slotIndex > maxActionBar then return false end
+
+    local item = inv.slots[slotIndex]
+    if item and item ~= false and item.Type == Config.ItemTypes.Weapon then
+        inv.activeWeaponSlot = slotIndex
+        return true
+    else
+        -- Если в слоте нет оружия — снимаем активное
+        if inv.activeWeaponSlot == slotIndex then
+            inv.activeWeaponSlot = nil
+        end
+        return false
+    end
 end
 
 function InventoryManager.remove(player)

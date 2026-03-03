@@ -13,14 +13,10 @@ local weaponsFolder = ServerStorage:WaitForChild("weapons")
 local attackCooldowns = {}
 
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
-		character:WaitForChild("Humanoid")
-
-		local sword = weaponsFolder:WaitForChild("Sword"):Clone()
-		sword.Parent = player.Backpack
-
-		attackCooldowns[player.UserId] = 0
-	end)
+    player.CharacterAdded:Connect(function(character)
+        character:WaitForChild("Humanoid")
+        attackCooldowns[player.UserId] = 0
+    end)
 end)
 
 local function getTargets(attacker)
