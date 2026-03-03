@@ -705,3 +705,11 @@ end)
 updateInventory.OnClientEvent:Connect(function(data)
 	refreshUI(data)
 end)
+
+-- Загружаем ActionBar при старте
+task.spawn(function()
+	local data = getInventory:InvokeServer()
+	if data then
+		refreshUI(data)
+	end
+end)

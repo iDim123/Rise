@@ -36,17 +36,17 @@ function LootManager.dropLoot(enemyEntity)
 		-- Создаём кубик
 		local lootPart = Instance.new("Part")
 		lootPart.Name = "Loot_" .. lootEntry.ItemId
-		lootPart.Size = Vector3.new(1.2, 1.2, 1.2)
+		lootPart.Size = Vector3.new(0.8, 0.8, 0.8)
 		lootPart.Shape = Enum.PartType.Block
 		lootPart.Color = Color3.fromRGB(255, 255, 255)
-		lootPart.Material = Enum.Material.Neon
+		lootPart.Material = Enum.Material.SmoothPlastic
 		lootPart.Anchored = true
 		lootPart.CanCollide = false
 
 		-- Смещаем каждый кубик чтобы не накладывались
 		local offsetX = (dropIndex % 3 - 1) * 2
 		local offsetZ = math.floor(dropIndex / 3) * 2
-		lootPart.Position = basePosition + Vector3.new(offsetX, 0.6, offsetZ)
+		lootPart.Position = basePosition + Vector3.new(offsetX, 0.3, offsetZ)
 
 		-- Атрибуты для клиента
 		lootPart:SetAttribute("ItemId", lootEntry.ItemId)

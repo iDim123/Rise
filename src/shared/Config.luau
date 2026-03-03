@@ -43,7 +43,7 @@ Config.Weapons = {
 		ComboWindow = 1.2, -- секунд на следующий клик, иначе сброс
 		Combo = {
 			[1] = {
-				Damage = 15,
+				Damage = 35,
 				AnimationId = "rbxassetid://70662356098178", -- твоя анимация
 			},
 			[2] = {

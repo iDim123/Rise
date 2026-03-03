@@ -1,7 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local LootManager = require(script.Parent:WaitForChild("LootManager"))
+local modules = ReplicatedStorage:WaitForChild("modules")
+local LootManager = require(modules:WaitForChild("LootManager"))
 
 -- Remote для подбора
 local pickupLoot = Instance.new("RemoteEvent")
