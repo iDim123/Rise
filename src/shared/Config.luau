@@ -86,4 +86,29 @@ Config.Blood = {
     },
 }
 
+Config.Servants = {
+    MaxCaptured = 10,
+    MaxActive = 1,
+    CaptureKey = Enum.KeyCode.T,
+    CaptureRange = 8,
+    CaptureTime = 3,          -- секунды каста
+    CaptureThreshold = 0.3,   -- враг <30% HP
+    FollowDistance = 6,        -- дистанция следования за игроком
+    AttackRange = 5,
+    AggroRange = 20,
+    AttackCooldown = 1.2,
+
+    Modes = {
+        Aggressive = "Aggressive",
+        Defensive = "Defensive",
+        Passive = "Passive",
+    },
+
+    Commands = {
+        AttackTarget = "AttackTarget",
+        Stay = "Stay",
+        Follow = "Follow",
+    },
+}
+
 return Config

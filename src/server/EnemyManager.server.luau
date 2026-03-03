@@ -44,15 +44,17 @@ local function spawnEnemy(template, spawnPosition)
 	-- Инициализируем HP
 	HealthManager.init(enemy, config.MaxHP)
 
-	local bloodType = config.BloodType or "Outcast"
+ -- Кровь врага
+    local bloodType = config.BloodType or "Outcast"
     local bloodQualityRange = config.BloodQuality or { Min = 1, Max = 1 }
     local bloodQuality = math.random(bloodQualityRange.Min, bloodQualityRange.Max)
     enemy:SetAttribute("BloodType", bloodType)
     enemy:SetAttribute("BloodQuality", bloodQuality)
-	
-	print("[EnemyManager] Spawned: " .. enemyType .. " at " .. tostring(spawnPosition))
 
-	return enemy
+    print("[EnemyManager] Spawned: " .. enemyType .. " at " .. tostring(spawnPosition)
+        .. " | Blood: " .. bloodType .. " " .. bloodQuality .. "%")
+
+    return enemy
 end
 
 -- Респавн врага после смерти

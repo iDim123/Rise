@@ -47,6 +47,39 @@ hpText.Text = "100 / 100"
 hpText.ZIndex = 2
 hpText.Parent = frame
 
+-- ===== HP бар слуги =====
+local servantFrame = Instance.new("Frame")
+servantFrame.Size = UDim2.new(0, 150, 0, 16)
+servantFrame.Position = UDim2.new(0.5, 105, 0, 10) -- справа от HP игрока
+servantFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+servantFrame.BorderSizePixel = 0
+servantFrame.Visible = false
+servantFrame.Parent = screenGui
+
+local servantFrameCorner = Instance.new("UICorner")
+servantFrameCorner.CornerRadius = UDim.new(0, 4)
+servantFrameCorner.Parent = servantFrame
+
+local servantBar = Instance.new("Frame")
+servantBar.Name = "ServantBar"
+servantBar.Size = UDim2.new(1, 0, 1, 0)
+servantBar.BackgroundColor3 = Color3.fromRGB(80, 50, 180)
+servantBar.BorderSizePixel = 0
+servantBar.Parent = servantFrame
+
+local servantBarCorner = Instance.new("UICorner")
+servantBarCorner.CornerRadius = UDim.new(0, 4)
+servantBarCorner.Parent = servantBar
+
+local servantText = Instance.new("TextLabel")
+servantText.Size = UDim2.new(1, 0, 1, 0)
+servantText.BackgroundTransparency = 1
+servantText.TextColor3 = Color3.fromRGB(255, 255, 255)
+servantText.TextSize = 10
+servantText.Font = Enum.Font.GothamBold
+servantText.Text = ""
+servantText.Parent = servantFrame
+
 -- === Обновление ===
 
 RunService.RenderStepped:Connect(function()
@@ -70,4 +103,31 @@ RunService.RenderStepped:Connect(function()
 	else
 		hpBar.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
 	end
+
+	  -- Обновляем HP слуги
+    local servantsFolder = workspace:FindFirstChild("Servants")
+    if servantsFolder then
+        local foundServant = false
+        for _, servant in servantsFolder:GetChildren() do
+            if servant:GetAttribute("OwnerUserId") == player.UserId then
+                local sHP = servant:GetAttribute("CurrentHP")
+                local sMaxHP = servant:GetAttribute("MaxHP")
+                if sHP and sMaxHP and sMaxHP > 0 then
+                    local sRatio = sHP / sMaxHP
+                    servantBar.Size = UDim2.new(sRatio, 0, 1, 0)
+                    servantText.Text = servant.Name .. " " .. sHP .. "/" .. sMaxHP
+                    servantFrame.Visible = true
+                    foundServant = true
+                end
+                break
+            end
+        end
+        if not foundServant then
+            servantFrame.Visible = false
+        end
+    else
+        servantFrame.Visible = false
+    end
 end)
+
+
