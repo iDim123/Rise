@@ -8,7 +8,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local drinkBloodRemote = ReplicatedStorage:WaitForChild("DrinkBloodRequest")
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 -- ===== UI полоска крови =====
 local screenGui = Instance.new("ScreenGui")
@@ -87,7 +87,7 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Config.Blood.DrinkKey then
-        drinkBloodRemote:FireServer()
+        Remotes.DrinkBloodRemote:FireServer()
     end
 end)
 

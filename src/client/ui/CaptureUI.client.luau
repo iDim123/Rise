@@ -8,8 +8,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local captureRequest = ReplicatedStorage:WaitForChild("CaptureRequest")
-local captureResult = ReplicatedStorage:WaitForChild("CaptureResult")
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local isCasting = false
 local castStartTime = 0
@@ -95,16 +94,16 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             -- Отмена каста
             isCasting = false
             castFrame.Visible = false
-            captureRequest:FireServer("cancel")
+            Remotes.CaptureRequest:FireServer("cancel")
         else
             -- Начало каста
-            captureRequest:FireServer("start")
+            Remotes.CaptureRequest:FireServer("start")
         end
     end
 end)
 
 -- ===== Результат от сервера =====
-captureResult.OnClientEvent:Connect(function(success, message)
+Remotes.CaptureResult.OnClientEvent:Connect(function(success, message)
     if message == "casting" then
         isCasting = true
         castStartTime = tick()
