@@ -1,0 +1,74 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local BloodManager = require(script.Parent:WaitForChild("BloodManager"))
+local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+
+-- Связываем менеджеры
+BloodManager.setHealthManager(HealthManager)
+
+-- RemoteEvent для питья крови
+local drinkBloodRemote = Instance.new("RemoteEvent")
+drinkBloodRemote.Name = "DrinkBloodRequest"
+drinkBloodRemote.Parent = ReplicatedStorage
+
+drinkBloodRemote.OnServerEvent:Connect(function(player)
+    local character = player.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    -- Находим ближайшего врага с <20% HP
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    if not enemiesFolder then return end
+
+    local bestEnemy = nil
+    local bestDistance = Config.Blood.DrinkRange + 1
+
+    local Config = require(ReplicatedStorage:WaitForChild("Config"))
+
+    for _, enemy in enemiesFolder:GetChildren() do
+        local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
+        if not enemyRoot then continue end
+
+        local currentHP = enemy:GetAttribute("CurrentHP")
+        local maxHP = enemy:GetAttribute("MaxHP")
+        if not currentHP or not maxHP or maxHP == 0 then continue end
+
+        if currentHP / maxHP <= Config.Blood.DrinkThreshold then
+            local dist = (enemyRoot.Position - rootPart.Position).Magnitude
+            if dist < bestDistance then
+                bestDistance = dist
+                bestEnemy = enemy
+            end
+        end
+    end
+
+    if bestEnemy then
+        BloodManager.drinkBlood(player, bestEnemy)
+    end
+end)
+
+-- Инициализация крови при входе
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        BloodManager.init(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    BloodManager.remove(player)
+end)
+
+-- Тик расхода крови
+local lastTick = tick()
+RunService.Heartbeat:Connect(function()
+    local now = tick()
+    local dt = now - lastTick
+    lastTick = now
+
+    for _, player in Players:GetPlayers() do
+        BloodManager.tick(player, dt)
+    end
+end)
