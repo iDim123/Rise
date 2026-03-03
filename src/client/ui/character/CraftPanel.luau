@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
+local GuiService = game:GetService("GuiService")
 
 local CraftPanel = {}
 
@@ -281,15 +282,16 @@ local function updateTooltip(recipe)
 end
 
 local activeRow = nil
+local mainFrameRef = nil
 
 local function positionTooltip()
-    if not tooltip or not tooltip.Visible then return end
-    local mainPos = craftPanel.Parent.AbsolutePosition
-    local mainSize = craftPanel.Parent.AbsoluteSize
+    if not tooltip or not tooltip.Visible or not mainFrameRef then return end
+    local mainSize = mainFrameRef.AbsoluteSize
+    local mainPos = mainFrameRef.AbsolutePosition
+    local guiInset = GuiService:GetGuiInset()
     
-    -- Справа от окна, на уровне верхнего края
-    local tooltipX = mainPos.X + mainSize.X + 8
-    local tooltipY = mainPos.Y
+    local tooltipX = mainPos.X + mainSize.X + 8 - guiInset.X
+    local tooltipY = mainPos.Y - guiInset.Y
     
     tooltip.Position = UDim2.new(0, tooltipX, 0, tooltipY)
 end
@@ -308,6 +310,8 @@ local function hideTooltip()
 end
 -- ===== BUILD =====
 function CraftPanel.build(parent, contentY, craftRemote, screenGui)
+    mainFrameRef = parent
+
     createTooltip(screenGui)
 
     craftPanel = Instance.new("ScrollingFrame")
