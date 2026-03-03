@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local BloodManager = require(script.Parent:WaitForChild("BloodManager"))
 local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
 
@@ -19,14 +20,11 @@ drinkBloodRemote.OnServerEvent:Connect(function(player)
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
 
-    -- Находим ближайшего врага с <20% HP
     local enemiesFolder = workspace:FindFirstChild("Enemies")
     if not enemiesFolder then return end
 
     local bestEnemy = nil
     local bestDistance = Config.Blood.DrinkRange + 1
-
-    local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
     for _, enemy in enemiesFolder:GetChildren() do
         local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
@@ -50,7 +48,6 @@ drinkBloodRemote.OnServerEvent:Connect(function(player)
     end
 end)
 
--- Инициализация крови при входе
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         BloodManager.init(player)
@@ -61,7 +58,6 @@ Players.PlayerRemoving:Connect(function(player)
     BloodManager.remove(player)
 end)
 
--- Тик расхода крови
 local lastTick = tick()
 RunService.Heartbeat:Connect(function()
     local now = tick()
