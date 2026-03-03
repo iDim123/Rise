@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
@@ -19,6 +20,8 @@ local slotFrames = {}
 local equipSlotFrames = {}
 local dragFrom = nil
 local currentData = nil
+local dragGhost = nil
+local dragOverIndex = nil
 
 local cols = Config.Inventory.Columns        -- 8
 local totalRows = Config.Inventory.Rows      -- 5 (данные)
@@ -184,11 +187,72 @@ for i, slotConfig in Config.Equipment.Slots do
 	nameLabel.Visible = false
 	nameLabel.Parent = slot
 
-	slot.MouseButton1Click:Connect(function()
+	slot.MouseButton2Click:Connect(function()
 		unequipItem:FireServer(slotConfig.Id)
 	end)
 
 	equipSlotFrames[slotConfig.Id] = slot
+end
+
+-- ===== DRAG GHOST =====
+local function createDragGhost(itemData)
+	if dragGhost then dragGhost:Destroy() end
+
+	local ghost = Instance.new("Frame")
+	ghost.Name = "DragGhost"
+	ghost.Size = UDim2.new(0, slotSize, 0, slotSize)
+	ghost.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	ghost.BackgroundTransparency = 0.3
+	ghost.BorderSizePixel = 0
+	ghost.ZIndex = 100
+	ghost.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = ghost
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(100, 180, 255)
+	stroke.Thickness = 2
+	stroke.Parent = ghost
+
+	if itemData.Icon and itemData.Icon ~= "" and itemData.Icon ~= "rbxassetid://0" then
+		local icon = Instance.new("ImageLabel")
+		icon.Size = UDim2.new(0.8, 0, 0.8, 0)
+		icon.Position = UDim2.new(0.1, 0, 0.1, 0)
+		icon.BackgroundTransparency = 1
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.Image = itemData.Icon
+		icon.ZIndex = 101
+		icon.Parent = ghost
+	else
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, -4, 0.6, 0)
+		label.Position = UDim2.new(0, 2, 0.05, 0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		label.TextSize = 9
+		label.Font = Enum.Font.GothamBold
+		label.TextWrapped = true
+		label.Text = itemData.Name
+		label.ZIndex = 101
+		label.Parent = ghost
+	end
+
+	dragGhost = ghost
+end
+
+local function updateDragGhostPosition()
+	if not dragGhost then return end
+	local mousePos = UserInputService:GetMouseLocation()
+	dragGhost.Position = UDim2.new(0, mousePos.X - slotSize / 2, 0, mousePos.Y - slotSize / 2)
+end
+
+local function destroyDragGhost()
+	if dragGhost then
+		dragGhost:Destroy()
+		dragGhost = nil
+	end
 end
 
 -- ===== HELPER: создание слота инвентаря =====
@@ -244,44 +308,71 @@ local function createInvSlot(parent, index, posX, posY)
 
 	local activeFrame = Instance.new("Frame")
 	activeFrame.Name = "ActiveFrame"
-	activeFrame.Size = UDim2.new(1, 4, 1, 4)
-	activeFrame.Position = UDim2.new(0, -2, 0, -2)
+	activeFrame.Size = UDim2.new(1, 0, 1, 0)
+	activeFrame.Position = UDim2.new(0, 0, 0, 0)
 	activeFrame.BackgroundTransparency = 1
-	activeFrame.BorderSizePixel = 2
-	activeFrame.BorderColor3 = Color3.fromRGB(255, 200, 50)
+	activeFrame.BorderSizePixel = 0
 	activeFrame.Visible = false
 	activeFrame.Parent = slot
 
-	-- Drag & Drop
+	local activeStroke = Instance.new("UIStroke")
+	activeStroke.Color = Color3.fromRGB(50, 130, 255)
+	activeStroke.Thickness = 2
+	activeStroke.Parent = activeFrame
+
+	local activeCorner = Instance.new("UICorner")
+	activeCorner.CornerRadius = UDim.new(0, 4)
+	activeCorner.Parent = activeFrame
+
+	-- Drag start
 	slot.MouseButton1Down:Connect(function()
 		dragFrom = index
 		slot.BackgroundColor3 = Color3.fromRGB(80, 80, 110)
+
+		-- Создаём призрак если в слоте есть предмет
+		if currentData then
+			local item = currentData.slots[index]
+			if item and item ~= false then
+				createDragGhost(item)
+			end
+		end
 	end)
 
+	-- Drag end / drop
 	slot.MouseButton1Up:Connect(function()
 		if dragFrom and dragFrom ~= index then
 			swapSlots:FireServer(dragFrom, index)
-		elseif dragFrom and dragFrom == index then
-			if currentData then
-				local item = currentData.slots[index]
-				if item and item ~= false and item.EquipSlot then
-					equipItem:FireServer(index)
-				end
-			end
 		end
 		dragFrom = nil
+		dragOverIndex = nil
+		destroyDragGhost()
 		slot.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
 	end)
 
+	-- Hover
+	slot.MouseEnter:Connect(function()
+		if dragFrom and dragFrom ~= index then
+			dragOverIndex = index
+			slot.BackgroundColor3 = Color3.fromRGB(80, 120, 80) -- зелёная подсветка цели
+		end
+	end)
+
 	slot.MouseLeave:Connect(function()
+		if dragOverIndex == index then
+			dragOverIndex = nil
+		end
 		if not dragFrom or dragFrom ~= index then
 			slot.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
 		end
 	end)
 
-	slot.MouseEnter:Connect(function()
-		if dragFrom then
-			slot.BackgroundColor3 = Color3.fromRGB(70, 70, 95)
+	-- ПКМ — экипировка брони
+	slot.MouseButton2Click:Connect(function()
+		if currentData then
+			local item = currentData.slots[index]
+			if item and item ~= false and item.EquipSlot then
+				equipItem:FireServer(index)
+			end
 		end
 	end)
 
@@ -441,15 +532,23 @@ for col = 0, cols - 1 do
 	amountLabel.Visible = false
 	amountLabel.Parent = slot
 
-	local activeFrame = Instance.new("Frame")
+    local activeFrame = Instance.new("Frame")
 	activeFrame.Name = "ActiveFrame"
-	activeFrame.Size = UDim2.new(1, 4, 1, 4)
-	activeFrame.Position = UDim2.new(0, -2, 0, -2)
+	activeFrame.Size = UDim2.new(1, 0, 1, 0)
+	activeFrame.Position = UDim2.new(0, 0, 0, 0)
 	activeFrame.BackgroundTransparency = 1
-	activeFrame.BorderSizePixel = 2
-	activeFrame.BorderColor3 = Color3.fromRGB(255, 200, 50)
+	activeFrame.BorderSizePixel = 0
 	activeFrame.Visible = false
 	activeFrame.Parent = slot
+
+	local activeStroke = Instance.new("UIStroke")
+	activeStroke.Color = Color3.fromRGB(50, 130, 255)
+	activeStroke.Thickness = 2
+	activeStroke.Parent = activeFrame
+
+	local activeCorner = Instance.new("UICorner")
+	activeCorner.CornerRadius = UDim.new(0, 4)
+	activeCorner.Parent = activeFrame
 
 	slot.MouseButton1Click:Connect(function()
 		setActiveWeapon:FireServer(index)
@@ -575,6 +674,29 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
 	if keyNumber then
 		setActiveWeapon:FireServer(keyNumber)
+	end
+end)
+
+-- Обновляем позицию призрака при перетаскивании
+local RunService = game:GetService("RunService")
+RunService.RenderStepped:Connect(function()
+	if dragFrom and dragGhost then
+		updateDragGhostPosition()
+	end
+end)
+
+-- Отпускание ЛКМ вне слотов — отмена перетаскивания
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if dragFrom then
+			dragFrom = nil
+			dragOverIndex = nil
+			destroyDragGhost()
+			-- Сбросить подсветку всех слотов
+			for _, sf in slotFrames do
+				sf.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+			end
+		end
 	end
 end)
 
