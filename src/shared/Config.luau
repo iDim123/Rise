@@ -2,7 +2,7 @@
 local Config = {}
 
 Config.Player = {
-	MaxHP = 100,
+	MaxHP = 200,
 	RespawnTime = 5,
 }
 
@@ -155,6 +155,30 @@ Config.Loot = {
 	DropLifetime = 300, -- секунд до исчезновения
 	PickupRange = 6,    -- дистанция подбора
 	PickupKey = Enum.KeyCode.F,
+}
+
+Config.Crafting = {
+    Recipes = {
+        {
+            Id = "restoration_potion",
+            Name = "Зелье восстановления",
+            Description = "Восстанавливает 50 HP при использовании.",
+            Icon = "rbxassetid://0",
+            Result = {
+                Id = "restoration_potion",
+                Name = "Restoration Potion",
+                Icon = "rbxassetid://0",
+                Type = "Consumable",
+                Stackable = true,
+                MaxStack = 20,
+                Amount = 1,
+            },
+            Ingredients = {
+                { ItemId = "blood_essence", Amount = 10 },
+            },
+            CraftTime = 1, -- мгновенный крафт (можно добавить задержку позже)
+        },
+    },
 }
 
 return Config

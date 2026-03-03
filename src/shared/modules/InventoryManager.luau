@@ -183,8 +183,59 @@ function InventoryManager.setActiveWeapon(player, slotIndex)
     end
 end
 
+-- Подсчёт количества предмета по Id во всём инвентаре
+function InventoryManager.countItem(player, itemId)
+    local inv = inventories[player.UserId]
+    if not inv then return 0 end
+    local count = 0
+    for i = 1, inv.size do
+        local slot = inv.slots[i]
+        if slot and slot ~= false and slot.Id == itemId then
+            count = count + (slot.Amount or 1)
+        end
+    end
+    return count
+end
+
+-- Удалить указанное количество предмета по Id (из нескольких стаков если нужно)
+function InventoryManager.removeItemById(player, itemId, amount)
+    local inv = inventories[player.UserId]
+    if not inv then return false end
+    local remaining = amount
+    for i = 1, inv.size do
+        if remaining <= 0 then break end
+        local slot = inv.slots[i]
+        if slot and slot ~= false and slot.Id == itemId then
+            local take = math.min(slot.Amount or 1, remaining)
+            slot.Amount = (slot.Amount or 1) - take
+            remaining = remaining - take
+            if slot.Amount <= 0 then
+                inv.slots[i] = false
+            end
+        end
+    end
+    return remaining <= 0
+end
+
 function InventoryManager.remove(player)
     inventories[player.UserId] = nil
+end
+
+function InventoryManager.addItemFromConfig(player, itemId, amount)
+    local itemDef = Config.Items[itemId]
+    if not itemDef then
+        warn("[Inventory] Unknown item: " .. tostring(itemId))
+        return false
+    end
+    return InventoryManager.addItem(player, {
+        Id = itemDef.Id,
+        Name = itemDef.Name,
+        Icon = itemDef.Icon or "rbxassetid://0",
+        Amount = amount or 1,
+        Stackable = itemDef.Stackable or false,
+        MaxStack = itemDef.MaxStack or 1,
+        Type = itemDef.Type or "Misc",
+    })
 end
 
 return InventoryManager

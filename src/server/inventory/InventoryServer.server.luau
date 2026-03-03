@@ -31,6 +31,12 @@ local setActiveWeapon = Instance.new("RemoteEvent")
 setActiveWeapon.Name = "SetActiveWeapon"
 setActiveWeapon.Parent = ReplicatedStorage
 
+local craftItem = Instance.new("RemoteEvent")
+craftItem.Name = "CraftItem"
+craftItem.Parent = ReplicatedStorage
+
+local craftingPlayers = {} 
+
 local function sendFullUpdate(player)
     updateInventory:FireClient(player, {
         slots = InventoryManager.getSlots(player),
@@ -107,6 +113,91 @@ setActiveWeapon.OnServerEvent:Connect(function(player, slotIndex)
     sendFullUpdate(player)
 end)
 
+
+-- ===== CRAFT QUEUE =====
+local craftQueues = {} -- [UserId] = { {recipeId, ...}, ... }
+local craftRunning = {} -- [UserId] = true если корутина работает
+
+local function processCraftQueue(player)
+    if craftRunning[player.UserId] then return end
+    craftRunning[player.UserId] = true
+
+    task.spawn(function()
+        while true do
+            local queue = craftQueues[player.UserId]
+            if not queue or #queue == 0 then
+                craftRunning[player.UserId] = nil
+                return
+            end
+
+            local recipeId = table.remove(queue, 1)
+
+            local recipe = nil
+            for _, r in Config.Crafting.Recipes do
+                if r.Id == recipeId then
+                    recipe = r
+                    break
+                end
+            end
+
+            if not recipe then continue end
+
+            -- Проверяем ресурсы
+            local canCraft = true
+            for _, ingredient in recipe.Ingredients do
+                if InventoryManager.countItem(player, ingredient.ItemId) < ingredient.Amount then
+                    canCraft = false
+                    break
+                end
+            end
+
+            if not canCraft then continue end
+
+            -- Списываем ингредиенты
+            for _, ingredient in recipe.Ingredients do
+                InventoryManager.removeItemById(player, ingredient.ItemId, ingredient.Amount)
+            end
+            sendFullUpdate(player)
+
+            -- Задержка крафта
+            if recipe.CraftTime and recipe.CraftTime > 0 then
+                task.wait(recipe.CraftTime)
+            end
+
+            -- Выдаём результат
+            local result = recipe.Result
+            InventoryManager.addItem(player, {
+                Id = result.Id,
+                Name = result.Name,
+                Icon = result.Icon or "rbxassetid://0",
+                Amount = result.Amount or 1,
+                Stackable = result.Stackable or false,
+                MaxStack = result.MaxStack or 1,
+                Type = result.Type or "Misc",
+            })
+
+            print("[Craft] " .. player.Name .. " crafted " .. result.Name)
+            sendFullUpdate(player)
+        end
+    end)
+end
+
+craftItem.OnServerEvent:Connect(function(player, recipeId)
+    if type(recipeId) ~= "string" then return end
+
+    if not craftQueues[player.UserId] then
+        craftQueues[player.UserId] = {}
+    end
+
+    table.insert(craftQueues[player.UserId], recipeId)
+    processCraftQueue(player)
+end)
+
+-- Очистка при выходе (добавь в существующий PlayerRemoving)
+Players.PlayerRemoving:Connect(function(player)
+    craftQueues[player.UserId] = nil
+    craftRunning[player.UserId] = nil
+end)
 Players.PlayerAdded:Connect(function(player)
     InventoryManager.create(player)
 
@@ -130,6 +221,8 @@ Players.PlayerAdded:Connect(function(player)
         MaxStack = 20,
         Type = "Consumable",
     })
+
+    InventoryManager.addItemFromConfig(player, "blood_essence", 150)
 
     InventoryManager.addItem(player, {
         Id = "iron_helmet",
