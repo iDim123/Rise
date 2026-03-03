@@ -91,6 +91,13 @@ function HealthManager.die(entity, attacker)
 						newEnemy:SetAttribute("SpawnPosition", spawnPos)
 
 						HealthManager.init(newEnemy, config.MaxHP)
+
+						 -- Кровь врага
+						local bloodType = config.BloodType or "Outcast"
+						local bqRange = config.BloodQuality or { Min = 1, Max = 1 }
+						newEnemy:SetAttribute("BloodType", bloodType)
+						newEnemy:SetAttribute("BloodQuality", math.random(bqRange.Min, bqRange.Max))
+
 						print("[HealthManager] Respawned: " .. enemyType)
 					end
 				end)
