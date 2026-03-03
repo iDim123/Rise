@@ -17,6 +17,9 @@ Config.Enemies = {
         RespawnTime = 10,
         BloodType = "Warrior",
         BloodQuality = { Min = 1, Max = 100 }, -- случайное качество при спавне
+        Loot = {
+            { ItemId = "blood_essence", Amount = { Min = 5, Max = 12 }, Chance = 1.0 },
+        },
     },
     TrainingDummy = {
         MaxHP = 99999,
@@ -28,6 +31,7 @@ Config.Enemies = {
         RespawnTime = 5,
         BloodType = "Outcast",
         BloodQuality = { Min = 1, Max = 1 },
+        Loot = {},
     },
 }
 
@@ -82,6 +86,7 @@ Config.ItemTypes = {
     HandsArmor = "Hands",
     Consumable = "Consumable",
     Misc = "Misc",
+    Resource = "Resource",
 }
 
 Config.Blood = {
@@ -131,6 +136,25 @@ Config.Servants = {
         Stay = "Stay",
         Follow = "Follow",
     },
+}
+
+Config.Items = {
+	blood_essence = {
+		Id = "blood_essence",
+		Name = "Blood Essence",
+		Description = "An energy source distilled from blood. Vampires use it to control material, to unlock sealed knowledge and convert humans into obedient servants.",
+		Icon = "rbxassetid://0",
+		Category = "Alchemy",
+		Type = "Resource",
+		Stackable = true,
+		MaxStack = 500,
+	},
+}
+
+Config.Loot = {
+	DropLifetime = 300, -- секунд до исчезновения
+	PickupRange = 6,    -- дистанция подбора
+	PickupKey = Enum.KeyCode.F,
 }
 
 return Config

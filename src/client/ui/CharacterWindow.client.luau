@@ -652,6 +652,7 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 
+	-- C — открыть/закрыть окно персонажа
 	if input.KeyCode == Enum.KeyCode.C then
 		isOpen = not isOpen
 		mainFrame.Visible = isOpen
@@ -661,6 +662,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		end
 	end
 
+	-- 1-8 — активировать оружие из ActionBar
 	local keyNumber = nil
 	if input.KeyCode == Enum.KeyCode.One then keyNumber = 1
 	elseif input.KeyCode == Enum.KeyCode.Two then keyNumber = 2

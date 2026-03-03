@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+local modules = ReplicatedStorage:WaitForChild("modules")
 
 local HealthManager = {}
 
@@ -64,6 +65,10 @@ function HealthManager.die(entity, attacker)
 	else
 		local spawnPos = entity:GetAttribute("SpawnPosition")
 		local enemyType = entity:GetAttribute("EnemyType")
+
+		-- Дроп лута перед уничтожением
+		local LootManager = require(modules:WaitForChild("LootManager"))
+		LootManager.dropLoot(entity)
 
 		entity:Destroy()
 		healthData[entity] = nil

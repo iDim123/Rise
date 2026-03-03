@@ -325,14 +325,15 @@ nameInput.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- Открытие/закрытие по V
+-- Открытие/закрытие по V Esc
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.V then
-        isOpen = not isOpen
-        mainFrame.Visible = isOpen
-        if isOpen then
-            refreshUI()
-        end
-    end
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.V then
+		isOpen = not isOpen
+		mainFrame.Visible = isOpen
+		if isOpen then
+			refreshUI()
+		end
+	end
 end)
