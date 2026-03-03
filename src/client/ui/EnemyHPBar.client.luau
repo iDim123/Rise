@@ -45,38 +45,53 @@ local function createHPBar(enemy)
     nameLabel.Parent = bg
 end
 
-RunService.RenderStepped:Connect(function()
-    local enemiesFolder = workspace:FindFirstChild("Enemies")
-    if not enemiesFolder then return end
+local function updateHPBar(enemy)
+    local head = enemy:FindFirstChild("Head")
+    if not head then return end
 
-    for _, enemy in enemiesFolder:GetChildren() do
-        createHPBar(enemy)
+    local billboard = head:FindFirstChild("EnemyHPGui")
+    if not billboard then return end
 
-        local head = enemy:FindFirstChild("Head")
-        if not head then continue end
+    local currentHP = enemy:GetAttribute("CurrentHP")
+    local maxHP = enemy:GetAttribute("MaxHP")
+    if not currentHP or not maxHP or maxHP == 0 then return end
 
-        local billboard = head:FindFirstChild("EnemyHPGui")
-        if not billboard then continue end
+    local bg = billboard:FindFirstChild("Background")
+    if not bg then return end
 
-        local currentHP = enemy:GetAttribute("CurrentHP")
-        local maxHP = enemy:GetAttribute("MaxHP")
-        if not currentHP or not maxHP then continue end
+    local hpBar = bg:FindFirstChild("HPBar")
+    if hpBar then
+        hpBar.Size = UDim2.new(currentHP / maxHP, 0, 1, 0)
+    end
 
-        local bg = billboard:FindFirstChild("Background")
-        if not bg then continue end
-
-        local hpBar = bg:FindFirstChild("HPBar")
-        if not hpBar then continue end
-
-        local nameLabel = bg:FindFirstChild("NameLabel")
-        if not nameLabel then continue end
-
-        local ratio = currentHP / maxHP
-        hpBar.Size = UDim2.new(ratio, 0, 1, 0)
-
-        -- Имя с процентом крови
+    local nameLabel = bg:FindFirstChild("NameLabel")
+    if nameLabel then
         local bloodQuality = enemy:GetAttribute("BloodQuality") or 0
-        local bloodType = enemy:GetAttribute("BloodType") or "Outcast"
         nameLabel.Text = bloodQuality .. "% " .. enemy.Name
+    end
+end
+
+-- Подписка на появление врагов — создаём HP-бар один раз
+local function watchEnemiesFolder(folder)
+    for _, enemy in folder:GetChildren() do
+        createHPBar(enemy)
+    end
+    folder.ChildAdded:Connect(function(enemy)
+        task.wait() -- дождаться атрибутов
+        createHPBar(enemy)
+    end)
+end
+
+-- Ждём папку Enemies
+local enemiesFolder = workspace:WaitForChild("Enemies", 10)
+if enemiesFolder then
+    watchEnemiesFolder(enemiesFolder)
+end
+
+-- Обновление — только значения, без создания
+RunService.RenderStepped:Connect(function()
+    if not enemiesFolder then return end
+    for _, enemy in enemiesFolder:GetChildren() do
+        updateHPBar(enemy)
     end
 end)

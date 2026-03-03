@@ -82,17 +82,8 @@ local function processCraftQueue(player)
                 end
             end
 
-            -- Выдаём результат
             local result = recipe.Result
-            InventoryManager.addItem(player, {
-                Id = result.Id,
-                Name = result.Name,
-                Icon = result.Icon or "rbxassetid://0",
-                Amount = result.Amount or 1,
-                Stackable = result.Stackable or false,
-                MaxStack = result.MaxStack or 1,
-                Type = result.Type or "Misc",
-            })
+            InventoryManager.addItemFromConfig(player, result.ItemId, result.Amount or 1)
 
             table.remove(queue, 1)
             print("[Craft] " .. player.Name .. " crafted " .. result.Name)

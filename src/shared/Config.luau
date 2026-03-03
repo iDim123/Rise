@@ -226,12 +226,7 @@ Config.Crafting = {
         Description = "Восстанавливает 50 HP при использовании.",
         Icon = "rbxassetid://0",
         Result = {
-            Id = "health_potion",
-            Name = "Health Potion",
-            Icon = "rbxassetid://0",
-            Type = "Consumable",
-            Stackable = true,
-            MaxStack = 20,
+            ItemId = "health_potion",
             Amount = 1
         },
         Ingredients = {{
@@ -245,12 +240,7 @@ Config.Crafting = {
         Description = "Крафт 5 зелий восстановления за раз.",
         Icon = "rbxassetid://0",
         Result = {
-            Id = "health_potion",
-            Name = "Health Potion",
-            Icon = "rbxassetid://0",
-            Type = "Consumable",
-            Stackable = true,
-            MaxStack = 20,
+            ItemId = "health_potion",
             Amount = 5
         },
         Ingredients = {{

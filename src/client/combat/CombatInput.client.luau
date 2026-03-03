@@ -101,11 +101,12 @@ local function attackLoop()
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if isHolding then return end
-		isHolding = true
-		task.spawn(attackLoop)
-	end
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if isHolding then return end
+        isHolding = true
+        task.spawn(attackLoop)
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input, gameProcessed)

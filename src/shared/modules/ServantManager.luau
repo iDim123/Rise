@@ -90,48 +90,11 @@ function ServantManager.captureEnemy(player, enemyEntity)
     local spawnPos = enemyEntity:GetAttribute("SpawnPosition")
     local respawnType = enemyEntity:GetAttribute("EnemyType")
 
-    -- Уничтожаем врага
     enemyEntity:Destroy()
 
-    -- Респавн через задержку
     if respawnType and spawnPos then
-        local respawnConfig = Config.Enemies[respawnType]
-        if respawnConfig then
-            task.delay(respawnConfig.RespawnTime, function()
-                local ServerStorage = game:GetService("ServerStorage")
-                local enemiesFolder = ServerStorage:FindFirstChild("enemies")
-                if not enemiesFolder then return end
-                local template = enemiesFolder:FindFirstChild(respawnType)
-                if not template then return end
-
-                local newEnemy = template:Clone()
-                local activeEnemies = workspace:FindFirstChild("Enemies")
-                if not activeEnemies then return end
-                newEnemy.Parent = activeEnemies
-
-                local root = newEnemy:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Anchored = false
-                    root.CFrame = CFrame.new(spawnPos)
-                end
-
-                local hum = newEnemy:FindFirstChild("Humanoid")
-                if hum then hum.WalkSpeed = respawnConfig.WalkSpeed end
-
-                newEnemy:SetAttribute("EnemyType", respawnType)
-                newEnemy:SetAttribute("SpawnPosition", spawnPos)
-
-                local HealthMgr = require(ReplicatedStorage:WaitForChild("modules"):WaitForChild("HealthManager"))
-                HealthMgr.init(newEnemy, respawnConfig.MaxHP)
-
-                local bloodType = respawnConfig.BloodType or "Outcast"
-                local bqRange = respawnConfig.BloodQuality or { Min = 1, Max = 1 }
-                newEnemy:SetAttribute("BloodType", bloodType)
-                newEnemy:SetAttribute("BloodQuality", math.random(bqRange.Min, bqRange.Max))
-
-                print("[Servants] Respawned " .. respawnType .. " at " .. tostring(spawnPos))
-            end)
-        end
+        local EnemySpawner = require(ReplicatedStorage:WaitForChild("modules"):WaitForChild("EnemySpawner"))
+        EnemySpawner.respawn(respawnType, spawnPos)
     end
 
     print("[Servants] " .. player.Name .. " captured " .. enemyType

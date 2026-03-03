@@ -63,54 +63,19 @@ function HealthManager.die(entity, attacker)
 			player:LoadCharacter()
 		end)
 	else
-		local spawnPos = entity:GetAttribute("SpawnPosition")
-		local enemyType = entity:GetAttribute("EnemyType")
+    local spawnPos = entity:GetAttribute("SpawnPosition")
+    local enemyType = entity:GetAttribute("EnemyType")
 
-		-- Дроп лута перед уничтожением
-		local LootManager = require(modules:WaitForChild("LootManager"))
-		LootManager.dropLoot(entity)
+    local LootManager = require(modules:WaitForChild("LootManager"))
+    LootManager.dropLoot(entity)
 
-		entity:Destroy()
-		healthData[entity] = nil
+    entity:Destroy()
+    healthData[entity] = nil
 
-		if spawnPos and enemyType then
-			local config = Config.Enemies[enemyType]
-			if config then
-				task.delay(config.RespawnTime, function()
-					local ServerStorage = game:GetService("ServerStorage")
-					local template = ServerStorage.enemies:FindFirstChild(enemyType)
-					if template then
-						local newEnemy = template:Clone()
-						newEnemy.Parent = workspace:FindFirstChild("Enemies")
-
-						local rootPart = newEnemy:FindFirstChild("HumanoidRootPart")
-						if rootPart then
-							rootPart.Anchored = false
-							rootPart.CFrame = CFrame.new(spawnPos)
-						end
-
-						local humanoid = newEnemy:FindFirstChild("Humanoid")
-						if humanoid then
-							humanoid.WalkSpeed = config.WalkSpeed
-						end
-
-						newEnemy:SetAttribute("EnemyType", enemyType)
-						newEnemy:SetAttribute("SpawnPosition", spawnPos)
-
-						HealthManager.init(newEnemy, config.MaxHP)
-
-						 -- Кровь врага
-						local bloodType = config.BloodType or "Outcast"
-						local bqRange = config.BloodQuality or { Min = 1, Max = 1 }
-						newEnemy:SetAttribute("BloodType", bloodType)
-						newEnemy:SetAttribute("BloodQuality", math.random(bqRange.Min, bqRange.Max))
-
-						print("[HealthManager] Respawned: " .. enemyType)
-					end
-				end)
-			end
-		end
-	end
+    if spawnPos and enemyType then
+        local EnemySpawner = require(modules:WaitForChild("EnemySpawner"))
+        EnemySpawner.respawn(enemyType, spawnPos)
+    end
 end
 
 -- === Лечение ===

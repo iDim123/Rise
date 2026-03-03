@@ -170,12 +170,14 @@ local function updateTooltip(recipe)
         iconText.Visible = false
     else
         iconImage.Visible = false
-        iconText.Text = recipe.Result.Name
+        local resultItem = Config.Items[recipe.Result.ItemId]
+        iconText.Text = resultItem and resultItem.Name or recipe.Result.ItemId
         iconText.Visible = true
     end
 
     local craftTimeStr = recipe.CraftTime and recipe.CraftTime > 0 and (recipe.CraftTime .. "s") or "Instant"
-    subtitleLabel.Text = (recipe.Result.Type or "Item") .. "    " .. craftTimeStr
+    local resultType = resultItem and resultItem.Type or "Item"
+    subtitleLabel.Text = resultType .. "    " .. craftTimeStr
 
     local desc = recipe.Description or recipe.Result.Description or ""
     descLabel.Text = desc
@@ -394,7 +396,8 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
             txt.TextSize = 7
             txt.Font = Enum.Font.GothamBold
             txt.TextWrapped = true
-            txt.Text = recipe.Result.Name
+            local resultItem = Config.Items[recipe.Result.ItemId]
+            txt.Text = resultItem and resultItem.Name or recipe.Result.ItemId
             txt.Parent = iconFrame
         end
 
