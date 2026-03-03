@@ -63,20 +63,21 @@ function HealthManager.die(entity, attacker)
 			player:LoadCharacter()
 		end)
 	else
-    local spawnPos = entity:GetAttribute("SpawnPosition")
-    local enemyType = entity:GetAttribute("EnemyType")
+		local spawnPos = entity:GetAttribute("SpawnPosition")
+		local enemyType = entity:GetAttribute("EnemyType")
 
-    local LootManager = require(modules:WaitForChild("LootManager"))
-    LootManager.dropLoot(entity)
+		local LootManager = require(modules:WaitForChild("LootManager"))
+		LootManager.dropLoot(entity)
 
-    entity:Destroy()
-    healthData[entity] = nil
+		entity:Destroy()
+		healthData[entity] = nil
 
-    if spawnPos and enemyType then
-        local EnemySpawner = require(modules:WaitForChild("EnemySpawner"))
-        EnemySpawner.respawn(enemyType, spawnPos)
-    end
-end
+		if spawnPos and enemyType then
+			local EnemySpawner = require(modules:WaitForChild("EnemySpawner"))
+			EnemySpawner.respawn(enemyType, spawnPos)
+		end
+	end      -- ← закрывает if/else
+end 
 
 -- === Лечение ===
 

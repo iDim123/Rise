@@ -86,7 +86,7 @@ local function processCraftQueue(player)
             InventoryManager.addItemFromConfig(player, result.ItemId, result.Amount or 1)
 
             table.remove(queue, 1)
-            print("[Craft] " .. player.Name .. " crafted " .. result.Name)
+            print("[Craft] " .. player.Name .. " crafted " .. result.ItemId .. " x" .. (result.Amount or 1))
             InventorySync.sendFullUpdate(player)
             sendQueueUpdate(player)
         end

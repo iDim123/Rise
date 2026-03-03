@@ -2,6 +2,9 @@ local RunService = game:GetService("RunService")
 
 local function createHPBar(enemy)
     local head = enemy:FindFirstChild("Head")
+    if not head then
+        head = enemy:WaitForChild("Head", 5)
+    end
     if not head then return end
     if head:FindFirstChild("EnemyHPGui") then return end
 
@@ -50,7 +53,10 @@ local function updateHPBar(enemy)
     if not head then return end
 
     local billboard = head:FindFirstChild("EnemyHPGui")
-    if not billboard then return end
+    if not billboard then
+        createHPBar(enemy)
+        return
+    end
 
     local currentHP = enemy:GetAttribute("CurrentHP")
     local maxHP = enemy:GetAttribute("MaxHP")
@@ -71,24 +77,20 @@ local function updateHPBar(enemy)
     end
 end
 
--- Подписка на появление врагов — создаём HP-бар один раз
 local function watchEnemiesFolder(folder)
     for _, enemy in folder:GetChildren() do
-        createHPBar(enemy)
+        task.spawn(createHPBar, enemy)
     end
     folder.ChildAdded:Connect(function(enemy)
-        task.wait() -- дождаться атрибутов
-        createHPBar(enemy)
+        task.spawn(createHPBar, enemy)
     end)
 end
 
--- Ждём папку Enemies
-local enemiesFolder = workspace:WaitForChild("Enemies", 10)
+local enemiesFolder = workspace:WaitForChild("Enemies", 30)
 if enemiesFolder then
     watchEnemiesFolder(enemiesFolder)
 end
 
--- Обновление — только значения, без создания
 RunService.RenderStepped:Connect(function()
     if not enemiesFolder then return end
     for _, enemy in enemiesFolder:GetChildren() do
