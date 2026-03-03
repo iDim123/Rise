@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local modules = ReplicatedStorage:WaitForChild("modules")
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 -- Remotes
 local getInventory = Instance.new("RemoteFunction")
@@ -34,6 +35,14 @@ setActiveWeapon.Parent = ReplicatedStorage
 local craftItem = Instance.new("RemoteEvent")
 craftItem.Name = "CraftItem"
 craftItem.Parent = ReplicatedStorage
+
+local craftQueueUpdate = Instance.new("RemoteEvent")
+craftQueueUpdate.Name = "CraftQueueUpdate"
+craftQueueUpdate.Parent = ReplicatedStorage
+
+local useItem = Instance.new("RemoteEvent")
+useItem.Name = "UseItem"
+useItem.Parent = ReplicatedStorage
 
 local craftingPlayers = {} 
 
@@ -115,8 +124,18 @@ end)
 
 
 -- ===== CRAFT QUEUE =====
-local craftQueues = {} -- [UserId] = { {recipeId, ...}, ... }
-local craftRunning = {} -- [UserId] = true если корутина работает
+local craftQueues = {}
+local craftRunning = {}
+
+local function sendQueueUpdate(player)
+    local queue = craftQueues[player.UserId] or {}
+    -- Считаем сколько каждого рецепта в очереди
+    local counts = {}
+    for _, recipeId in queue do
+        counts[recipeId] = (counts[recipeId] or 0) + 1
+    end
+    craftQueueUpdate:FireClient(player, counts)
+end
 
 local function processCraftQueue(player)
     if craftRunning[player.UserId] then return end
@@ -127,10 +146,11 @@ local function processCraftQueue(player)
             local queue = craftQueues[player.UserId]
             if not queue or #queue == 0 then
                 craftRunning[player.UserId] = nil
+                sendQueueUpdate(player)
                 return
             end
 
-            local recipeId = table.remove(queue, 1)
+            local recipeId = queue[1]
 
             local recipe = nil
             for _, r in Config.Crafting.Recipes do
@@ -140,7 +160,11 @@ local function processCraftQueue(player)
                 end
             end
 
-            if not recipe then continue end
+            if not recipe then
+                table.remove(queue, 1)
+                sendQueueUpdate(player)
+                continue
+            end
 
             -- Проверяем ресурсы
             local canCraft = true
@@ -151,17 +175,28 @@ local function processCraftQueue(player)
                 end
             end
 
-            if not canCraft then continue end
+            if not canCraft then
+                table.remove(queue, 1)
+                sendQueueUpdate(player)
+                continue
+            end
 
             -- Списываем ингредиенты
             for _, ingredient in recipe.Ingredients do
                 InventoryManager.removeItemById(player, ingredient.ItemId, ingredient.Amount)
             end
             sendFullUpdate(player)
+            sendQueueUpdate(player)
 
-            -- Задержка крафта
-            if recipe.CraftTime and recipe.CraftTime > 0 then
-                task.wait(recipe.CraftTime)
+            -- Прогресс крафта
+            local craftTime = recipe.CraftTime or 0
+            if craftTime > 0 then
+                local steps = 10
+                local stepTime = craftTime / steps
+                for i = 1, steps do
+                    task.wait(stepTime)
+                    craftQueueUpdate:FireClient(player, nil, recipeId, i / steps)
+                end
             end
 
             -- Выдаём результат
@@ -176,11 +211,61 @@ local function processCraftQueue(player)
                 Type = result.Type or "Misc",
             })
 
+            table.remove(queue, 1)
             print("[Craft] " .. player.Name .. " crafted " .. result.Name)
             sendFullUpdate(player)
+            sendQueueUpdate(player)
         end
     end)
 end
+
+-- ===== USE ITEM =====
+local useCooldowns = {} -- [UserId] = { [ItemId] = tick() }
+
+useItem.OnServerEvent:Connect(function(player, slotIndex)
+    if type(slotIndex) ~= "number" then return end
+    slotIndex = math.floor(slotIndex)
+
+    local inv = InventoryManager.getInventory(player)
+    if not inv then return end
+
+    local item = inv.slots[slotIndex]
+    if not item or item == false then return end
+    if item.Type ~= "Consumable" then return end
+
+    -- Получаем определение из Config
+    local itemDef = Config.Items[item.Id]
+    if not itemDef or not itemDef.UseEffect then return end
+
+    local effect = itemDef.UseEffect
+
+    -- Проверяем кулдаун
+    local userId = player.UserId
+    if not useCooldowns[userId] then useCooldowns[userId] = {} end
+
+    local lastUse = useCooldowns[userId][item.Id] or 0
+    local now = tick()
+    if now - lastUse < (effect.Cooldown or 0) then
+        return -- ещё на кулдауне
+    end
+
+    -- Применяем эффект
+    if effect.Type == "Heal" then
+        local character = player.Character
+        if not character then return end
+        HealthManager.heal(character, effect.Amount)
+    end
+
+    -- Ставим кулдаун
+    useCooldowns[userId][item.Id] = now
+
+    -- Расходуем 1 штуку
+    InventoryManager.removeItem(player, slotIndex, 1)
+
+    print("[UseItem] " .. player.Name .. " used " .. item.Name)
+    sendFullUpdate(player)
+end)
+
 
 craftItem.OnServerEvent:Connect(function(player, recipeId)
     if type(recipeId) ~= "string" then return end
@@ -190,6 +275,7 @@ craftItem.OnServerEvent:Connect(function(player, recipeId)
     end
 
     table.insert(craftQueues[player.UserId], recipeId)
+    sendQueueUpdate(player)
     processCraftQueue(player)
 end)
 
@@ -210,16 +296,6 @@ Players.PlayerAdded:Connect(function(player)
         Stackable = false,
         MaxStack = 1,
         Type = "Weapon",
-    })
-
-    InventoryManager.addItem(player, {
-        Id = "health_potion",
-        Name = "Health Potion",
-        Icon = "rbxassetid://0",
-        Amount = 5,
-        Stackable = true,
-        MaxStack = 20,
-        Type = "Consumable",
     })
 
     InventoryManager.addItemFromConfig(player, "blood_essence", 150)

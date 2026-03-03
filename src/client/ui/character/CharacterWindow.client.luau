@@ -8,6 +8,7 @@ local EquipmentPanel = require(script.Parent:WaitForChild("EquipmentPanel"))
 local CraftPanel = require(script.Parent:WaitForChild("CraftPanel"))
 local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
+local useItem = ReplicatedStorage:WaitForChild("UseItem")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -20,6 +21,7 @@ local equipItem = ReplicatedStorage:WaitForChild("EquipItem")
 local unequipItem = ReplicatedStorage:WaitForChild("UnequipItem")
 local setActiveWeapon = ReplicatedStorage:WaitForChild("SetActiveWeapon")
 local craftItem = ReplicatedStorage:WaitForChild("CraftItem")
+local useItem = ReplicatedStorage:WaitForChild("UseItem")
 
 local isOpen = false
 local currentData = nil
@@ -86,7 +88,7 @@ local equipPanelFrame = EquipmentPanel.build(mainFrame, UC.contentY, unequipItem
 local craftPanelFrame = CraftPanel.build(mainFrame, UC.contentY, craftItem, screenGui)
 
 -- Build inventory (always visible)
-InventoryGrid.build(mainFrame, swapSlots, equipItem, function() return currentData end)
+InventoryGrid.build(mainFrame, swapSlots, equipItem, function() return currentData end, useItem)
 
 -- Recalculate window height
 mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)

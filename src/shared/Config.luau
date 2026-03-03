@@ -149,6 +149,20 @@ Config.Items = {
 		Stackable = true,
 		MaxStack = 500,
 	},
+    health_potion = {
+        Id = "health_potion",
+        Name = "Health Potion",
+        Description = "Восстанавливает 50 HP при использовании.",
+        Icon = "rbxassetid://0",
+        Type = "Consumable",
+        Stackable = true,
+        MaxStack = 20,
+        UseEffect = {
+            Type = "Heal",
+            Amount = 50,
+            Cooldown = 5,
+        },
+    },
 }
 
 Config.Loot = {
@@ -160,13 +174,13 @@ Config.Loot = {
 Config.Crafting = {
     Recipes = {
         {
-            Id = "restoration_potion",
+            Id = "health_potion",
             Name = "Зелье восстановления",
             Description = "Восстанавливает 50 HP при использовании.",
             Icon = "rbxassetid://0",
             Result = {
-                Id = "restoration_potion",
-                Name = "Restoration Potion",
+                Id = "health_potion",
+                Name = "Health Potion",
                 Icon = "rbxassetid://0",
                 Type = "Consumable",
                 Stackable = true,
@@ -176,7 +190,25 @@ Config.Crafting = {
             Ingredients = {
                 { ItemId = "blood_essence", Amount = 10 },
             },
-            CraftTime = 1, -- мгновенный крафт (можно добавить задержку позже)
+            CraftTime = 1,
+        },  {
+            Id = "health_potion_x5",
+            Name = "Зелье восстановления x5",
+            Description = "Крафт 5 зелий восстановления за раз.",
+            Icon = "rbxassetid://0",
+            Result = {
+                Id = "health_potion",
+                Name = "Health Potion",
+                Icon = "rbxassetid://0",
+                Type = "Consumable",
+                Stackable = true,
+                MaxStack = 20,
+                Amount = 5,
+            },
+            Ingredients = {
+                { ItemId = "blood_essence", Amount = 50 },
+            },
+            CraftTime = 3,
         },
     },
 }

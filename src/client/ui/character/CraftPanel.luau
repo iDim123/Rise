@@ -2,7 +2,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
-local GuiService = game:GetService("GuiService")
 
 local CraftPanel = {}
 
@@ -10,6 +9,10 @@ local craftPanel = nil
 local recipeButtons = {}
 local tooltip = nil
 local currentData = nil
+local queueCounts = {}
+local craftProgress = {} -- [recipeId] = 0..1
+
+local craftQueueUpdate = ReplicatedStorage:WaitForChild("CraftQueueUpdate")
 
 -- ===== TOOLTIP =====
 local function createTooltip(screenGui)
@@ -31,7 +34,6 @@ local function createTooltip(screenGui)
     stroke.Thickness = 1
     stroke.Parent = frame
 
-    -- Title
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
     titleLabel.Size = UDim2.new(1, -70, 0, 24)
@@ -46,7 +48,6 @@ local function createTooltip(screenGui)
     titleLabel.ZIndex = 51
     titleLabel.Parent = frame
 
-    -- Icon (top right)
     local iconFrame = Instance.new("Frame")
     iconFrame.Name = "IconFrame"
     iconFrame.Size = UDim2.new(0, 44, 0, 44)
@@ -90,7 +91,6 @@ local function createTooltip(screenGui)
     iconText.ZIndex = 52
     iconText.Parent = iconFrame
 
-    -- Type + Time
     local subtitleLabel = Instance.new("TextLabel")
     subtitleLabel.Name = "Subtitle"
     subtitleLabel.Size = UDim2.new(1, -70, 0, 14)
@@ -104,7 +104,6 @@ local function createTooltip(screenGui)
     subtitleLabel.ZIndex = 51
     subtitleLabel.Parent = frame
 
-    -- Separator 1
     local sep1 = Instance.new("Frame")
     sep1.Name = "Sep1"
     sep1.Size = UDim2.new(1, -20, 0, 1)
@@ -114,7 +113,6 @@ local function createTooltip(screenGui)
     sep1.ZIndex = 51
     sep1.Parent = frame
 
-    -- Description
     local descLabel = Instance.new("TextLabel")
     descLabel.Name = "Description"
     descLabel.Size = UDim2.new(1, -20, 0, 40)
@@ -130,7 +128,6 @@ local function createTooltip(screenGui)
     descLabel.ZIndex = 51
     descLabel.Parent = frame
 
-    -- Separator 2
     local sep2 = Instance.new("Frame")
     sep2.Name = "Sep2"
     sep2.Size = UDim2.new(1, -20, 0, 1)
@@ -140,7 +137,6 @@ local function createTooltip(screenGui)
     sep2.ZIndex = 51
     sep2.Parent = frame
 
-    -- Ingredients container
     local ingContainer = Instance.new("Frame")
     ingContainer.Name = "Ingredients"
     ingContainer.Size = UDim2.new(1, -20, 0, 80)
@@ -162,10 +158,8 @@ local function updateTooltip(recipe)
     local descLabel = tooltip:FindFirstChild("Description")
     local ingContainer = tooltip:FindFirstChild("Ingredients")
 
-    -- Title
     titleLabel.Text = recipe.Name
 
-    -- Icon
     local iconImage = iconFrame:FindFirstChild("Icon")
     local iconText = iconFrame:FindFirstChild("IconText")
     if recipe.Icon and recipe.Icon ~= "" and recipe.Icon ~= "rbxassetid://0" then
@@ -178,16 +172,13 @@ local function updateTooltip(recipe)
         iconText.Visible = true
     end
 
-    -- Subtitle: type + craft time
     local craftTimeStr = recipe.CraftTime and recipe.CraftTime > 0
         and (recipe.CraftTime .. "s") or "Instant"
     subtitleLabel.Text = (recipe.Result.Type or "Item") .. "    " .. craftTimeStr
 
-    -- Description
     local desc = recipe.Description or recipe.Result.Description or ""
     descLabel.Text = desc
 
-    -- Ingredients
     for _, child in ingContainer:GetChildren() do
         child:Destroy()
     end
@@ -207,7 +198,6 @@ local function updateTooltip(recipe)
         local ingName = itemDef and itemDef.Name or ing.ItemId
         local have = itemCounts[ing.ItemId] or 0
 
-        -- Row frame
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 28)
         row.Position = UDim2.new(0, 0, 0, ingY)
@@ -215,7 +205,6 @@ local function updateTooltip(recipe)
         row.ZIndex = 52
         row.Parent = ingContainer
 
-        -- Mini icon
         local miniIcon = Instance.new("Frame")
         miniIcon.Size = UDim2.new(0, 24, 0, 24)
         miniIcon.Position = UDim2.new(0, 0, 0, 2)
@@ -243,7 +232,6 @@ local function updateTooltip(recipe)
             img.Parent = miniIcon
         end
 
-        -- Count: have / cost
         local countColor = have >= ing.Amount
             and Color3.fromRGB(100, 200, 100)
             or Color3.fromRGB(200, 100, 100)
@@ -260,7 +248,6 @@ local function updateTooltip(recipe)
         countLabel.ZIndex = 52
         countLabel.Parent = row
 
-        -- Resource name
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1, -100, 0, 28)
         nameLabel.Position = UDim2.new(0, 96, 0, 0)
@@ -276,24 +263,16 @@ local function updateTooltip(recipe)
         ingY = ingY + 32
     end
 
-    -- Resize tooltip
     local totalH = 112 + 8 + ingY
     tooltip.Size = UDim2.new(0, 280, 0, totalH)
 end
 
 local activeRow = nil
-local mainFrameRef = nil
 
 local function positionTooltip()
-    if not tooltip or not tooltip.Visible or not mainFrameRef then return end
-    local mainSize = mainFrameRef.AbsoluteSize
-    local mainPos = mainFrameRef.AbsolutePosition
-    local guiInset = GuiService:GetGuiInset()
-    
-    local tooltipX = mainPos.X + mainSize.X + 8 - guiInset.X
-    local tooltipY = mainPos.Y - guiInset.Y
-    
-    tooltip.Position = UDim2.new(0, tooltipX, 0, tooltipY)
+    if not tooltip then return end
+    local x = 40 + UC.windowWidth + 8
+    tooltip.Position = UDim2.new(0, x, 0, 40)
 end
 
 local function showTooltip(recipe, row)
@@ -308,10 +287,40 @@ local function hideTooltip()
     if tooltip then tooltip.Visible = false end
     activeRow = nil
 end
+
+-- ===== UPDATE QUEUE DISPLAY =====
+local function updateQueueDisplay()
+    for _, entry in recipeButtons do
+        local count = queueCounts[entry.recipe.Id] or 0
+        local queueLabel = entry.queueLabel
+        local progressBg = entry.progressBg
+        local progressFill = entry.progressFill
+
+        if count > 0 then
+            queueLabel.Text = "x" .. count
+            queueLabel.Visible = true
+        else
+            queueLabel.Text = ""
+            queueLabel.Visible = false
+        end
+
+        -- Прогресс бар
+        local progress = craftProgress[entry.recipe.Id] or 0
+        if progress > 0 and progress < 1 then
+            progressBg.Visible = true
+            progressFill.Size = UDim2.new(progress, 0, 1, 0)
+        elseif count > 0 then
+            progressBg.Visible = true
+            progressFill.Size = UDim2.new(0, 0, 1, 0)
+        else
+            progressBg.Visible = false
+            progressFill.Size = UDim2.new(0, 0, 1, 0)
+        end
+    end
+end
+
 -- ===== BUILD =====
 function CraftPanel.build(parent, contentY, craftRemote, screenGui)
-    mainFrameRef = parent
-
     createTooltip(screenGui)
 
     craftPanel = Instance.new("ScrollingFrame")
@@ -331,6 +340,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
 
     local recipes = Config.Crafting and Config.Crafting.Recipes or {}
     local recipeRowH = 40
+    local progressBarH = 4
     local recipePadding = 4
     local totalH = recipePadding
 
@@ -343,6 +353,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
         row.BorderSizePixel = 0
         row.Text = ""
         row.AutoButtonColor = false
+        row.ClipsDescendants = true
         row.Parent = craftPanel
 
         local rowCorner = Instance.new("UICorner")
@@ -384,7 +395,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
 
         -- Название
         local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, -46, 0, recipeRowH)
+        nameLabel.Size = UDim2.new(1, -90, 0, recipeRowH)
         nameLabel.Position = UDim2.new(0, 42, 0, 0)
         nameLabel.BackgroundTransparency = 1
         nameLabel.TextColor3 = Color3.fromRGB(220, 220, 200)
@@ -395,7 +406,42 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
         nameLabel.Text = recipe.Name
         nameLabel.Parent = row
 
-        -- Hover → tooltip
+        -- Количество в очереди (справа)
+        local queueLabel = Instance.new("TextLabel")
+        queueLabel.Name = "QueueLabel"
+        queueLabel.Size = UDim2.new(0, 40, 0, recipeRowH)
+        queueLabel.Position = UDim2.new(1, -44, 0, 0)
+        queueLabel.BackgroundTransparency = 1
+        queueLabel.TextColor3 = Color3.fromRGB(255, 200, 80)
+        queueLabel.TextSize = 13
+        queueLabel.Font = Enum.Font.GothamBold
+        queueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        queueLabel.Text = ""
+        queueLabel.Visible = false
+        queueLabel.Parent = row
+
+        -- Progress bar (внизу строки)
+        local progressBg = Instance.new("Frame")
+        progressBg.Name = "ProgressBg"
+        progressBg.Size = UDim2.new(1, 0, 0, progressBarH)
+        progressBg.Position = UDim2.new(0, 0, 1, -progressBarH)
+        progressBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        progressBg.BorderSizePixel = 0
+        progressBg.Visible = false
+        progressBg.Parent = row
+
+        local progressFill = Instance.new("Frame")
+        progressFill.Name = "ProgressFill"
+        progressFill.Size = UDim2.new(0, 0, 1, 0)
+        progressFill.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+        progressFill.BorderSizePixel = 0
+        progressFill.Parent = progressBg
+
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, 2)
+        fillCorner.Parent = progressFill
+
+        -- Hover
         row.MouseEnter:Connect(function()
             row.BackgroundColor3 = Color3.fromRGB(55, 55, 78)
             showTooltip(recipe, row)
@@ -406,7 +452,7 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
             hideTooltip()
         end)
 
-        -- Click → craft
+        -- Click — craft
         row.MouseButton1Click:Connect(function()
             craftRemote:FireServer(recipe.Id)
         end)
@@ -414,6 +460,9 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
         recipeButtons[idx] = {
             frame = row,
             recipe = recipe,
+            queueLabel = queueLabel,
+            progressBg = progressBg,
+            progressFill = progressFill,
         }
 
         totalH = totalH + recipeRowH + recipePadding
@@ -421,15 +470,24 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
 
     craftPanel.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
+    -- Слушаем обновления очереди с сервера
+    craftQueueUpdate.OnClientEvent:Connect(function(counts, progressRecipeId, progressValue)
+        if counts then
+            queueCounts = counts
+        end
+        if progressRecipeId and progressValue then
+            craftProgress[progressRecipeId] = progressValue
+        end
+        updateQueueDisplay()
+    end)
+
     return craftPanel
 end
 
 function CraftPanel.refresh(slotsData)
     if not slotsData then return end
-    -- Сохраняем для tooltip
     currentData = { slots = slotsData }
 
-    -- Обновляем tooltip если он видим
     if tooltip and tooltip.Visible then
         for _, entry in recipeButtons do
             if entry.frame.BackgroundColor3 == Color3.fromRGB(55, 55, 78) then

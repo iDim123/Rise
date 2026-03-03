@@ -8,7 +8,7 @@ local InventoryGrid = {}
 
 local slotFrames = {}
 
-function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData)
+function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, useItemRemote)
     -- ActionBar row (slots 1-8)
     for col = 0, UC.cols - 1 do
         local index = col + 1
@@ -27,7 +27,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData)
         bindLabel.Text = tostring(index)
         bindLabel.Parent = parent
 
-        InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData)
+        InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
         slotFrames[index] = slot
     end
 
@@ -47,7 +47,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData)
             local posY = UC.actualInvY + row * (UC.slotSize + UC.padding)
 
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
-            InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData)
+            InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
             slotFrames[index] = slot
         end
     end
@@ -68,7 +68,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData)
     sc.Parent = sortBtn
 end
 
-function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData)
+function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
     slot.MouseButton1Down:Connect(function()
         DragManager.dragFrom = index
         slot.BackgroundColor3 = UC.slotBgDrag
@@ -111,8 +111,12 @@ function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCur
         local data = getCurrentData()
         if data then
             local item = data.slots[index]
-            if item and item ~= false and item.EquipSlot then
-                equipRemote:FireServer(index)
+            if item and item ~= false then
+                if item.EquipSlot then
+                    equipRemote:FireServer(index)
+                elseif item.Type == "Consumable" then
+                    useItemRemote:FireServer(index)
+                end
             end
         end
     end)
