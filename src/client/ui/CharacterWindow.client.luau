@@ -70,6 +70,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CharacterGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
+screenGui.DisplayOrder = 10
 
 -- ===== CHARACTER WINDOW =====
 local mainFrame = Instance.new("Frame")
@@ -293,18 +294,19 @@ for col = 0, cols - 1 do
 	local index = col + 1
 	local posX = windowPadX + padding + col * (slotSize + padding)
 
-	-- Подпись бинда над слотом
+	-- Сначала слот
+	createInvSlot(mainFrame, index, posX, actionRowY)
+
+	-- Подпись бинда ПОД слотом
 	local bindLabel = Instance.new("TextLabel")
 	bindLabel.Size = UDim2.new(0, slotSize, 0, actionRowLabelH)
-	bindLabel.Position = UDim2.new(0, posX, 0, actionRowY)
+	bindLabel.Position = UDim2.new(0, posX, 0, actionRowY + slotSize + 2)
 	bindLabel.BackgroundTransparency = 1
 	bindLabel.TextColor3 = Color3.fromRGB(180, 180, 100)
 	bindLabel.TextSize = 11
 	bindLabel.Font = Enum.Font.GothamBold
 	bindLabel.Text = tostring(index)
 	bindLabel.Parent = mainFrame
-
-	createInvSlot(mainFrame, index, posX, actionRowY + actionRowLabelH + 2)
 end
 
 -- ===== SEPARATOR =====
@@ -392,14 +394,16 @@ for col = 0, cols - 1 do
 	slotCorner.CornerRadius = UDim.new(0, 4)
 	slotCorner.Parent = slot
 
-	local numLabel = Instance.new("TextLabel")
-	numLabel.Size = UDim2.new(0, 15, 0, 12)
-	numLabel.Position = UDim2.new(0, 2, 1, 2)
+    local numLabel = Instance.new("TextLabel")
+	numLabel.Name = "NumLabel"
+	numLabel.Size = UDim2.new(1, 0, 0, 14)
+	numLabel.Position = UDim2.new(0, 0, 1, 2)
 	numLabel.BackgroundTransparency = 1
 	numLabel.TextColor3 = Color3.fromRGB(180, 180, 100)
 	numLabel.TextSize = 11
 	numLabel.Font = Enum.Font.GothamBold
 	numLabel.Text = tostring(index)
+	numLabel.TextXAlignment = Enum.TextXAlignment.Center
 	numLabel.Parent = slot
 
 	local icon = Instance.new("ImageLabel")
