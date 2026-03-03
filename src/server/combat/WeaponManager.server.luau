@@ -71,12 +71,11 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
 	local attackDamage = comboConfig[comboIndex].Damage
 	local attackRange = Config.Weapons.Sword.Range
 
-	local BloodManager = require(script.Parent:WaitForChild("BloodManager"))
-		local buffs = BloodManager.getBuffs(player)
-		if buffs.DamageBonus then
-			attackDamage = attackDamage * (1 + buffs.DamageBonus)
-			attackDamage = math.floor(attackDamage)
-		end
+	local buffs = BloodManager.getBuffs(player)
+	if buffs.DamageBonus then
+		attackDamage = attackDamage * (1 + buffs.DamageBonus)
+		attackDamage = math.floor(attackDamage)
+	end
 		
 
 	for _, target in getTargets(character) do

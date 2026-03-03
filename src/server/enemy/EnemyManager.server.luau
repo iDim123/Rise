@@ -5,6 +5,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local modules = ReplicatedStorage:WaitForChild("modules")
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 
+local enemiesFolder = ServerStorage:WaitForChild("enemies")
 
 -- Папка для живых врагов в Workspace
 local activeEnemies = Instance.new("Folder")
