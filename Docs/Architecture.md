@@ -12,8 +12,86 @@
 
 ## Структура файлов
 
-src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Все игровые настройки (единый источник данных) │ └── Remotes.luau # Единый реестр RemoteEvent/RemoteFunction │ ├── server/ # ServerScriptService │ ├── Main.server.luau # Точка входа: require HealthManager (инициализация) │ ├── modules/ # Серверные модули (НЕ видны клиенту) │ │ ├── HealthManager.luau # HP, урон, смерть, респавн, лечение │ │ ├── BloodManager.luau # Логика крови (тип, качество, расход, баффы) │ │ ├── InventoryManager.luau # CRUD инвентаря, экипировка, активное оружие │ │ ├── InventorySync.luau # sendFullUpdate / getFullData (общая точка) │ │ ├── LootManager.luau # Дроп лута, подбор, очистка, выброс из инвентаря │ │ ├── ServantManager.luau # Захват, призыв, отзыв, режимы, экипировка слуг │ │ └── EnemySpawner.luau # Спавн/респавн врагов из ServerStorage │ ├── blood/ │ │ └── BloodServer.server.luau # DrinkBloodRequest, тик расхода крови │ ├── combat/ │ │ └── WeaponManager.server.luau # AttackRequest → проверка, урон, баффы крови │ ├── enemy/ │ │ ├── EnemyAI.server.luau # AI врагов: Idle/Patrol/Chase/Attack/Return │ │ └── EnemyManager.server.luau # Начальный спавн врагов из ServerStorage │ ├── inventory/ │ │ ├── InventoryServer.server.luau # Оркестратор: связывает Remote → Handler │ │ ├── WeaponHandler.luau # SetActiveWeapon → замена Tool в руке │ │ ├── CraftHandler.luau # Крафт-очередь, прогресс, выдача результата │ │ └── UseItemHandler.luau # Использование Consumable, кулдауны, хил │ ├── loot/ │ │ └── LootServer.server.luau # PickupLoot, DropItem, периодическая очистка │ └── servant/ │ ├── ServantServer.server.luau # Capture, Summon, Dismiss, Mode, Command, Rename, Equip/Unequip │ └── ServantAI.server.luau # AI слуг: Follow/Attack/Stay по режиму │ └── client/ # StarterPlayerScripts ├── camera/ │ └── IsometricCamera.client.luau # Изометрическая камера, зум колёсиком ├── combat/ │ ├── CombatInput.client.luau # ЛКМ → атака, комбо, автоатака при зажатии │ └── DamageNumbers.client.luau # Floating damage/heal числа над головами ├── input/ │ └── MouseLook.client.luau # Поворот персонажа к курсору мыши └── ui/ ├── BloodUI.client.luau # Полоска крови, надпись "Выпить кровь [F]" ├── CaptureUI.client.luau # Прогресс-бар захвата, надпись "Захватить [T]" ├── CoreGuiSetup.client.luau # Отключение чата и стандартного Backpack ├── EnemyHPBar.client.luau # HP-бар над врагами с % крови ├── LootUI.client.luau # Подсказка подбора лута [F] ├── PlayerHPBar.client.luau # HP-бар игрока + HP-бар слуги ├── ServantUI.client.luau # Окно слуг [V]: список, детали, режимы └── character/ # Окно персонажа [C] ├── CharacterWindow.client.luau # Оркестратор: табы, hotkeys, refresh ├── UIConstants.luau # Размеры, отступы, цвета (из Config) ├── SlotFactory.luau # Создание/обновление слота (иконка, текст, cooldown overlay) ├── DragManager.luau # Drag-and-drop: ghost, состояние, RenderStepped ├── EquipmentPanel.luau # 5 слотов экипировки, ПКМ → снять, tooltip ├── CraftPanel.luau # Список рецептов, tooltip, очередь, прогресс-бар ├── InventoryGrid.luau # ActionBar (1-8) + инвентарь (9-40) + Sort + drop на землю ├── ActionBarHUD.luau # Нижняя панель быстрого доступа (ScreenGui), drag, tooltip ├── CooldownManager.luau # Таймеры кулдаунов, шторка + текст на слотах └── tooltip/ # Модульный tooltip предметов ├── init.luau (ItemTooltip) # Оркестратор: создание, позиционирование, show/hide ├── TooltipConstants.luau # Все цвета, размеры, padding ├── TooltipHeader.luau # LVL число, имя, тип, иконка справа ├── TooltipAttributes.luau # Статы, урон оружия, эффекты ├── TooltipDescription.luau # Блок описания └── TooltipFooter.luau # Stackable info
+src/
+├── shared/                          # ReplicatedStorage
+│   ├── Config.luau                  # Все игровые настройки (единый источник данных)
+│   └── Remotes.luau                 # Единый реестр RemoteEvent/RemoteFunction
+│
+├── server/                          # ServerScriptService
+│   ├── Main.server.luau             # Точка входа: загружает модули для регистрации EventBus подписок
+│   ├── modules/                     # Серверные модули (НЕ видны клиенту)
+│   │   ├── EventBus.luau           # Простая event-шина: on(event, cb), fire(event, ...)
+│   │   ├── HealthManager.luau      # HP, урон, смерть (fires EventBus), лечение
+│   │   ├── BloodManager.luau       # Логика крови (тип, качество, расход, баффы)
+│   │   ├── InventoryManager.luau   # CRUD инвентаря, экипировка, активное оружие
+│   │   ├── InventorySync.luau      # sendFullUpdate / getFullData (общая точка)
+│   │   ├── LootManager.luau        # Дроп лута (слушает EntityDying), подбор, очистка
+│   │   ├── ServantManager.luau     # Захват, призыв, отзыв, режимы, экипировка, createFromEgg
+│   │   └── EnemySpawner.luau       # Спавн/респавн (слушает EntityRemoved)
+│   ├── blood/
+│   │   └── BloodServer.server.luau
+│   ├── combat/
+│   │   └── WeaponManager.server.luau
+│   ├── enemy/
+│   │   ├── EnemyAI.server.luau
+│   │   └── EnemyManager.server.luau
+│   ├── inventory/
+│   │   ├── InventoryServer.server.luau
+│   │   ├── WeaponHandler.luau
+│   │   ├── CraftHandler.luau
+│   │   └── UseItemHandler.luau
+│   ├── loot/
+│   │   └── LootServer.server.luau
+│   └── servant/
+│       ├── ServantServer.server.luau
+│       └── ServantAI.server.luau
+│
+└── client/                          # StarterPlayerScripts
+    ├── camera/
+    │   └── IsometricCamera.client.luau
+    ├── combat/
+    │   ├── CombatInput.client.luau
+    │   └── DamageNumbers.client.luau
+    ├── input/
+    │   └── MouseLook.client.luau
+    └── ui/
+        ├── BloodUI.client.luau
+        ├── CaptureUI.client.luau
+        ├── CoreGuiSetup.client.luau
+        ├── EnemyHPBar.client.luau
+        ├── LootUI.client.luau
+        ├── PlayerHPBar.client.luau
+        ├── ServantUI.client.luau
+        └── character/
+            ├── CharacterWindow.client.luau
+            ├── UIConstants.luau
+            ├── SlotFactory.luau
+            ├── DragManager.luau
+            ├── EquipmentPanel.luau
+            ├── CraftPanel.luau
+            ├── InventoryGrid.luau
+            ├── ActionBarHUD.luau
+            ├── CooldownManager.luau
+            └── tooltip/
+                ├── init.luau (ItemTooltip)
+                ├── TooltipConstants.luau
+                ├── TooltipHeader.luau
+                ├── TooltipAttributes.luau
+                ├── TooltipDescription.luau
+                └── TooltipFooter.luau
 
+---
+
+## EventBus
+
+Серверная event-шина для развязки модулей. Модули подписываются через `EventBus.on(eventName, callback)`, события вызываются через `EventBus.fire(eventName, ...)`.
+
+### События
+| Событие | Аргументы | Кто вызывает | Кто слушает |
+|---|---|---|---|
+| EntityDying | entity, attacker | HealthManager.die() | LootManager (дроп лута), HealthManager (EntityDied клиентам) |
+| EntityRemoved | enemyType, spawnPos | HealthManager.die(), ServantManager.captureEnemy() | EnemySpawner (респавн) |
+| PlayerDied | player, entity, attacker | HealthManager.die() | HealthManager (EntityDied клиентам, респавн) |
 
 ---
 
@@ -81,18 +159,28 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Все и
 - Все предметы определяются в `Config.Items` с полями: Id, Name, Description, Icon, Type, ItemLevel, Stackable, MaxStack, и опционально EquipSlot, Stats, UseEffect.
 - Добавление предметов в инвентарь: `InventoryManager.addItemFromConfig(player, itemId, amount)`.
 - Consumable предметы имеют `UseEffect = { Type = "Heal", Amount = N, Cooldown = N }` или `{ Type = "AddServant", Cooldown = N }`.
+- Создание слуги из яйца делегируется `ServantManager.createFromEgg(player, enemyType, bloodQuality)` — единая точка расчёта статов.
 
 ### Инвентарь
 - 40 слотов (5 рядов × 8 колонок). Слоты 1-8 = ActionBar (первый ряд).
-- Пустой слот = `false`. Занятый = таблица `{Id, Name, Icon, Amount, Type, ...}`.
+- Пустой слот = `false`. Занятый = таблица `{Id, Name, Icon, Amount, Type, ItemLevel, ...}`.
 - Экипировка хранится отдельно: `equipment[slotId]` (Head, Chest, Legs, Feet, Hands).
 - `activeWeaponSlot` — номер слота ActionBar с выбранным оружием.
 - При `swapSlots` — `activeWeaponSlot` автоматически перемещается за оружием.
+- Оружие (Type = "Weapon") экипируется через ActionBar (клавиши 1-8), а не через панель экипировки. EquipSlot для оружия не используется.
 
 ### Обновление клиента
 - Любое изменение инвентаря на сервере → `InventorySync.sendFullUpdate(player)`.
 - Клиент получает `UpdateInventory` → `refreshUI(data)` в CharacterWindow.
 - Формат данных: `{ slots = {...}, equipment = {...}, activeWeaponSlot = number|nil }`.
+
+### EventBus (серверная event-шина)
+- Модули не вызывают друг друга напрямую для жизненного цикла сущностей.
+- `HealthManager.die()` только помечает смерть и вызывает события. Не знает о лут-системе и респавне.
+- `LootManager` слушает `EntityDying` → дропает лут.
+- `EnemySpawner` слушает `EntityRemoved` → респавнит врага.
+- `ServantManager.captureEnemy()` вызывает `EventBus.fire("EntityRemoved")` после уничтожения врага.
+- Подписки регистрируются при `require` модуля. `Main.server.luau` загружает HealthManager, LootManager, EnemySpawner для гарантии регистрации.
 
 ### Drag-and-drop
 - `DragManager` управляет drag-состоянием, ghost-элементом и drop targets.
@@ -120,6 +208,11 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Все и
 - Визуал: тёмная шторка сверху вниз + белое число секунд по центру с чёрной обводкой.
 - `CooldownManager` обновляет все зарегистрированные слоты каждый кадр (RenderStepped).
 
+### Безопасность
+- Серверные модули находятся в `src/server/modules/` (ServerScriptService) и НЕ реплицируются клиенту.
+- `DropItem` remote имеет rate-limit (0.3 с между вызовами).
+- Модули ссылаются друг на друга через `script.Parent`, на `Config`/`Remotes` — через `ReplicatedStorage`.
+
 ### Горячие клавиши
 | Клавиша | Действие |
 |---|---|
@@ -128,46 +221,89 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Все и
 | 1-8 | Выбрать оружие или использовать Consumable (ActionBar) |
 | F | Выпить кровь / подобрать лут (приоритет по контексту) |
 | T | Захватить врага (начать/отменить каст) |
-| ЛКМ | Атака (зажатие = автоатака) |
+| ЛКМ | Атака (зажатие = автоатака, gameProcessed проверяется) |
 | ПКМ на слоте | Экипировать / использовать Consumable |
 | Колесо мыши | Зум камеры |
 | Drag за пределы UI | Выбросить предмет на землю |
 
-### Серверные модули (ServerScriptService/modules/)
-Серверные модули находятся в `src/server/modules/` и НЕ реплицируются клиенту. Это обеспечивает безопасность серверной логики. Модули ссылаются друг на друга через `script.Parent`, а на `Config`/`Remotes` — через `ReplicatedStorage`.
+---
 
-**Циклические зависимости:** `HealthManager` ↔ `EnemySpawner` и `ServantManager` → `EnemySpawner` → `HealthManager` разрываются ленивым require (внутри функции, а не на верхнем уровне).
+## Зависимости модулей (серверная сторона)
 
-### Зависимости модулей (серверная сторона)
-Main.server.luau └── HealthManager
+Main.server.luau
+└── require: HealthManager, LootManager, EnemySpawner (регистрация EventBus подписок)
 
-InventoryServer.server.luau (оркестратор) ├── InventoryManager ├── InventorySync ├── WeaponHandler → InventoryManager, Config ├── CraftHandler → InventoryManager, InventorySync, Remotes, Config └── UseItemHandler → InventoryManager, InventorySync, HealthManager, ServantManager, Config
+EventBus.luau (standalone, без зависимостей)
 
-BloodServer → BloodManager, HealthManager, Remotes WeaponManager → HealthManager, BloodManager, Remotes EnemyAI → HealthManager, Config EnemyManager → EnemySpawner, Config ServantServer → ServantManager, HealthManager, InventoryManager, InventorySync, Remotes, Config ServantAI → HealthManager, Config LootServer → LootManager, InventoryManager, InventorySync, Remotes
+HealthManager → EventBus, Config, Remotes
+  EventBus подписки: PlayerDied → FireAllClients + LoadCharacter
+                     EntityDying → FireAllClients EntityDied
 
-HealthManager → LootManager (lazy), EnemySpawner (lazy), Config, Remotes EnemySpawner → HealthManager, Config ServantManager → EnemySpawner (lazy), Config LootManager → InventoryManager, Config InventorySync → InventoryManager, Remotes BloodManager → Config (HealthManager через setter)
+LootManager → InventoryManager, Config, EventBus
+  EventBus подписка: EntityDying → dropLoot
 
+EnemySpawner → HealthManager, Config, EventBus
+  EventBus подписка: EntityRemoved → respawn
 
-### Зависимости модулей (клиентская сторона)
-CharacterWindow.client.luau (оркестратор) ├── UIConstants ← Config ├── SlotFactory ← UIConstants ├── DragManager ← UIConstants ├── EquipmentPanel ← Config, UIConstants, SlotFactory, ItemTooltip ├── CraftPanel ← Config, UIConstants, Remotes ├── InventoryGrid ← Config, UIConstants, SlotFactory, DragManager, CooldownManager, ItemTooltip, ActionBarHUD, Remotes ├── ActionBarHUD ← Config, UIConstants, SlotFactory, DragManager, CooldownManager, ItemTooltip, Remotes ├── CooldownManager (standalone, RenderStepped loop) └── ItemTooltip (tooltip/) ├── TooltipConstants ├── TooltipHeader ← TooltipConstants, Config ├── TooltipAttributes ← TooltipConstants, Config ├── TooltipDescription ← TooltipConstants └── TooltipFooter ← TooltipConstants
+ServantManager → EventBus, Config
+  Вызывает: EventBus.fire("EntityRemoved") в captureEnemy()
+  createFromEgg() — единая точка создания слуг (используется из UseItemHandler)
 
+InventoryManager → Config
+InventorySync → InventoryManager, Remotes
+BloodManager → Config (HealthManager через setter)
+
+InventoryServer.server.luau (оркестратор)
+├── InventoryManager, InventorySync
+├── WeaponHandler → InventoryManager, Config
+├── CraftHandler → InventoryManager, InventorySync, Remotes, Config
+└── UseItemHandler → InventoryManager, InventorySync, HealthManager, ServantManager, Config
+
+BloodServer → BloodManager, HealthManager, Remotes
+WeaponManager → HealthManager, BloodManager, Remotes, Config
+EnemyAI → HealthManager, Config
+EnemyManager → EnemySpawner, Config
+ServantServer → ServantManager, HealthManager, InventoryManager, InventorySync, Remotes, Config
+ServantAI → HealthManager, Config
+LootServer → LootManager, InventoryManager, InventorySync, Remotes
+
+---
+
+## Зависимости модулей (клиентская сторона)
+
+CharacterWindow.client.luau (оркестратор)
+├── UIConstants ← Config
+├── SlotFactory ← UIConstants
+├── DragManager ← UIConstants
+├── EquipmentPanel ← Config, UIConstants, SlotFactory, ItemTooltip
+├── CraftPanel ← Config, UIConstants, Remotes
+├── InventoryGrid ← Config, UIConstants, SlotFactory, DragManager, CooldownManager, ItemTooltip, ActionBarHUD, Remotes
+├── ActionBarHUD ← Config, UIConstants, SlotFactory, DragManager, CooldownManager, ItemTooltip, Remotes
+├── CooldownManager (standalone, RenderStepped loop)
+└── ItemTooltip (tooltip/)
+    ├── TooltipConstants
+    ├── TooltipHeader ← TooltipConstants
+    ├── TooltipAttributes ← TooltipConstants, Config
+    ├── TooltipDescription ← TooltipConstants
+    └── TooltipFooter ← TooltipConstants
 
 ---
 
 ## Известные технические долги
 
-1. **HealthManager.die()** содержит логику респавна врагов (дроп лута, удаление entity, вызов EnemySpawner). Нужен event-driven подход или отдельный `EnemyLifecycle` модуль.
+1. ~~HealthManager.die() бог-функция~~ → **закрыто** (EventBus, v1.3)
 2. **ServantUI.client.luau** — монолит ~300 строк. Разбить на модули по аналогии с `character/`.
-3. **CombatInput.client.luau** — нет проверки `gameProcessed` для ЛКМ (атака при клике по UI).
-4. **UseItemHandler.AddServant** — дублирует формулу `recalcStats` из ServantManager. Формулы могут разойтись.
-5. **CraftPanel.updateTooltip** — переменная `resultItem` используется до объявления (`resultType` будет nil).
-6. **InventoryManager.addItem** — не сохраняет `ItemLevel` при создании нового слота. `addItemFromConfig` передаёт его, но `addItem` игнорирует.
-7. **WeaponManager** — жёсткая привязка к `Config.Weapons.Sword`. При добавлении второго оружия сломается.
+3. ~~CombatInput.client.luau — нет проверки gameProcessed~~ → **закрыто** (уже было исправлено)
+4. ~~UseItemHandler.AddServant дублирует recalcStats~~ → **закрыто** (ServantManager.createFromEgg, v1.3)
+5. ~~CraftPanel.updateTooltip — resultItem scope~~ → **закрыто** (v1.3)
+6. ~~InventoryManager.addItem — не сохраняет ItemLevel~~ → **закрыто** (v1.3)
+7. **WeaponManager** — жёсткая привязка к `Config.Weapons.Sword`. **Отложено** до переделки системы оружия.
 8. **EnemyHPBar** — обновляет все HP-бары каждый RenderStepped даже если HP не менялось.
 9. **BloodUI / CaptureUI** — оба итерируют всех врагов каждый кадр. Можно объединить и снизить частоту.
-10. **Config.Items.Sword** — нет поля `EquipSlot`, меч не экипируется через ПКМ.
-11. **Нет rate-limit** на `DropItem` remote.
+10. ~~Config.Items.Sword — нет EquipSlot~~ → **не баг** (оружие экипируется через ActionBar).
+11. ~~Нет rate-limit на DropItem~~ → **закрыто** (0.3s cooldown, v1.3)
 12. **Дублирование слот-логики** — `InventoryGrid._connectSlot` и `ActionBarHUD.build` содержат почти идентичный код.
+13. ~~EnemySpawner.spawn — return nil при создании папки~~ → **закрыто** (v1.3)
 
 ---
 
@@ -178,4 +314,4 @@ CharacterWindow.client.luau (оркестратор) ├── UIConstants ← C
 | 1.0 | — | Базовый бой, инвентарь, экипировка, враги, камера |
 | 1.1 | develop_1.1 | Кровь, слуги, floating damage, лут |
 | 1.2 | develop_1.2 | Крафт, consumables, cooldown визуал, UI рефакторинг, Remote registry |
-| 1.3 | develop_1.3 | Drag-and-drop экипировки (игрок + слуга), модульный ItemTooltip, tooltip везде, дроп на землю, дроп из ActionBar, серверные модули перенесены в ServerScriptService |
+| 1.3 | develop_1.3 | Drag-and-drop экипировки (игрок + слуга), модульный ItemTooltip, tooltip везде, дроп на землю, серверные модули в ServerScriptService, EventBus, рефакторинг техдолга |

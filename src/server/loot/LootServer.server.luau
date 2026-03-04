@@ -2,11 +2,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
-
+local Players = game:GetService("Players")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local LootManager = require(modules:WaitForChild("LootManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+
+local dropCooldowns = {} -- [UserId] = tick()
+local DROP_COOLDOWN = 0.3 -- секунд между дропами
 
 Remotes.PickupLoot.OnServerEvent:Connect(function(player, lootPart)
     if not lootPart or not lootPart:IsA("Part") then
@@ -22,6 +25,11 @@ Remotes.PickupLoot.OnServerEvent:Connect(function(player, lootPart)
 end)
 
 Remotes.DropItem.OnServerEvent:Connect(function(player, slotIndex)
+    local now = tick()
+    local last = dropCooldowns[player.UserId] or 0
+    if now - last < DROP_COOLDOWN then return end
+    dropCooldowns[player.UserId] = now
+
     if type(slotIndex) ~= "number" then return end
     slotIndex = math.floor(slotIndex)
 
@@ -46,4 +54,8 @@ task.spawn(function()
         task.wait(30)
         LootManager.cleanup()
     end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    dropCooldowns[player.UserId] = nil
 end)
