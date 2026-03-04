@@ -14,13 +14,16 @@ local SMOOTHNESS = 0.15
 local MIN_DISTANCE = 20
 local MAX_DISTANCE = 80
 local ZOOM_STEP = 5
+local YAW_SENSITIVITY = 0.3
 
 -- Смещение точки фокуса вниз (к ногам)
 local FOCUS_OFFSET = Vector3.new(0, -3, 0)
 -- =============================
 
 local currentPosition = Vector3.zero
+local isRightMouseDown = false
 
+-- Zoom
 UserInputService.InputChanged:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.UserInputType == Enum.UserInputType.MouseWheel then
@@ -32,6 +35,31 @@ UserInputService.InputChanged:Connect(function(input, gameProcessed)
 	end
 end)
 
+-- ПКМ зажатие
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		isRightMouseDown = true
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		isRightMouseDown = false
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	end
+end)
+
+-- Вращение камеры по yaw при зажатом ПКМ
+UserInputService.InputChanged:Connect(function(input)
+	if not isRightMouseDown then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		CAMERA_ROTATION = CAMERA_ROTATION - input.Delta.X * YAW_SENSITIVITY
+	end
+end)
+
+-- Камера
 RunService.RenderStepped:Connect(function()
 	local character = player.Character
 	if not character then return end
@@ -41,9 +69,7 @@ RunService.RenderStepped:Connect(function()
 
 	camera.CameraType = Enum.CameraType.Scriptable
 
-	-- Точка фокуса = позиция персонажа + смещение вниз к ногам
 	local targetPos = rootPart.Position + FOCUS_OFFSET
-
 	currentPosition = currentPosition:Lerp(targetPos, SMOOTHNESS)
 
 	local angleRad = math.rad(CAMERA_ANGLE)
@@ -56,6 +82,5 @@ RunService.RenderStepped:Connect(function()
 	)
 
 	local cameraPos = currentPosition + offset
-
 	camera.CFrame = CFrame.lookAt(cameraPos, currentPosition)
 end)

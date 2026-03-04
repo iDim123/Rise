@@ -12,6 +12,7 @@ local BloodManager = require(modules:WaitForChild("BloodManager"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
 local ResourceManager = require(modules:WaitForChild("ResourceManager"))
+local AbilityManager = require(modules:WaitForChild("AbilityManager"))
 
 local weaponsFolder = ServerStorage:WaitForChild("weapons")
 

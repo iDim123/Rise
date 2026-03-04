@@ -8,6 +8,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local ResourceManager = require(modules:WaitForChild("ResourceManager"))
 
 local AbilityManager = {}
 local abilityCooldowns = {} -- [userId] = { [abilityId] = lastUseTime }
@@ -48,10 +49,10 @@ function AbilityManager.useAbility(player, key, mousePosition)
     for _, effect in ability.Effects do
         if effect.Type == "DirectDamage" then
             AbilityManager._directDamage(character, rootPart, mousePosition, effect, weaponConfig)
-
+            AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
         elseif effect.Type == "AoEDamage" then
             AbilityManager._aoeDamage(character, rootPart, effect)
-
+            AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
         elseif effect.Type == "ApplyBuff" then
             BuffManager.applyBuff(character, effect.BuffId, effect.Duration, ability.Id)
 
@@ -168,6 +169,44 @@ function AbilityManager._applyDebuffToTargets(character, rootPart, mousePosition
 
     for _, target in targets do
         BuffManager.applyBuff(target, effect.BuffId, effect.Duration, "ability")
+    end
+end
+
+function AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
+    local resourcesFolder = workspace:FindFirstChild("Resources")
+    if not resourcesFolder then return end
+
+    local player = Players:GetPlayerFromCharacter(character)
+    if not player then return end
+
+    local resourceDamage = weaponConfig.ResourceDamage or 0
+    if resourceDamage <= 0 then return end
+
+    local radius = effect.Radius or weaponConfig.Range or 8
+
+    for _, node in resourcesFolder:GetChildren() do
+        if not node:GetAttribute("NodeType") then continue end
+
+        local closestDist = math.huge
+        local parts = {}
+        if node:IsA("BasePart") then
+            table.insert(parts, node)
+        else
+            for _, desc in node:GetDescendants() do
+                if desc:IsA("BasePart") then table.insert(parts, desc) end
+            end
+        end
+
+        for _, part in parts do
+            local dx = rootPart.Position.X - part.Position.X
+            local dz = rootPart.Position.Z - part.Position.Z
+            local hDist = math.sqrt(dx * dx + dz * dz)
+            if hDist < closestDist then closestDist = hDist end
+        end
+
+        if closestDist <= radius then
+            ResourceManager.hit(player, node, resourceDamage)
+        end
     end
 end
 
