@@ -40,6 +40,7 @@ function ItemTooltip.show(itemData, slotFrame)
     tooltip.BackgroundColor3 = TC.BG_COLOR
     tooltip.BorderSizePixel = 0
     tooltip.Parent = tooltipGui
+    tooltip.Position = UDim2.new(0, -9999, 0, -9999)
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, TC.CORNER)
@@ -62,7 +63,7 @@ function ItemTooltip.show(itemData, slotFrame)
 
     currentTooltip = tooltip
 
-    task.defer(function()
+    task.delay(0.03, function()
         if not currentTooltip or currentTooltip ~= tooltip then return end
 
         local slotAbsPos = slotFrame.AbsolutePosition
@@ -71,14 +72,17 @@ function ItemTooltip.show(itemData, slotFrame)
         local tooltipH = tooltip.AbsoluteSize.Y
         local tooltipW = TC.TOOLTIP_W
 
+        -- Try right of slot
         local x = slotAbsPos.X + slotAbsSize.X + 8
         local y = slotAbsPos.Y
 
+        -- If overflows right, try left
         if x + tooltipW > viewportSize.X - 4 then
             x = slotAbsPos.X - tooltipW - 8
         end
         if x < 4 then x = 4 end
 
+        -- Clamp bottom
         if y + tooltipH > viewportSize.Y - 4 then
             y = viewportSize.Y - tooltipH - 4
         end
