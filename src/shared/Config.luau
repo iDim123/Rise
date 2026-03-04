@@ -233,6 +233,24 @@ Config.Servants = {
 }
 
 Config.Items = {
+    debug_buff_potion = {
+        Id = "debug_buff_potion",
+        Name = "Debug Buff Potion",
+        Description = "Test potion: +30% damage, -40% speed for 20s.",
+        Icon = "rbxassetid://0",
+        Type = "Consumable",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 20,
+        UseEffect = {
+            Type = "ApplyBuffs",
+            Cooldown = 1,
+            Buffs = {
+                { BuffId = "damage_boost", Duration = 200 },
+                { BuffId = "slow", Duration = 20 },
+            },
+        },
+    },
     debug_servant_egg = {
         Id = "debug_servant_egg",
         Name = "Debug Servant Egg",

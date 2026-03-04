@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
@@ -139,21 +140,20 @@ function BuffManager._applyStatEffects(entity)
     humanoid.WalkSpeed = finalSpeed
 end
 
--- Отправляет обновление баффов клиенту
-function BuffManager._sendUpdate(entity)
-    local Players = game:GetService("Players")
-    local buffList = BuffManager.getActiveBuffs(entity)
-
-    -- Если это игрок — отправляем ему
-    local player = Players:GetPlayerFromCharacter(entity)
-    if player then
-        Remotes.UpdateBuffs:FireClient(player, entity, buffList)
-        return
+    -- Отправляет обновление баффов клиенту
+    function BuffManager._sendUpdate(entity)
+        local buffs = BuffManager.getActiveBuffs(entity)
+        
+        -- If entity is a player character, send to that player
+        local player = Players:GetPlayerFromCharacter(entity)
+        if player then
+            Remotes.UpdateBuffs:FireClient(player, buffs)
+            return
+        end
+        
+        -- Otherwise send to all clients (for enemies/servants)
+        Remotes.UpdateBuffs:FireAllClients(buffs)
     end
-
-    -- Иначе отправляем всем (враг/слуга — другие игроки тоже видят)
-    Remotes.UpdateBuffs:FireAllClients(entity, buffList)
-end
 
 -- Тик — проверка истёкших баффов
 function BuffManager.tick()

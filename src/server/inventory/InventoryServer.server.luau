@@ -67,6 +67,7 @@ Players.PlayerAdded:Connect(function(player)
     InventoryManager.addItemFromConfig(player, "iron_helmet", 1)
     InventoryManager.addItemFromConfig(player, "debug_servant_egg", 10)
     InventoryManager.addItemFromConfig(player, "Axe", 1)
+    InventoryManager.addItemFromConfig(player, "debug_buff_potion", 10)
 end)
 
 -- PlayerRemoving

@@ -62,6 +62,13 @@ function UseItemHandler.onUseItem(player, slotIndex)
             print("[UseItem] " .. player.Name .. " egg failed: " .. tostring(result))
             return
         end
+     elseif effect.Type == "ApplyBuffs" then
+        local character = player.Character
+        if not character then return end
+        local BuffManager = require(modules:WaitForChild("BuffManager"))
+        for _, buffEntry in effect.Buffs do
+            BuffManager.applyBuff(character, buffEntry.BuffId, buffEntry.Duration, "potion")
+        end
     end
 
     useCooldowns[userId][item.Id] = now
