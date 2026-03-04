@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
+local EventBus = require(script.Parent:WaitForChild("EventBus"))
 
 local LootManager = {}
 
@@ -192,5 +193,10 @@ function LootManager.dropItemFromPlayer(player, slotIndex, itemData, amount)
     print("[LootManager] " .. player.Name .. " dropped " .. itemData.Name .. " x" .. amount)
     return true
 end
+
+
+EventBus.on("EntityDying", function(entity, attacker)
+    LootManager.dropLoot(entity)
+end)
 
 return LootManager

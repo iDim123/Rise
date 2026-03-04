@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
+local EventBus = require(script.Parent:WaitForChild("EventBus"))
 
 local EnemySpawner = {}
 
@@ -71,5 +72,9 @@ function EnemySpawner.respawn(enemyType, spawnPosition)
         EnemySpawner.spawn(enemyType, spawnPosition)
     end)
 end
+
+EventBus.on("EntityRemoved", function(enemyType, spawnPos)
+    EnemySpawner.respawn(enemyType, spawnPos)
+end)
 
 return EnemySpawner
