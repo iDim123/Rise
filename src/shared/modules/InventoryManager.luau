@@ -235,6 +235,9 @@ function InventoryManager.addItemFromConfig(player, itemId, amount)
         Stackable = itemDef.Stackable or false,
         MaxStack = itemDef.MaxStack or 1,
         Type = itemDef.Type or "Misc",
+        EquipSlot = itemDef.EquipSlot,
+        Stats = itemDef.Stats,
+        ItemLevel = itemDef.ItemLevel or 0,
     })
 end
 

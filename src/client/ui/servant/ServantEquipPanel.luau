@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local DragManager = require(script.Parent:WaitForChild("DragManager"))
+local DragManager = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("DragManager"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local ServantEquipPanel = {}
@@ -16,11 +16,11 @@ local unequipCallback = nil
 
 -- Маппинг слотов слуги → допустимый тип предмета
 local SLOT_TYPE_MAP = {
-    Head = "HeadArmor",
-    Chest = "ChestArmor",
-    Legs = "LegsArmor",
-    Feet = "FeetArmor",
-    Hands = "HandsArmor",
+    Head = "Head",
+    Chest = "Chest",
+    Legs = "Legs",
+    Feet = "Feet",
+    Hands = "Hands",
     Amulet = "Amulet",
     Ring1 = "Ring",
     Ring2 = "Ring",
