@@ -138,6 +138,57 @@ function ServantManager.captureEnemy(player, enemyEntity)
     return true, servantId
 end
 
+
+function ServantManager.createFromEgg(player, enemyType, bloodQuality)
+    local data = playerServants[player.UserId]
+    if not data then return false, "No data" end
+
+    if #data.captured >= Config.Servants.MaxCaptured then
+        return false, "Max servants reached"
+    end
+
+    local enemyConfig = Config.Enemies[enemyType]
+    if not enemyConfig then return false, "Unknown enemy type" end
+
+    local baseATK = enemyConfig.Damage or 10
+    local baseHP = enemyConfig.MaxHP or 100
+
+    local equipment = {}
+    for _, slotConfig in Config.Servants.EquipmentSlots do
+        equipment[slotConfig.Id] = false
+    end
+
+    local servantId = tostring(tick()) .. "_" .. math.random(1000, 9999)
+    local servant = {
+        id = servantId,
+        name = enemyType .. " Servant",
+        enemyType = enemyType,
+        expertise = bloodQuality,
+        level = 1,
+        experience = 0,
+        baseATK = baseATK,
+        baseHP = baseHP,
+        atk = 0,
+        hp = 0,
+        maxHP = 0,
+        power = 0,
+        equipment = equipment,
+        favorite = false,
+        mode = Config.Servants.Modes.Passive,
+    }
+
+    recalcStats(servant)
+    servant.hp = servant.maxHP
+
+    table.insert(data.captured, servant)
+
+    print("[Servants] Egg created " .. servant.name
+        .. " for " .. player.Name
+        .. " (Expertise: " .. bloodQuality .. "%, Power: " .. servant.power
+        .. ", ATK: " .. servant.atk .. ", HP: " .. servant.maxHP .. ")")
+
+    return true, servantId
+end
 -- === Lookup ===
 
 function ServantManager.getServantById(player, servantId)

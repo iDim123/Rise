@@ -154,7 +154,6 @@ local function updateTooltip(recipe)
         return
     end
 
-
     local titleLabel = tooltip:FindFirstChild("Title")
     local iconFrame = tooltip:FindFirstChild("IconFrame")
     local subtitleLabel = tooltip:FindFirstChild("Subtitle")
