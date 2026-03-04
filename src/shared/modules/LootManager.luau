@@ -96,13 +96,16 @@ function LootManager.tryPickup(player, lootPart)
 	if not itemConfig then return false, "Unknown item" end
 
 	local success, slotIndex = InventoryManager.addItem(player, {
-		Id = itemConfig.Id,
-		Name = itemConfig.Name,
-		Icon = itemConfig.Icon or "",
-		Amount = data.amount,
-		Stackable = itemConfig.Stackable or false,
-		MaxStack = itemConfig.MaxStack or 1,
-		Type = itemConfig.Type or "Misc",
+	 	Id = itemConfig.Id,
+        Name = itemConfig.Name,
+        Icon = itemConfig.Icon or "",
+        Amount = data.amount,
+        Stackable = itemConfig.Stackable or false,
+        MaxStack = itemConfig.MaxStack or 1,
+        Type = itemConfig.Type or "Misc",
+        EquipSlot = itemConfig.EquipSlot,
+        Stats = itemConfig.Stats,
+        ItemLevel = itemConfig.ItemLevel or 0,
 	})
 
 	if not success then return false, "Inventory full" end

@@ -167,12 +167,15 @@ function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, us
         end
     end)
 
-    slot.MouseButton2Click:Connect(function()
+     slot.MouseButton2Click:Connect(function()
         local data = getCurrentData()
+        print("[RMB] slot", index, "data:", data ~= nil)
         if data then
             local item = data.slots[index]
+            print("[RMB] item:", item and item.Name or "nil", "EquipSlot:", item and item.EquipSlot or "nil")
             if item and item ~= false then
                 if item.EquipSlot then
+                    print("[RMB] firing EquipItem for slot", index)
                     equipRemote:FireServer(index)
                 elseif item.Type == "Consumable" then
                     if not CooldownManager.isOnCooldown(item.Id) then

@@ -25,6 +25,8 @@ end
 
 function DragManager.createGhost(itemData)
     DragManager.destroyGhost()
+   
+    local mousePos = UserInputService:GetMouseLocation()
 
     local ghost = Instance.new("Frame")
     ghost.Name = "DragGhost"
@@ -33,6 +35,7 @@ function DragManager.createGhost(itemData)
     ghost.BackgroundTransparency = 0.3
     ghost.BorderSizePixel = 0
     ghost.ZIndex = 100
+    ghost.Position = UDim2.new(0, mousePos.X - UC.slotSize / 2, 0, mousePos.Y - UC.slotSize / 2)
     ghost.Parent = screenGui
 
     local corner = Instance.new("UICorner")
