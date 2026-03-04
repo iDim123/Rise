@@ -88,37 +88,68 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     UserInputService.InputEnded:Connect(function(input, gameProcessed)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
             local mousePos = UserInputService:GetMouseLocation()
+            local dragFrom = DragManager.dragFrom
+            local overIndex = DragManager.dragOverIndex
 
             local dropped = DragManager.tryDrop(mousePos)
 
             if not dropped then
-                local overIndex = DragManager.dragOverIndex
-                if overIndex and overIndex ~= DragManager.dragFrom then
-                    savedSwapRemote:FireServer(DragManager.dragFrom, overIndex)
+                if overIndex and overIndex == dragFrom then
+                elseif overIndex and overIndex ~= dragFrom then
+                    savedSwapRemote:FireServer(dragFrom, overIndex)
                 elseif not overIndex then
-                    local isOutside = true
 
-                    if parentFrame.Visible then
-                        local absPos = parentFrame.AbsolutePosition
-                        local absSize = parentFrame.AbsoluteSize
+                    local isOverSlot = false
+                    for idx, sf in slotFrames do
+                        local absPos = sf.AbsolutePosition
+                        local absSize = sf.AbsoluteSize
                         if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
                             and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
-                            isOutside = false
+                            isOverSlot = true
+                            break
                         end
                     end
 
-                    local abFrame = ActionBarHUD.getFrame()
-                    if abFrame then
-                        local absPos = abFrame.AbsolutePosition
-                        local absSize = abFrame.AbsoluteSize
-                        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-                            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
-                            isOutside = false
+                    if not isOverSlot then
+                        local abSlots = ActionBarHUD.getSlots()
+                        for idx, sf in abSlots do
+                            local absPos = sf.AbsolutePosition
+                            local absSize = sf.AbsoluteSize
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                                isOverSlot = true
+                                break
+                            end
                         end
                     end
 
-                    if isOutside then
-                        Remotes.DropItem:FireServer(DragManager.dragFrom)
+
+                    if not isOverSlot then
+                        local isOutside = true
+
+                        if parentFrame.Visible then
+                            local absPos = parentFrame.AbsolutePosition
+                            local absSize = parentFrame.AbsoluteSize
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                                isOutside = false
+                            end
+                        end
+
+                        local abFrame = ActionBarHUD.getFrame()
+                        if abFrame then
+                            local absPos = abFrame.AbsolutePosition
+                            local absSize = abFrame.AbsoluteSize
+                            -- Добавляем 30px вниз для bind labels
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y + 30 then
+                                isOutside = false
+                            end
+                        end
+
+                        if isOutside then
+                            Remotes.DropItem:FireServer(dragFrom)
+                        end
                     end
                 end
             end
