@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local modules = ReplicatedStorage:WaitForChild("modules")
-local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
 
 local LootManager = {}
 

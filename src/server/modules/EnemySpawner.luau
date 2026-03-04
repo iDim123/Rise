@@ -2,7 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local modules = ReplicatedStorage:WaitForChild("modules")
+local HealthManager = require(script.Parent:WaitForChild("HealthManager"))
 
 local EnemySpawner = {}
 
@@ -51,7 +51,6 @@ function EnemySpawner.spawn(enemyType, spawnPosition)
     enemy:SetAttribute("SpawnPosition", spawnPosition)
 
     -- HP
-    local HealthManager = require(modules:WaitForChild("HealthManager"))
     HealthManager.init(enemy, config.MaxHP)
 
     -- Blood

@@ -2,9 +2,9 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
-
-local Config = require(modules:WaitForChild("Config"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local WeaponHandler = {}
 
