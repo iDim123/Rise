@@ -11,6 +11,7 @@ local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BloodManager = require(modules:WaitForChild("BloodManager"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
+local ResourceManager = require(modules:WaitForChild("ResourceManager"))
 
 local weaponsFolder = ServerStorage:WaitForChild("weapons")
 
@@ -104,6 +105,9 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
     -- Округляем после всех бонусов
     attackDamage = math.floor(attackDamage)
 
+ 	local mouseDirection = (mousePosition - rootPart.Position).Unit
+    mouseDirection = Vector3.new(mouseDirection.X, 0, mouseDirection.Z).Unit
+
     for _, target in getTargets(character) do
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         if not targetRoot then continue end
@@ -112,16 +116,60 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
 
         if distance <= attackRange then
             local directionToTarget = (targetRoot.Position - rootPart.Position).Unit
-            local attackDirection = (mousePosition - rootPart.Position).Unit
-            attackDirection = Vector3.new(attackDirection.X, 0, attackDirection.Z).Unit
-
-            local dot = directionToTarget:Dot(attackDirection)
+            local dot = directionToTarget:Dot(mouseDirection)
             if dot > 0.3 then
                 -- DamageReduction на цели
                 local dmgReduction = BuffManager.getStatModifier(target, "DamageReduction")
                 local finalDamage = math.floor(attackDamage * (1 - dmgReduction))
                 finalDamage = math.max(1, finalDamage)
                 HealthManager.takeDamage(target, finalDamage, character)
+            end
+        end
+    end
+
+	-- ═══ Resource node hit ═══
+    local resourceDamage = weaponConfig.ResourceDamage or 0
+    if resourceDamage > 0 then
+        local resourcesFolder = workspace:FindFirstChild("Resources")
+        if resourcesFolder then
+            for _, node in resourcesFolder:GetChildren() do
+                if not node:GetAttribute("NodeType") then continue end
+                
+                -- Find nearest BasePart for distance check
+                local closestPart = nil
+                local closestDist = math.huge
+                local parts = {}
+                if node:IsA("BasePart") then
+                    table.insert(parts, node)
+                else
+                    for _, desc in node:GetDescendants() do
+                        if desc:IsA("BasePart") then
+                            table.insert(parts, desc)
+                        end
+                    end
+                end
+                
+                for _, part in parts do
+                    local partPos = part.Position
+                    -- Horizontal distance only (ignore Y)
+                    local dx = rootPart.Position.X - partPos.X
+                    local dz = rootPart.Position.Z - partPos.Z
+                    local hDist = math.sqrt(dx * dx + dz * dz)
+                    if hDist < closestDist then
+                        closestDist = hDist
+                        closestPart = part
+                    end
+                end
+                
+              if closestPart and closestDist <= weaponConfig.Range + 2 then
+                    local toNode = (closestPart.Position - rootPart.Position)
+                    toNode = Vector3.new(toNode.X, 0, toNode.Z).Unit
+                    local dot = mouseDirection:Dot(toNode)
+                    if dot > 0.3 then
+                        ResourceManager.hit(player, node, resourceDamage)
+                        break
+                    end
+                end
             end
         end
     end

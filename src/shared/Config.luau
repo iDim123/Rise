@@ -51,7 +51,7 @@ Config.Weapons = {
         Range = 6,
         Cooldown = 0.4,
         ComboWindow = 1.2,
-        ResourceDamage = 5,
+        ResourceDamage = 15,
         Combo = {
             [1] = { Damage = 25, AnimationId = "rbxassetid://70662356098178" },
             [2] = { Damage = 20, AnimationId = "rbxassetid://70662356098178" },
@@ -336,7 +336,27 @@ Config.Items = {
         Stats = {
             Defense = 5
         }
-    }
+    },
+    wood = {
+        Id = "wood",
+        Name = "Wood",
+        Description = "Raw wood harvested from trees.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 99,
+    },
+    stone = {
+        Id = "stone",
+        Name = "Stone",
+        Description = "Raw stone mined from rocks.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 99,
+    },
 }
 
 Config.Loot = {
@@ -417,6 +437,23 @@ Config.Buffs = {
         Stat = "SpeedBonus",
         Value = 0.25,
         Stackable = false,
+    },
+}
+
+Config.ResourceNodes = {
+    Tree = {
+        MaxHP = 50,
+        ResourceId = "wood",
+        ResourcePerHit = 1, -- multiplier: resourceDamage * this = amount
+        RespawnTime = 5,
+        Model = "Tree",
+    },
+    Rock = {
+        MaxHP = 80,
+        ResourceId = "stone",
+        ResourcePerHit = 1,
+        RespawnTime = 45,
+        Model = "Rock",
     },
 }
 
