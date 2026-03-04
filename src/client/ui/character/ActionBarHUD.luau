@@ -1,14 +1,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
+local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local ActionBarHUD = {}
 
 local actionBarSlots = {}
 local cachedSlotsData = nil
 
-function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote)
+function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equipRemote)
     local gui = Instance.new("ScreenGui")
     gui.Name = "ActionBarGui"
     gui.ResetOnSpawn = false
@@ -37,7 +39,6 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote)
 
         local slot = SlotFactory.createSlot(frame, "AB_" .. index, posX, 2)
 
-        -- Number label
         local numLabel = Instance.new("TextLabel")
         numLabel.Name = "NumLabel"
         numLabel.Size = UDim2.new(1, 0, 0, 14)
@@ -50,28 +51,51 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote)
         numLabel.TextXAlignment = Enum.TextXAlignment.Center
         numLabel.Parent = slot
 
+        -- Tooltip
+        slot.MouseEnter:Connect(function()
+            if cachedSlotsData then
+                local item = cachedSlotsData[index]
+                if item and item ~= false then
+                    ItemTooltip.show(item, slot)
+                end
+            end
+        end)
+
+        slot.MouseLeave:Connect(function()
+            ItemTooltip.hide()
+        end)
+
         slot.MouseButton2Click:Connect(function()
+            ItemTooltip.hide()
             local slotData = nil
             if cachedSlotsData then
                 slotData = cachedSlotsData[index]
             end
 
-            if slotData and slotData ~= false and slotData.Type == "Consumable" then
+            if not slotData or slotData == false then return end
+
+            if slotData.EquipSlot then
+                -- Экипировка (шлем, броня и т.д.)
+                if equipRemote then
+                    equipRemote:FireServer(index)
+                end
+            elseif slotData.Type == "Consumable" then
+                -- Расходник
                 if not CooldownManager.isOnCooldown(slotData.Id) then
-                    local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Config"))
                     local itemDef = Config.Items[slotData.Id]
                     if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
                         CooldownManager.startCooldown(slotData.Id, itemDef.UseEffect.Cooldown)
                     end
                     useItemRemote:FireServer(index)
                 end
-            else
+            elseif slotData.Type == "Weapon" then
+                -- Оружие — выбрать как активное
                 setActiveWeaponRemote:FireServer(index)
             end
         end)
 
         actionBarSlots[index] = slot
-       
+
         CooldownManager.registerSlot(slot, function()
             if cachedSlotsData then
                 local item = cachedSlotsData[index]
@@ -85,7 +109,7 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote)
 end
 
 function ActionBarHUD.refresh(slotsData, activeWeaponSlot)
-    cachedSlotsData = slotsData  -- сохраняем для проверки при клике
+    cachedSlotsData = slotsData
     for i, slot in actionBarSlots do
         local itemData = slotsData[i]
         if itemData == false then itemData = nil end

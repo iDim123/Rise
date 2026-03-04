@@ -63,32 +63,46 @@ function ItemTooltip.show(itemData, slotFrame)
 
     currentTooltip = tooltip
 
-    task.delay(0.03, function()
+    local function positionTooltip()
         if not currentTooltip or currentTooltip ~= tooltip then return end
 
         local slotAbsPos = slotFrame.AbsolutePosition
         local slotAbsSize = slotFrame.AbsoluteSize
-        local viewportSize = workspace.CurrentCamera.ViewportSize
+        local viewportSize = tooltipGui.AbsoluteSize
         local tooltipH = tooltip.AbsoluteSize.Y
         local tooltipW = TC.TOOLTIP_W
 
-        -- Try right of slot
         local x = slotAbsPos.X + slotAbsSize.X + 8
         local y = slotAbsPos.Y
 
-        -- If overflows right, try left
         if x + tooltipW > viewportSize.X - 4 then
             x = slotAbsPos.X - tooltipW - 8
         end
         if x < 4 then x = 4 end
 
-        -- Clamp bottom
         if y + tooltipH > viewportSize.Y - 4 then
             y = viewportSize.Y - tooltipH - 4
         end
         if y < 4 then y = 4 end
 
         tooltip.Position = UDim2.new(0, x, 0, y)
+    end
+
+    local conn
+    conn = tooltip:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        if not currentTooltip or currentTooltip ~= tooltip then
+            if conn then conn:Disconnect() end
+            return
+        end
+        positionTooltip("signal")
+        if conn then conn:Disconnect() end
+    end)
+
+    task.delay(0.05, function()
+        if conn and conn.Connected then
+            conn:Disconnect()
+        end
+        positionTooltip("fallback")
     end)
 end
 

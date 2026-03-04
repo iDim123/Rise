@@ -89,7 +89,7 @@ end, Remotes.UseItem)
 mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)
 
 -- Build bottom ActionBar
-ActionBarHUD.build(playerGui, Remotes.SetActiveWeapon, Remotes.UseItem)
+ActionBarHUD.build(playerGui, Remotes.SetActiveWeapon, Remotes.UseItem, Remotes.EquipItem)
 
 -- Register entire player equipment panel as one drop target
 local equipPanel = equipPanelFrame  -- это Frame возвращённый из EquipmentPanel.build

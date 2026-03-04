@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local DragManager = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("DragManager"))
+local ItemTooltip = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("tooltip"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local ServantEquipPanel = {}
@@ -14,6 +15,7 @@ local PANEL_BG = Color3.fromRGB(35, 35, 50)
 local equipSlotFrames = {}
 local unequipCallback = nil
 local panelFrame = nil
+local currentEquipment = nil
 
 local SLOT_TYPE_MAP = {
     Head = "Head",
@@ -103,7 +105,22 @@ function ServantEquipPanel.build(parent, x, y, w, h)
         nameLabel.Visible = false
         nameLabel.Parent = slot
 
+        -- Tooltip
+        slot.MouseEnter:Connect(function()
+            if currentEquipment then
+                local itemData = currentEquipment[slotConfig.Id]
+                if itemData and itemData ~= false then
+                    ItemTooltip.show(itemData, slot)
+                end
+            end
+        end)
+
+        slot.MouseLeave:Connect(function()
+            ItemTooltip.hide()
+        end)
+
         slot.MouseButton2Click:Connect(function()
+            ItemTooltip.hide()
             if unequipCallback then
                 unequipCallback(slotConfig.Id)
             end
@@ -116,6 +133,7 @@ function ServantEquipPanel.build(parent, x, y, w, h)
 end
 
 function ServantEquipPanel.refresh(equipment)
+    currentEquipment = equipment
     for slotId, slot in equipSlotFrames do
         local itemData = equipment and equipment[slotId]
         local icon = slot:FindFirstChild("Icon")
