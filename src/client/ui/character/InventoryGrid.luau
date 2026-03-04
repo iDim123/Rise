@@ -5,6 +5,7 @@ local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
+local ItemTooltip = require(script.Parent:WaitForChild("ItemTooltip"))
 
 local InventoryGrid = {}
 
@@ -116,6 +117,7 @@ end
 
 function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
     slot.MouseButton1Down:Connect(function()
+        ItemTooltip.hide()
         local data = getCurrentData()
         if data then
             local item = data.slots[index]
@@ -130,10 +132,20 @@ function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, us
         if DragManager.isDragging() and DragManager.dragFrom ~= index then
             DragManager.dragOverIndex = index
             slot.BackgroundColor3 = UC.slotBgTarget
+        else
+            -- Tooltip
+            local data = getCurrentData()
+            if data and data.slots then
+                local item = data.slots[index]
+                if item and item ~= false then
+                    ItemTooltip.show(item, slot)
+                end
+            end
         end
     end)
 
     slot.MouseLeave:Connect(function()
+        ItemTooltip.hide()
         if DragManager.dragOverIndex == index then
             DragManager.dragOverIndex = nil
         end

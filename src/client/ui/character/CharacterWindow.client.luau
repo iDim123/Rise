@@ -11,6 +11,7 @@ local CraftPanel = require(script.Parent:WaitForChild("CraftPanel"))
 local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
+local ItemTooltip = require(script.Parent:WaitForChild("ItemTooltip"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -27,6 +28,7 @@ screenGui.DisplayOrder = 10
 screenGui.Parent = playerGui
 
 DragManager.init(screenGui)
+ItemTooltip.init(screenGui)
 
 -- Main window
 local mainFrame = Instance.new("Frame")
