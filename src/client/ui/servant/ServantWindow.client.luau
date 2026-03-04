@@ -299,6 +299,13 @@ Remotes.CaptureResult.OnClientEvent:Connect(function(success, status)
     end
 end)
 
+-- Auto-refresh servant window when inventory changes (e.g. after equip/unequip)
+Remotes.UpdateInventory.OnClientEvent:Connect(function(data)
+    if isOpen then
+        refreshUI()
+    end
+end)
+
 -- Toggle with V
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end

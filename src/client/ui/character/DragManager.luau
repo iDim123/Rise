@@ -106,23 +106,15 @@ function DragManager.unregisterDropTarget(slotFrame)
 end
 
 function DragManager.tryDrop(mousePos)
-    print("[DragManager] tryDrop called, mousePos =", mousePos, "targets count =", #{})
-    local count = 0
-    for _ in dropTargets do count += 1 end
-    print("[DragManager] registered drop targets:", count)
-    
     for slotFrame, callback in dropTargets do
         local absPos = slotFrame.AbsolutePosition
         local absSize = slotFrame.AbsoluteSize
-        print("[DragManager] checking slot:", slotFrame.Name, "pos=", absPos, "size=", absSize)
         if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
             and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
-            print("[DragManager] HIT! calling callback")
             callback(DragManager.getDragData())
             return true
         end
     end
-    print("[DragManager] No hit on any target")
     return false
 end
 

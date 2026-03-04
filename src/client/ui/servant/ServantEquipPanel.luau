@@ -15,7 +15,6 @@ local equipSlotFrames = {}
 local unequipCallback = nil
 local panelFrame = nil
 
--- Маппинг слотов слуги → допустимый тип предмета
 local SLOT_TYPE_MAP = {
     Head = "Head",
     Chest = "Chest",
@@ -26,25 +25,6 @@ local SLOT_TYPE_MAP = {
     Ring1 = "Ring",
     Ring2 = "Ring",
 }
-
-local function matchesSlot(item, slotName)
-    local expectedType = SLOT_TYPE_MAP[slotName]
-    if not expectedType then return false end
-
-    -- Проверяем по Type предмета
-    if item.Type == expectedType then return true end
-
-    -- Проверяем по EquipSlot (для Ring1/Ring2 EquipSlot может быть "Ring")
-    if item.EquipSlot then
-        if item.EquipSlot == slotName then return true end
-        -- Ring1 и Ring2 принимают предметы с EquipSlot = "Ring"
-        if (slotName == "Ring1" or slotName == "Ring2") and item.EquipSlot == "Ring" then
-            return true
-        end
-    end
-
-    return false
-end
 
 function ServantEquipPanel.build(parent, x, y, w, h)
     local panel = Instance.new("Frame")
@@ -58,6 +38,8 @@ function ServantEquipPanel.build(parent, x, y, w, h)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = panel
+
+    panelFrame = panel
 
     local slots = Config.Servants.EquipmentSlots
     for _, slotConfig in slots do
@@ -86,7 +68,6 @@ function ServantEquipPanel.build(parent, x, y, w, h)
         slotStroke.Thickness = 1
         slotStroke.Parent = slot
 
-        -- Slot label
         local label = Instance.new("TextLabel")
         label.Name = "SlotLabel"
         label.Size = UDim2.new(0, 40, 0, SLOT_SIZE)
@@ -99,7 +80,6 @@ function ServantEquipPanel.build(parent, x, y, w, h)
         label.Text = slotConfig.Name
         label.Parent = slot
 
-        -- Icon
         local icon = Instance.new("ImageLabel")
         icon.Name = "Icon"
         icon.Size = UDim2.new(0.8, 0, 0.8, 0)
@@ -110,7 +90,6 @@ function ServantEquipPanel.build(parent, x, y, w, h)
         icon.Visible = false
         icon.Parent = slot
 
-        -- Name label
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
         nameLabel.Size = UDim2.new(1, -4, 0.6, 0)
@@ -124,7 +103,6 @@ function ServantEquipPanel.build(parent, x, y, w, h)
         nameLabel.Visible = false
         nameLabel.Parent = slot
 
-        -- Right-click to unequip
         slot.MouseButton2Click:Connect(function()
             if unequipCallback then
                 unequipCallback(slotConfig.Id)
@@ -173,30 +151,31 @@ end
 function ServantEquipPanel.registerDropTargets(servantId)
     if not panelFrame then return end
 
-    -- Регистрируем ВСЮ панель как один drop target
     DragManager.registerDropTarget(panelFrame, function(data)
         if not data or not data.item then return end
 
         local item = data.item
         local targetSlot = nil
 
-        -- Ищем подходящий слот по типу предмета
         for slotName, expectedType in SLOT_TYPE_MAP do
-            if item.Type == expectedType or
-               (item.EquipSlot and item.EquipSlot == slotName) or
-               (item.EquipSlot == "Ring" and (slotName == "Ring1" or slotName == "Ring2")) then
-
-                -- Для колец: сначала пустой слот, потом Ring1
+            if item.Type == expectedType then
                 if slotName == "Ring1" or slotName == "Ring2" then
-                    if item.Type == "Ring" or item.EquipSlot == "Ring" then
-                        -- Предпочитаем пустой слот
-                        if not targetSlot then
-                            targetSlot = slotName
-                        end
+                    if not targetSlot then
+                        targetSlot = slotName
                     end
                 else
                     targetSlot = slotName
                     break
+                end
+            elseif item.EquipSlot then
+                if item.EquipSlot == slotName then
+                    targetSlot = slotName
+                    break
+                end
+                if (slotName == "Ring1" or slotName == "Ring2") and item.EquipSlot == "Ring" then
+                    if not targetSlot then
+                        targetSlot = slotName
+                    end
                 end
             end
         end

@@ -25,7 +25,7 @@ function ServantStatsPanel.build(parent, x, y, w, h)
     local stats = {
         { key = "level",      display = "Level" },
         { key = "experience", display = "Experience" },
-        { key = "hp",         display = "HP" },
+        { key = "hp",         display = "Max HP" },
         { key = "power",      display = "Power" },
         { key = "atk",        display = "AttackPower" },
         { key = "expertise",  display = "Expertise" },
@@ -91,31 +91,24 @@ function ServantStatsPanel.refresh(servant)
         return
     end
 
-    local level = servant.level or 1
-    local experience = servant.experience or 0
-    local currentHP = servant.currentHP or servant.hp or 0
-    local maxHP = servant.baseHP or servant.maxHP or 0
-    local expertise = servant.expertise or servant.bloodQuality or 0
-    local power = calcPower(servant)
-    local atk = math.floor((servant.baseATK or 0) + power / 10)
-
     if labels.level then
-        labels.level.Text = tostring(level)
+        labels.level.Text = tostring(servant.level or 1)
     end
     if labels.experience then
-        labels.experience.Text = tostring(experience)
+        labels.experience.Text = tostring(servant.experience or 0)
     end
     if labels.hp then
-        labels.hp.Text = tostring(currentHP) .. " / " .. tostring(maxHP)
+        local maxHP = servant.maxHP or servant.baseHP or 0
+        labels.hp.Text = tostring(maxHP)
     end
     if labels.power then
-        labels.power.Text = tostring(power)
+        labels.power.Text = tostring(servant.power or 0)
     end
     if labels.atk then
-        labels.atk.Text = tostring(atk)
+        labels.atk.Text = tostring(servant.atk or 0)
     end
     if labels.expertise then
-        labels.expertise.Text = tostring(expertise) .. "%"
+        labels.expertise.Text = tostring(servant.expertise or servant.bloodQuality or 0) .. "%"
     end
 end
 
