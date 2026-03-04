@@ -1,0 +1,210 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+local EventBus = require(script.Parent:WaitForChild("EventBus"))
+
+local BuffManager = {}
+
+local activeBuffs = {} -- [entity] = { [buffId] = { config, startTime, duration, source } }
+
+function BuffManager.applyBuff(entity, buffId, duration, source)
+    local buffConfig = Config.Buffs[buffId]
+    if not buffConfig then
+        warn("[BuffManager] Unknown buff: " .. tostring(buffId))
+        return false
+    end
+
+    if not activeBuffs[entity] then
+        activeBuffs[entity] = {}
+    end
+
+    local existing = activeBuffs[entity][buffId]
+
+    if existing and not buffConfig.Stackable then
+        -- Обновляем длительность (refresh)
+        existing.startTime = tick()
+        existing.duration = duration
+        existing.source = source
+    else
+        activeBuffs[entity][buffId] = {
+            config = buffConfig,
+            startTime = tick(),
+            duration = duration,
+            source = source,
+        }
+    end
+
+    BuffManager._applyStatEffects(entity)
+    BuffManager._sendUpdate(entity)
+
+    local displayName = buffConfig.Name or buffId
+    print("[BuffManager] Applied " .. displayName .. " (" .. duration .. "s) to " .. entity.Name)
+
+    return true
+end
+
+function BuffManager.removeBuff(entity, buffId)
+    if not activeBuffs[entity] then return false end
+    if not activeBuffs[entity][buffId] then return false end
+
+    activeBuffs[entity][buffId] = nil
+
+    -- Если пусто — удалить запись
+    local hasBuffs = false
+    for _ in activeBuffs[entity] do
+        hasBuffs = true
+        break
+    end
+    if not hasBuffs then
+        activeBuffs[entity] = nil
+    end
+
+    BuffManager._applyStatEffects(entity)
+    BuffManager._sendUpdate(entity)
+
+    return true
+end
+
+function BuffManager.getActiveBuffs(entity)
+    local result = {}
+    local buffs = activeBuffs[entity]
+    if not buffs then return result end
+
+    local now = tick()
+    for buffId, data in buffs do
+        local remaining = data.duration - (now - data.startTime)
+        if remaining > 0 then
+            table.insert(result, {
+                Id = buffId,
+                Name = data.config.Name,
+                Description = data.config.Description,
+                Icon = data.config.Icon,
+                Type = data.config.Type,
+                Remaining = remaining,
+                Duration = data.duration,
+            })
+        end
+    end
+
+    return result
+end
+
+function BuffManager.getStatModifier(entity, statName)
+    local buffs = activeBuffs[entity]
+    if not buffs then return 0 end
+
+    local total = 0
+    local now = tick()
+
+    for buffId, data in buffs do
+        local remaining = data.duration - (now - data.startTime)
+        if remaining > 0 and data.config.Stat == statName then
+            total = total + data.config.Value
+        end
+    end
+
+    return total
+end
+
+function BuffManager.clearBuffs(entity)
+    if not activeBuffs[entity] then return end
+    activeBuffs[entity] = nil
+    BuffManager._applyStatEffects(entity)
+    BuffManager._sendUpdate(entity)
+end
+
+-- Применяет эффекты скорости на Humanoid
+function BuffManager._applyStatEffects(entity)
+    local humanoid = entity:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    -- Базовая скорость
+    local baseSpeed = 16
+
+    -- Проверяем враг ли это
+    local enemyType = entity:GetAttribute("EnemyType")
+    if enemyType then
+        local enemyConfig = Config.Enemies[enemyType]
+        if enemyConfig then
+            baseSpeed = enemyConfig.WalkSpeed
+        end
+    end
+
+    local speedBonus = BuffManager.getStatModifier(entity, "SpeedBonus")
+    local slow = BuffManager.getStatModifier(entity, "Slow")
+
+    local finalSpeed = baseSpeed * (1 + speedBonus) * (1 - slow)
+    finalSpeed = math.max(0, finalSpeed)
+
+    humanoid.WalkSpeed = finalSpeed
+end
+
+-- Отправляет обновление баффов клиенту
+function BuffManager._sendUpdate(entity)
+    local Players = game:GetService("Players")
+    local buffList = BuffManager.getActiveBuffs(entity)
+
+    -- Если это игрок — отправляем ему
+    local player = Players:GetPlayerFromCharacter(entity)
+    if player then
+        Remotes.UpdateBuffs:FireClient(player, entity, buffList)
+        return
+    end
+
+    -- Иначе отправляем всем (враг/слуга — другие игроки тоже видят)
+    Remotes.UpdateBuffs:FireAllClients(entity, buffList)
+end
+
+-- Тик — проверка истёкших баффов
+function BuffManager.tick()
+    local now = tick()
+
+    for entity, buffs in activeBuffs do
+        -- Проверяем что entity ещё существует
+        if not entity or not entity.Parent then
+            activeBuffs[entity] = nil
+            continue
+        end
+
+        local expired = {}
+        for buffId, data in buffs do
+            local remaining = data.duration - (now - data.startTime)
+            if remaining <= 0 then
+                table.insert(expired, buffId)
+            end
+        end
+
+        if #expired > 0 then
+            for _, buffId in expired do
+                buffs[buffId] = nil
+                print("[BuffManager] Expired: " .. buffId .. " on " .. entity.Name)
+            end
+
+            -- Проверяем пусто ли
+            local hasBuffs = false
+            for _ in buffs do
+                hasBuffs = true
+                break
+            end
+            if not hasBuffs then
+                activeBuffs[entity] = nil
+            end
+
+            BuffManager._applyStatEffects(entity)
+            BuffManager._sendUpdate(entity)
+        end
+    end
+end
+
+-- EventBus подписки — очистка при смерти
+EventBus.on("EntityDying", function(entity, attacker)
+    BuffManager.clearBuffs(entity)
+end)
+
+EventBus.on("PlayerDied", function(player, entity, attacker)
+    if entity then
+        BuffManager.clearBuffs(entity)
+    end
+end)
+
+return BuffManager

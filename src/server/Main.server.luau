@@ -1,9 +1,23 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
 local modules = ServerScriptService:WaitForChild("modules")
 
 -- Загружаем модули чтобы зарегистрировать подписки на EventBus
 require(modules:WaitForChild("HealthManager"))
 require(modules:WaitForChild("LootManager"))
 require(modules:WaitForChild("EnemySpawner"))
+local BuffManager = require(modules:WaitForChild("BuffManager"))
+
+-- Тик баффов каждую секунду
+local buffTickAccumulator = 0
+local BUFF_TICK_RATE = 1
+
+RunService.Heartbeat:Connect(function(dt)
+    buffTickAccumulator = buffTickAccumulator + dt
+    if buffTickAccumulator >= BUFF_TICK_RATE then
+        buffTickAccumulator = 0
+        BuffManager.tick()
+    end
+end)
 
 print("[Server] All systems initialized")

@@ -10,6 +10,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BloodManager = require(modules:WaitForChild("BloodManager"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local BuffManager = require(modules:WaitForChild("BuffManager"))
 
 local weaponsFolder = ServerStorage:WaitForChild("weapons")
 
@@ -89,11 +90,19 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
     local attackRange = weaponConfig.Range
 
     -- Бафф крови
-    local buffs = BloodManager.getBuffs(player)
+ 	local buffs = BloodManager.getBuffs(player)
     if buffs.DamageBonus then
         attackDamage = attackDamage * (1 + buffs.DamageBonus)
-        attackDamage = math.floor(attackDamage)
     end
+
+    -- Баффы от BuffManager
+    local dmgBonus = BuffManager.getStatModifier(character, "DamageBonus")
+    if dmgBonus > 0 then
+        attackDamage = attackDamage * (1 + dmgBonus)
+    end
+
+    -- Округляем после всех бонусов
+    attackDamage = math.floor(attackDamage)
 
     for _, target in getTargets(character) do
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
@@ -108,7 +117,11 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
 
             local dot = directionToTarget:Dot(attackDirection)
             if dot > 0.3 then
-                HealthManager.takeDamage(target, attackDamage, character)
+                -- DamageReduction на цели
+                local dmgReduction = BuffManager.getStatModifier(target, "DamageReduction")
+                local finalDamage = math.floor(attackDamage * (1 - dmgReduction))
+                finalDamage = math.max(1, finalDamage)
+                HealthManager.takeDamage(target, finalDamage, character)
             end
         end
     end

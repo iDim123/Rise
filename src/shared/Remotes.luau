@@ -31,6 +31,10 @@ local events = {
     "UnequipServantItem",
     "ToggleServantFavorite",
     "UpdateServantData",
+    "UpdateBuffs",
+    "UseAbility",
+    "AbilityCooldown",
+    "ResourceGathered",
 }
 
 -- RemoteFunctions
