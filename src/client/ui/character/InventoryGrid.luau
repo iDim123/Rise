@@ -6,6 +6,8 @@ local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local InventoryGrid = {}
 
@@ -97,7 +99,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     sc.Parent = sortBtn
 
     -- Глобальный обработчик — единственное место где обрабатывается drop и swap
-    UserInputService.InputEnded:Connect(function(input, gameProcessed)
+ UserInputService.InputEnded:Connect(function(input, gameProcessed)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
             local mousePos = UserInputService:GetMouseLocation()
 
@@ -107,23 +109,45 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             if not dropped then
                 local overIndex = DragManager.dragOverIndex
                 if overIndex and overIndex ~= DragManager.dragFrom then
-                    -- 2. Swap внутри инвентаря
+                    -- 2. Swap
                     savedSwapRemote:FireServer(DragManager.dragFrom, overIndex)
                 elseif not overIndex then
-                    -- 3. Курсор не над слотом — проверяем вне окна
-                    local absPos = parentFrame.AbsolutePosition
-                    local absSize = parentFrame.AbsoluteSize
-                    local outside = mousePos.X < absPos.X or mousePos.X > absPos.X + absSize.X
-                        or mousePos.Y < absPos.Y or mousePos.Y > absPos.Y + absSize.Y
+                    -- 3. Проверяем вне всех UI окон — выброс
+                    local isOutside = true
 
-                    if outside then
-                        local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+                    -- Проверяем основное окно инвентаря
+                    if parentFrame.Visible then
+                        local absPos = parentFrame.AbsolutePosition
+                        local absSize = parentFrame.AbsoluteSize
+                        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+                            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                            isOutside = false
+                        end
+                    end
+
+                    -- Проверяем ActionBar
+                    local abFrame = ActionBarHUD.getFrame()
+                    if abFrame then
+                        local absPos = abFrame.AbsolutePosition
+                        local absSize = abFrame.AbsoluteSize
+                        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+                            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                            isOutside = false
+                        end
+                    end
+
+                    if isOutside then
                         Remotes.DropItem:FireServer(DragManager.dragFrom)
                     end
                 end
             end
 
+            -- Reset обоих наборов слотов
             DragManager.reset(slotFrames)
+            local abSlots = ActionBarHUD.getSlots()
+            for _, s in abSlots do
+                s.BackgroundColor3 = UC.slotBg
+            end
         end
     end)
 end
@@ -169,13 +193,10 @@ function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, us
 
      slot.MouseButton2Click:Connect(function()
         local data = getCurrentData()
-        print("[RMB] slot", index, "data:", data ~= nil)
         if data then
             local item = data.slots[index]
-            print("[RMB] item:", item and item.Name or "nil", "EquipSlot:", item and item.EquipSlot or "nil")
             if item and item ~= false then
                 if item.EquipSlot then
-                    print("[RMB] firing EquipItem for slot", index)
                     equipRemote:FireServer(index)
                 elseif item.Type == "Consumable" then
                     if not CooldownManager.isOnCooldown(item.Id) then
