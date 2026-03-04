@@ -161,6 +161,76 @@ Remotes.RenameServant.OnServerEvent:Connect(function(player, servantId, newName)
     ServantManager.renameServant(player, servantId, newName)
 end)
 
+
+-- === Equip/Unequip servant items ===
+
+local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+local InventorySync = require(modules:WaitForChild("InventorySync"))
+
+Remotes.EquipServantItem.OnServerEvent:Connect(function(player, servantId, inventorySlotIndex, equipSlotId)
+    if type(servantId) ~= "string" then return end
+    if type(inventorySlotIndex) ~= "number" then return end
+    if type(equipSlotId) ~= "string" then return end
+
+    local slots = InventoryManager.getSlots(player)
+    if not slots then return end
+
+    local itemData = slots[inventorySlotIndex]
+    if not itemData or itemData == false then return end
+
+    -- Проверяем совместимость типа предмета со слотом
+    local itemType = itemData.Type
+    local slotAcceptsType = false
+
+    if equipSlotId == "Head" and itemType == "Head" then slotAcceptsType = true
+    elseif equipSlotId == "Chest" and itemType == "Chest" then slotAcceptsType = true
+    elseif equipSlotId == "Legs" and itemType == "Legs" then slotAcceptsType = true
+    elseif equipSlotId == "Feet" and itemType == "Feet" then slotAcceptsType = true
+    elseif equipSlotId == "Hands" and itemType == "Hands" then slotAcceptsType = true
+    elseif equipSlotId == "Amulet" and itemType == "Amulet" then slotAcceptsType = true
+    elseif (equipSlotId == "Ring1" or equipSlotId == "Ring2") and itemType == "Ring" then slotAcceptsType = true
+    elseif itemType == "Weapon" then slotAcceptsType = false -- оружие нельзя надеть на слугу
+    end
+
+    if not slotAcceptsType then return end
+
+    local success, previousItem = ServantManager.equipItem(player, servantId, equipSlotId, itemData)
+    if not success then return end
+
+    -- Убираем предмет из инвентаря
+    InventoryManager.removeItem(player, inventorySlotIndex)
+
+    -- Если был предмет в слоте — возвращаем в инвентарь
+    if previousItem then
+        InventoryManager.addItem(player, previousItem)
+    end
+
+    InventorySync.sendFullUpdate(player)
+end)
+
+Remotes.UnequipServantItem.OnServerEvent:Connect(function(player, servantId, equipSlotId)
+    if type(servantId) ~= "string" then return end
+    if type(equipSlotId) ~= "string" then return end
+
+    local success, item = ServantManager.unequipItem(player, servantId, equipSlotId)
+    if not success or not item then return end
+
+    local added = InventoryManager.addItem(player, item)
+    if not added then
+        -- Инвентарь полон — вернём предмет обратно на слугу
+        ServantManager.equipItem(player, servantId, equipSlotId, item)
+        return
+    end
+
+    InventorySync.sendFullUpdate(player)
+end)
+
+Remotes.ToggleServantFavorite.OnServerEvent:Connect(function(player, servantId)
+    if type(servantId) ~= "string" then return end
+    ServantManager.toggleFavorite(player, servantId)
+end)
+
+
 Players.PlayerAdded:Connect(function(player)
     ServantManager.init(player)
     player.CharacterAdded:Connect(function()

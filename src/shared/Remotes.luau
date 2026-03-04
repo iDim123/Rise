@@ -26,6 +26,10 @@ local events = {
     "ServantCommand",
     "RenameServant",
     "PickupLoot",
+    "EquipServantItem",
+    "UnequipServantItem",
+    "ToggleServantFavorite",
+    "UpdateServantData",
 }
 
 -- RemoteFunctions

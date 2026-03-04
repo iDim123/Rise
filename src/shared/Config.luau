@@ -107,6 +107,8 @@ Config.ItemTypes = {
     LegsArmor = "Legs",
     FeetArmor = "Feet",
     HandsArmor = "Hands",
+    Amulet = "Amulet",
+    Ring = "Ring",
     Consumable = "Consumable",
     Misc = "Misc",
     Resource = "Resource"
@@ -144,12 +146,24 @@ Config.Servants = {
     MaxActive = 1,
     CaptureKey = Enum.KeyCode.T,
     CaptureRange = 8,
-    CaptureTime = 3, -- секунды каста
-    CaptureThreshold = 0.3, -- враг <30% HP
-    FollowDistance = 6, -- дистанция следования за игроком
+    CaptureTime = 0,
+    CaptureThreshold = 1,
+    FollowDistance = 6,
     AttackRange = 5,
     AggroRange = 20,
     AttackCooldown = 1.2,
+    PowerBase = 100,
+
+    EquipmentSlots = {
+        { Id = "Head",    Name = "Head",    Row = 1, Col = 1 },
+        { Id = "Chest",   Name = "Chest",   Row = 2, Col = 1 },
+        { Id = "Legs",    Name = "Legs",    Row = 3, Col = 1 },
+        { Id = "Feet",    Name = "Feet",    Row = 4, Col = 1 },
+        { Id = "Hands",   Name = "Hands",   Row = 5, Col = 1 },
+        { Id = "Amulet",  Name = "Amulet",  Row = 1, Col = 2 },
+        { Id = "Ring1",   Name = "Ring 1",  Row = 2, Col = 2 },
+        { Id = "Ring2",   Name = "Ring 2",  Row = 3, Col = 2 },
+    },
 
     Modes = {
         Aggressive = "Aggressive",
@@ -168,10 +182,11 @@ Config.Items = {
     blood_essence = {
         Id = "blood_essence",
         Name = "Blood Essence",
-        Description = "An energy source distilled from blood. Vampires use it to control material, to unlock sealed knowledge and convert humans into obedient servants.",
-        Icon = "rbxassetid://0",
+        Description = "An energy source distilled from blood.",
+        Icon = "rbxassetid://92423067255822",
         Category = "Alchemy",
         Type = "Resource",
+        ItemLevel = 0,
         Stackable = true,
         MaxStack = 500
     },
@@ -181,6 +196,7 @@ Config.Items = {
         Description = "Восстанавливает 50 HP при использовании.",
         Icon = "rbxassetid://0",
         Type = "Consumable",
+        ItemLevel = 0,
         Stackable = true,
         MaxStack = 20,
         UseEffect = {
@@ -195,6 +211,7 @@ Config.Items = {
         Description = "A shining blade.",
         Icon = "rbxassetid://0",
         Type = "Weapon",
+        ItemLevel = 10,
         Stackable = false,
         MaxStack = 1
     },
@@ -205,6 +222,7 @@ Config.Items = {
         Icon = "rbxassetid://0",
         Type = "Head",
         EquipSlot = "Head",
+        ItemLevel = 5,
         Stackable = false,
         MaxStack = 1,
         Stats = {
