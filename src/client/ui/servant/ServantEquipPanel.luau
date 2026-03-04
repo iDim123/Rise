@@ -170,14 +170,23 @@ function ServantEquipPanel.getSlotFrames()
 end
 
 function ServantEquipPanel.registerDropTargets(servantId)
+    print("[ServantEquip] registerDropTargets called, servantId =", servantId)
     for slotName, slotFrame in equipSlotFrames do
         DragManager.registerDropTarget(slotFrame, function(data)
-            if not data or not data.item then return end
-
-            if not matchesSlot(data.item, slotName) then
+            print("[ServantEquip] Drop callback fired on slot:", slotName)
+            print("[ServantEquip] dragData:", data)
+            if not data or not data.item then
+                print("[ServantEquip] No drag data or item!")
                 return
             end
 
+            print("[ServantEquip] item.Type =", data.item.Type, "item.EquipSlot =", data.item.EquipSlot)
+            if not matchesSlot(data.item, slotName) then
+                print("[ServantEquip] matchesSlot FAILED for", slotName)
+                return
+            end
+
+            print("[ServantEquip] Firing EquipServantItem:", servantId, data.slotIndex, slotName)
             Remotes.EquipServantItem:FireServer(servantId, data.slotIndex, slotName)
         end)
     end

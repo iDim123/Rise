@@ -179,6 +179,20 @@ Config.Servants = {
 }
 
 Config.Items = {
+    debug_servant_egg = {
+        Id = "debug_servant_egg",
+        Name = "Debug Servant Egg",
+        Description = "Use to add a random servant. Debug item.",
+        Icon = "rbxassetid://0",
+        Type = "Consumable",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 99,
+        UseEffect = {
+            Type = "AddServant",
+            Cooldown = 1
+        }
+    },
     blood_essence = {
         Id = "blood_essence",
         Name = "Blood Essence",

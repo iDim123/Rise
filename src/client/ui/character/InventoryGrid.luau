@@ -9,8 +9,11 @@ local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 local InventoryGrid = {}
 
 local slotFrames = {}
+local savedSwapRemote = nil
 
 function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, useItemRemote)
+    savedSwapRemote = swapRemote
+
     -- ActionBar row (slots 1-8)
     for col = 0, UC.cols - 1 do
         local index = col + 1
@@ -18,7 +21,6 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
 
         local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, UC.actionRowY)
 
-        -- Bind label
         local bindLabel = Instance.new("TextLabel")
         bindLabel.Size = UDim2.new(0, UC.slotSize, 0, UC.actionRowLabelH)
         bindLabel.Position = UDim2.new(0, posX, 0, UC.actionRowY + UC.slotSize + 2)
@@ -29,7 +31,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
         bindLabel.Text = tostring(index)
         bindLabel.Parent = parent
 
-        InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
+        InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
         slotFrames[index] = slot
 
         CooldownManager.registerSlot(slot, function()
@@ -60,7 +62,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local posY = UC.actualInvY + row * (UC.slotSize + UC.padding)
 
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
-            InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
+            InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
             slotFrames[index] = slot
 
             CooldownManager.registerSlot(slot, function()
@@ -91,22 +93,28 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     sc.CornerRadius = UDim.new(0, 4)
     sc.Parent = sortBtn
 
-    -- Глобальный обработчик отпускания мыши для drop на внешние targets
+    -- Глобальный обработчик — единственное место где обрабатывается drop и swap
     UserInputService.InputEnded:Connect(function(input, gameProcessed)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
             local mousePos = UserInputService:GetMouseLocation()
+
+            -- Сначала пробуем drop на внешние targets (слоты слуги и т.п.)
             local dropped = DragManager.tryDrop(mousePos)
+
             if not dropped then
-                -- Не попали ни на drop target, ни на слот инвентаря — отменяем
-                -- (swap обрабатывается в MouseButton1Up конкретного слота)
+                -- Не попали на drop target — проверяем swap внутри инвентаря
+                local overIndex = DragManager.dragOverIndex
+                if overIndex and overIndex ~= DragManager.dragFrom then
+                    savedSwapRemote:FireServer(DragManager.dragFrom, overIndex)
+                end
             end
-            -- Всегда сбрасываем drag после отпускания
+
             DragManager.reset(slotFrames)
         end
     end)
 end
 
-function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
+function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
     slot.MouseButton1Down:Connect(function()
         local data = getCurrentData()
         if data then
@@ -116,23 +124,6 @@ function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCur
                 slot.BackgroundColor3 = UC.slotBgDrag
             end
         end
-    end)
-
-    slot.MouseButton1Up:Connect(function()
-        if DragManager.isDragging() then
-            local fromIndex = DragManager.dragFrom
-            if fromIndex and fromIndex ~= index then
-                -- Проверяем сначала drop targets (слоты слуги и т.п.)
-                local mousePos = UserInputService:GetMouseLocation()
-                local dropped = DragManager.tryDrop(mousePos)
-                if not dropped then
-                    -- Обычный swap внутри инвентаря
-                    swapRemote:FireServer(fromIndex, index)
-                end
-            end
-            DragManager.reset(slotFrames)
-        end
-        slot.BackgroundColor3 = UC.slotBg
     end)
 
     slot.MouseEnter:Connect(function()

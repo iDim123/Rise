@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
+
 local ServantStatsPanel = {}
 
 local PANEL_BG = Color3.fromRGB(35, 35, 50)
@@ -64,26 +67,55 @@ function ServantStatsPanel.build(parent, x, y, w, h)
     return panel
 end
 
+local function calcPower(servant)
+    local base = Config.Servants.PowerBase or 100
+    local expertise = servant.expertise or servant.bloodQuality or 0
+    local equipLevelSum = 0
+
+    if servant.equipment then
+        for _, item in servant.equipment do
+            if item and item ~= false then
+                equipLevelSum = equipLevelSum + (item.ItemLevel or 0)
+            end
+        end
+    end
+
+    return base + math.floor(base * expertise / 100) + equipLevelSum
+end
+
 function ServantStatsPanel.refresh(servant)
-    if not servant then return end
+    if not servant then
+        for _, label in labels do
+            label.Text = "—"
+        end
+        return
+    end
+
+    local level = servant.level or 1
+    local experience = servant.experience or 0
+    local currentHP = servant.currentHP or servant.hp or 0
+    local maxHP = servant.baseHP or servant.maxHP or 0
+    local expertise = servant.expertise or servant.bloodQuality or 0
+    local power = calcPower(servant)
+    local atk = math.floor((servant.baseATK or 0) + power / 10)
 
     if labels.level then
-        labels.level.Text = tostring(servant.level or 1)
+        labels.level.Text = tostring(level)
     end
     if labels.experience then
-        labels.experience.Text = tostring(servant.experience or 0)
+        labels.experience.Text = tostring(experience)
     end
     if labels.hp then
-        labels.hp.Text = servant.hp .. " / " .. servant.maxHP
+        labels.hp.Text = tostring(currentHP) .. " / " .. tostring(maxHP)
     end
     if labels.power then
-        labels.power.Text = tostring(servant.power or 0)
+        labels.power.Text = tostring(power)
     end
     if labels.atk then
-        labels.atk.Text = tostring(servant.atk or 0)
+        labels.atk.Text = tostring(atk)
     end
     if labels.expertise then
-        labels.expertise.Text = servant.expertise .. "%"
+        labels.expertise.Text = tostring(expertise) .. "%"
     end
 end
 
