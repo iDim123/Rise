@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local EnemySpawner = require(script.Parent:WaitForChild("EnemySpawner"))
+
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
@@ -128,6 +128,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
     enemyEntity:Destroy()
 
     if respawnType and spawnPos then
+        local EnemySpawner = require(script.Parent:WaitForChild("EnemySpawner"))
         EnemySpawner.respawn(respawnType, spawnPos)
     end
 

@@ -4,9 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
-local LootManager = require(script.Parent:WaitForChild("LootManager"))
-local EnemySpawner = require(script.Parent:WaitForChild("EnemySpawner"))
-
 local HealthManager = {}
 
 local healthData = {}
@@ -67,13 +64,14 @@ function HealthManager.die(entity, attacker)
 	else
 		local spawnPos = entity:GetAttribute("SpawnPosition")
 		local enemyType = entity:GetAttribute("EnemyType")
-
+		local LootManager = require(script.Parent:WaitForChild("LootManager"))
 		LootManager.dropLoot(entity)
 
 		entity:Destroy()
 		healthData[entity] = nil
 
 		if spawnPos and enemyType then
+			local EnemySpawner = require(script.Parent:WaitForChild("EnemySpawner"))
 			EnemySpawner.respawn(enemyType, spawnPos)
 		end
 	end      -- ← закрывает if/else
