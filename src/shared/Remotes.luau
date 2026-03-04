@@ -26,6 +26,7 @@ local events = {
     "ServantCommand",
     "RenameServant",
     "PickupLoot",
+    "DropItem", 
     "EquipServantItem",
     "UnequipServantItem",
     "ToggleServantFavorite",

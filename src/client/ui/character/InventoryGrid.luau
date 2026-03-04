@@ -14,6 +14,8 @@ local savedSwapRemote = nil
 
 function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, useItemRemote)
     savedSwapRemote = swapRemote
+    
+    local parentFrame = parent
 
     -- ActionBar row (slots 1-8)
     for col = 0, UC.cols - 1 do
@@ -99,14 +101,25 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
         if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
             local mousePos = UserInputService:GetMouseLocation()
 
-            -- Сначала пробуем drop на внешние targets (слоты слуги и т.п.)
+            -- 1. Drop на UI targets (экипировка)
             local dropped = DragManager.tryDrop(mousePos)
 
             if not dropped then
-                -- Не попали на drop target — проверяем swap внутри инвентаря
                 local overIndex = DragManager.dragOverIndex
                 if overIndex and overIndex ~= DragManager.dragFrom then
+                    -- 2. Swap внутри инвентаря
                     savedSwapRemote:FireServer(DragManager.dragFrom, overIndex)
+                elseif not overIndex then
+                    -- 3. Курсор не над слотом — проверяем вне окна
+                    local absPos = parentFrame.AbsolutePosition
+                    local absSize = parentFrame.AbsoluteSize
+                    local outside = mousePos.X < absPos.X or mousePos.X > absPos.X + absSize.X
+                        or mousePos.Y < absPos.Y or mousePos.Y > absPos.Y + absSize.Y
+
+                    if outside then
+                        local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+                        Remotes.DropItem:FireServer(DragManager.dragFrom)
+                    end
                 end
             end
 

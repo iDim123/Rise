@@ -128,4 +128,67 @@ function LootManager.cleanup()
 	end
 end
 
+function LootManager.dropItemFromPlayer(player, slotIndex, itemData, amount)
+    local character = player.Character
+    if not character then return false end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+
+    local itemConfig = Config.Items[itemData.Id]
+    if not itemConfig then return false end
+
+    local basePosition = rootPart.Position + rootPart.CFrame.LookVector * 3
+
+    -- Считаем сколько лута уже рядом с игроком чтобы сместить
+    local offset = 0
+    for lootPart, _ in activeLoot do
+        if lootPart and lootPart.Parent then
+            local dist = (lootPart.Position - basePosition).Magnitude
+            if dist < 5 then
+                offset += 1
+            end
+        end
+    end
+
+    -- Случайное смещение по кругу
+    local angle = (offset * 1.2) + math.random() * 0.5
+    local radius = 1.5 + offset * 0.4
+    local offsetX = math.cos(angle) * radius
+    local offsetZ = math.sin(angle) * radius
+
+    local lootPart = Instance.new("Part")
+    lootPart.Name = "Loot_" .. itemData.Id
+    lootPart.Size = Vector3.new(0.8, 0.8, 0.8)
+    lootPart.Shape = Enum.PartType.Block
+    lootPart.Color = Color3.fromRGB(255, 255, 255)
+    lootPart.Material = Enum.Material.SmoothPlastic
+    lootPart.Anchored = true
+    lootPart.CanCollide = false
+    lootPart.Position = basePosition + Vector3.new(offsetX, 0.3, offsetZ)
+
+    lootPart:SetAttribute("ItemId", itemData.Id)
+    lootPart:SetAttribute("ItemName", itemData.Name)
+    lootPart:SetAttribute("Amount", amount)
+    lootPart:SetAttribute("IsLoot", true)
+
+    local lootFolder = workspace:FindFirstChild("Loot")
+    if not lootFolder then
+        lootFolder = Instance.new("Folder")
+        lootFolder.Name = "Loot"
+        lootFolder.Parent = workspace
+    end
+
+    lootPart.Parent = lootFolder
+
+    activeLoot[lootPart] = {
+        itemId = itemData.Id,
+        itemName = itemData.Name,
+        amount = amount,
+        spawnTime = tick(),
+    }
+
+    print("[LootManager] " .. player.Name .. " dropped " .. itemData.Name .. " x" .. amount)
+    return true
+end
+
 return LootManager
