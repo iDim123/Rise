@@ -50,22 +50,76 @@ Config.Weapons = {
         Damage = 15,
         Range = 6,
         Cooldown = 0.4,
-        ComboWindow = 1.2, -- секунд на следующий клик, иначе сброс
+        ComboWindow = 1.2,
+        ResourceDamage = 5,
         Combo = {
-            [1] = {
-                Damage = 25,
-                AnimationId = "rbxassetid://70662356098178" -- твоя анимация
+            [1] = { Damage = 25, AnimationId = "rbxassetid://70662356098178" },
+            [2] = { Damage = 20, AnimationId = "rbxassetid://70662356098178" },
+            [3] = { Damage = 30, AnimationId = "rbxassetid://70662356098178" },
+        },
+        Abilities = {
+            Q = {
+                Id = "sword_slash",
+                Name = "Широкий замах",
+                Description = "Наносит урон всем врагам перед собой.",
+                Icon = "rbxassetid://0",
+                AnimationId = "rbxassetid://0",
+                Cooldown = 8,
+                Effects = {
+                    { Type = "AoEDamage", Damage = 40, Radius = 8, Angle = 180 },
+                },
             },
-            [2] = {
-                Damage = 20,
-                AnimationId = "rbxassetid://70662356098178" -- замени на другую позже
+            E = {
+                Id = "sword_thrust",
+                Name = "Выпад",
+                Description = "Мощный удар по одной цели с замедлением.",
+                Icon = "rbxassetid://0",
+                AnimationId = "rbxassetid://0",
+                Cooldown = 12,
+                Effects = {
+                    { Type = "DirectDamage", Damage = 60 },
+                    { Type = "ApplyDebuff", BuffId = "slow", Duration = 3 },
+                },
             },
-            [3] = {
-                Damage = 30,
-                AnimationId = "rbxassetid://70662356098178" -- замени на другую позже
-            }
-        }
-    }
+        },
+    },
+    Axe = {
+        Damage = 20,
+        Range = 5,
+        Cooldown = 0.6,
+        ComboWindow = 1.0,
+        ResourceDamage = 12,
+        Combo = {
+            [1] = { Damage = 30, AnimationId = "rbxassetid://0" },
+            [2] = { Damage = 25, AnimationId = "rbxassetid://0" },
+            [3] = { Damage = 40, AnimationId = "rbxassetid://0" },
+        },
+        Abilities = {
+            Q = {
+                Id = "axe_frenzy",
+                Name = "Бешенство",
+                Description = "Увеличивает урон на 30% на 5 секунд.",
+                Icon = "rbxassetid://0",
+                AnimationId = "rbxassetid://0",
+                Cooldown = 10,
+                Effects = {
+                    { Type = "ApplyBuff", BuffId = "damage_boost", Duration = 5 },
+                },
+            },
+            E = {
+                Id = "axe_whirlwind",
+                Name = "Вихрь",
+                Description = "AoE урон вокруг с замедлением.",
+                Icon = "rbxassetid://0",
+                AnimationId = "rbxassetid://0",
+                Cooldown = 14,
+                Effects = {
+                    { Type = "AoEDamage", Damage = 35, Radius = 10, Angle = 360 },
+                    { Type = "ApplyDebuff", BuffId = "slow", Duration = 3 },
+                },
+            },
+        },
+    },
 }
 
 Config.Inventory = {
@@ -229,6 +283,16 @@ Config.Items = {
         Stackable = false,
         MaxStack = 1
     },
+    Axe = {
+        Id = "Axe",
+        Name = "Iron Axe",
+        Description = "A sturdy one-handed axe.",
+        Icon = "rbxassetid://0",
+        Type = "Weapon",
+        ItemLevel = 8,
+        Stackable = false,
+        MaxStack = 1,
+    },
     iron_helmet = {
         Id = "iron_helmet",
         Name = "Iron Helmet",
@@ -281,6 +345,49 @@ Config.Crafting = {
         }},
         CraftTime = 3
     }}
+}
+
+Config.Buffs = {
+    damage_boost = {
+        Id = "damage_boost",
+        Name = "Усиление урона",
+        Description = "+30% к урону на время действия.",
+        Icon = "rbxassetid://0",
+        Type = "Buff",
+        Stat = "DamageBonus",
+        Value = 0.30,
+        Stackable = false,
+    },
+    slow = {
+        Id = "slow",
+        Name = "Замедление",
+        Description = "-40% скорости передвижения.",
+        Icon = "rbxassetid://0",
+        Type = "Debuff",
+        Stat = "Slow",
+        Value = 0.40,
+        Stackable = false,
+    },
+    damage_reduction = {
+        Id = "damage_reduction",
+        Name = "Укрепление",
+        Description = "-20% получаемого урона.",
+        Icon = "rbxassetid://0",
+        Type = "Buff",
+        Stat = "DamageReduction",
+        Value = 0.20,
+        Stackable = false,
+    },
+    speed_boost = {
+        Id = "speed_boost",
+        Name = "Ускорение",
+        Description = "+25% скорости передвижения.",
+        Icon = "rbxassetid://0",
+        Type = "Buff",
+        Stat = "SpeedBonus",
+        Value = 0.25,
+        Stackable = false,
+    },
 }
 
 return Config

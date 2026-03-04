@@ -15,89 +15,115 @@ local isAttacking = false
 local isHolding = false
 local currentTrack = nil
 
-local comboConfig = Config.Weapons.Sword.Combo
-local comboWindow = Config.Weapons.Sword.ComboWindow
+local cachedWeaponConfig = nil
+local cachedWeaponId = nil
+
+local function getEquippedWeaponConfig()
+    local character = player.Character
+    if not character then return nil end
+
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then return nil end
+
+    local weaponConfig = Config.Weapons[tool.Name]
+    if weaponConfig then
+        cachedWeaponConfig = weaponConfig
+        cachedWeaponId = tool.Name
+    end
+
+    return cachedWeaponConfig
+end
 
 local function getMouseWorldPosition()
-	local mouseRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
-	local rayOrigin = mouseRay.Origin
-	local rayDirection = mouseRay.Direction
+    local mouseRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
+    local rayOrigin = mouseRay.Origin
+    local rayDirection = mouseRay.Direction
 
-	local character = player.Character
-	if not character then return nil end
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then return nil end
+    local character = player.Character
+    if not character then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
 
-	local groundY = rootPart.Position.Y - 3
-	if math.abs(rayDirection.Y) < 0.001 then return nil end
-	local t = (groundY - rayOrigin.Y) / rayDirection.Y
-	if t < 0 then return nil end
+    local groundY = rootPart.Position.Y - 3
+    if math.abs(rayDirection.Y) < 0.001 then return nil end
+    local t = (groundY - rayOrigin.Y) / rayDirection.Y
+    if t < 0 then return nil end
 
-	return rayOrigin + rayDirection * t
+    return rayOrigin + rayDirection * t
 end
 
 local function playAttackAnimation(animId)
-	local character = player.Character
-	if not character then return end
-	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid then return end
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if not animator then return end
+    local character = player.Character
+    if not character then return end
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if not animator then return end
 
-	if currentTrack then
-		currentTrack:Stop()
-		currentTrack = nil
-	end
+    if currentTrack then
+        currentTrack:Stop()
+        currentTrack = nil
+    end
 
-	local animation = Instance.new("Animation")
-	animation.AnimationId = animId
+    if not animId or animId == "" or animId == "rbxassetid://0" then
+        isAttacking = true
+        task.wait(0.3)
+        isAttacking = false
+        return
+    end
 
-	currentTrack = animator:LoadAnimation(animation)
-	currentTrack.Priority = Enum.AnimationPriority.Action
-	currentTrack:Play()
+    local animation = Instance.new("Animation")
+    animation.AnimationId = animId
 
-	isAttacking = true
-	currentTrack.Stopped:Wait()
-	isAttacking = false
+    currentTrack = animator:LoadAnimation(animation)
+    currentTrack.Priority = Enum.AnimationPriority.Action
+    currentTrack:Play()
+
+    isAttacking = true
+    currentTrack.Stopped:Wait()
+    isAttacking = false
 end
 
 local function performAttack()
-	local character = player.Character
-	if not character then return end
-	local tool = character:FindFirstChildOfClass("Tool")
-	if not tool then return end
-	local mousePos = getMouseWorldPosition()
-	if not mousePos then return end
+    local character = player.Character
+    if not character then return end
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    local mousePos = getMouseWorldPosition()
+    if not mousePos then return end
 
-	local now = tick()
-	local gap = now - lastAttackTime
+    local weaponConfig = getEquippedWeaponConfig()
+    if not weaponConfig then return end
 
-	if gap > comboWindow then
-		comboIndex = 1
-	else
-		comboIndex = comboIndex % #comboConfig + 1
-	end
+    local now = tick()
+    local gap = now - lastAttackTime
+    local comboWindow = weaponConfig.ComboWindow or 1.2
+    local comboConfig = weaponConfig.Combo
 
+    if gap > comboWindow then
+        comboIndex = 1
+    else
+        comboIndex = comboIndex % #comboConfig + 1
+    end
 
-	lastAttackTime = now
+    lastAttackTime = now
 
-	local combo = comboConfig[comboIndex]
-	Remotes.AttackRequest:FireServer(mousePos, comboIndex)
-	playAttackAnimation(combo.AnimationId)
+    local combo = comboConfig[comboIndex]
+    Remotes.AttackRequest:FireServer(mousePos, comboIndex)
+    playAttackAnimation(combo.AnimationId)
 end
 
--- Цикл автоатаки при зажатой ЛКМ
 local function attackLoop()
-	while isHolding do
-		if not isAttacking then
-			local character = player.Character
-			if not character then break end
-			local tool = character:FindFirstChildOfClass("Tool")
-			if not tool then break end
-			performAttack()
-		end
-		task.wait(0.05)
-	end
+    while isHolding do
+        if not isAttacking then
+            local character = player.Character
+            if not character then break end
+            local tool = character:FindFirstChildOfClass("Tool")
+            if not tool then break end
+            performAttack()
+        end
+        task.wait(0.05)
+    end
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -110,7 +136,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		isHolding = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isHolding = false
+    end
 end)
