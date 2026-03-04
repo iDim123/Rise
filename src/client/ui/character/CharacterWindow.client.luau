@@ -11,7 +11,7 @@ local CraftPanel = require(script.Parent:WaitForChild("CraftPanel"))
 local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local ItemTooltip = require(script.Parent:WaitForChild("ItemTooltip"))
+local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")

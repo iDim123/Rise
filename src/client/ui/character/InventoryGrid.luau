@@ -5,7 +5,7 @@ local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local ItemTooltip = require(script.Parent:WaitForChild("ItemTooltip"))
+local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local InventoryGrid = {}
 
