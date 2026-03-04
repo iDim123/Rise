@@ -1,11 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
-local DragManager = require(script.Parent:WaitForChild("DragManager"))
-local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local SlotBehavior = require(script.Parent:WaitForChild("SlotBehavior"))
 
 local ActionBarHUD = {}
 
@@ -56,81 +52,15 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
         numLabel.TextXAlignment = Enum.TextXAlignment.Center
         numLabel.Parent = slot
 
-        -- Drag start
-        slot.MouseButton1Down:Connect(function()
-            ItemTooltip.hide()
-            if cachedSlotsData then
-                local item = cachedSlotsData[index]
-                if item and item ~= false then
-                    DragManager.startDrag(index, item)
-                    slot.BackgroundColor3 = UC.slotBgDrag
-                end
-            end
-        end)
-
-        -- Hover для drag и tooltip
-        slot.MouseEnter:Connect(function()
-            if DragManager.isDragging() and DragManager.dragFrom ~= index then
-                DragManager.dragOverIndex = index
-                slot.BackgroundColor3 = UC.slotBgTarget
-            elseif not DragManager.isDragging() then
-                if cachedSlotsData then
-                    local item = cachedSlotsData[index]
-                    if item and item ~= false then
-                        ItemTooltip.show(item, slot)
-                    end
-                end
-            end
-        end)
-
-        slot.MouseLeave:Connect(function()
-            ItemTooltip.hide()
-            if DragManager.dragOverIndex == index then
-                DragManager.dragOverIndex = nil
-            end
-            if not DragManager.isDragging() or DragManager.dragFrom ~= index then
-                slot.BackgroundColor3 = UC.slotBg
-            end
-        end)
-
-        -- ПКМ
-        slot.MouseButton2Click:Connect(function()
-            ItemTooltip.hide()
-            local slotData = nil
-            if cachedSlotsData then
-                slotData = cachedSlotsData[index]
-            end
-
-            if not slotData or slotData == false then return end
-
-            if slotData.EquipSlot then
-                if equipRemote then
-                    equipRemote:FireServer(index)
-                end
-            elseif slotData.Type == "Consumable" then
-                if not CooldownManager.isOnCooldown(slotData.Id) then
-                    local itemDef = Config.Items[slotData.Id]
-                    if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
-                        CooldownManager.startCooldown(slotData.Id, itemDef.UseEffect.Cooldown)
-                    end
-                    useItemRemote:FireServer(index)
-                end
-            elseif slotData.Type == "Weapon" then
-                setActiveWeaponRemote:FireServer(index)
-            end
-        end)
+        SlotBehavior.connect(slot, index, function()
+            return cachedSlotsData and cachedSlotsData[index]
+        end, {
+            equipRemote = equipRemote,
+            useItemRemote = useItemRemote,
+            setActiveWeaponRemote = setActiveWeaponRemote,
+        })
 
         actionBarSlots[index] = slot
-
-        CooldownManager.registerSlot(slot, function()
-            if cachedSlotsData then
-                local item = cachedSlotsData[index]
-                if item and item ~= false then
-                    return item.Id
-                end
-            end
-            return nil
-        end)
     end
 end
 

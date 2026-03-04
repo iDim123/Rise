@@ -4,8 +4,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
-local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local SlotBehavior = require(script.Parent:WaitForChild("SlotBehavior"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
@@ -16,7 +15,7 @@ local savedSwapRemote = nil
 
 function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, useItemRemote)
     savedSwapRemote = swapRemote
-    
+
     local parentFrame = parent
 
     -- ActionBar row (slots 1-8)
@@ -36,19 +35,12 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
         bindLabel.Text = tostring(index)
         bindLabel.Parent = parent
 
-        InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
-        slotFrames[index] = slot
-
-        CooldownManager.registerSlot(slot, function()
+        SlotBehavior.connect(slot, index, function()
             local data = getCurrentData()
-            if data and data.slots then
-                local item = data.slots[index]
-                if item and item ~= false then
-                    return item.Id
-                end
-            end
-            return nil
-        end)
+            return data and data.slots and data.slots[index]
+        end, { equipRemote = equipRemote, useItemRemote = useItemRemote })
+
+        slotFrames[index] = slot
     end
 
     -- Separator
@@ -67,19 +59,13 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local posY = UC.actualInvY + row * (UC.slotSize + UC.padding)
 
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
-            InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
-            slotFrames[index] = slot
 
-            CooldownManager.registerSlot(slot, function()
+            SlotBehavior.connect(slot, index, function()
                 local data = getCurrentData()
-                if data and data.slots then
-                    local item = data.slots[index]
-                    if item and item ~= false then
-                        return item.Id
-                    end
-                end
-                return nil
-            end)
+                return data and data.slots and data.slots[index]
+            end, { equipRemote = equipRemote, useItemRemote = useItemRemote })
+
+            slotFrames[index] = slot
         end
     end
 
@@ -98,24 +84,20 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     sc.CornerRadius = UDim.new(0, 4)
     sc.Parent = sortBtn
 
-    -- Глобальный обработчик — единственное место где обрабатывается drop и swap
- UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    -- Глобальный обработчик drop и swap
+    UserInputService.InputEnded:Connect(function(input, gameProcessed)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
             local mousePos = UserInputService:GetMouseLocation()
 
-            -- 1. Drop на UI targets (экипировка)
             local dropped = DragManager.tryDrop(mousePos)
 
             if not dropped then
                 local overIndex = DragManager.dragOverIndex
                 if overIndex and overIndex ~= DragManager.dragFrom then
-                    -- 2. Swap
                     savedSwapRemote:FireServer(DragManager.dragFrom, overIndex)
                 elseif not overIndex then
-                    -- 3. Проверяем вне всех UI окон — выброс
                     local isOutside = true
 
-                    -- Проверяем основное окно инвентаря
                     if parentFrame.Visible then
                         local absPos = parentFrame.AbsolutePosition
                         local absSize = parentFrame.AbsoluteSize
@@ -125,7 +107,6 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                         end
                     end
 
-                    -- Проверяем ActionBar
                     local abFrame = ActionBarHUD.getFrame()
                     if abFrame then
                         local absPos = abFrame.AbsolutePosition
@@ -142,71 +123,10 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                 end
             end
 
-            -- Reset обоих наборов слотов
             DragManager.reset(slotFrames)
             local abSlots = ActionBarHUD.getSlots()
             for _, s in abSlots do
                 s.BackgroundColor3 = UC.slotBg
-            end
-        end
-    end)
-end
-
-function InventoryGrid._connectSlot(slot, index, equipRemote, getCurrentData, useItemRemote)
-    slot.MouseButton1Down:Connect(function()
-        ItemTooltip.hide()
-        local data = getCurrentData()
-        if data then
-            local item = data.slots[index]
-            if item and item ~= false then
-                DragManager.startDrag(index, item)
-                slot.BackgroundColor3 = UC.slotBgDrag
-            end
-        end
-    end)
-
-    slot.MouseEnter:Connect(function()
-        if DragManager.isDragging() and DragManager.dragFrom ~= index then
-            DragManager.dragOverIndex = index
-            slot.BackgroundColor3 = UC.slotBgTarget
-        else
-            -- Tooltip
-            local data = getCurrentData()
-            if data and data.slots then
-                local item = data.slots[index]
-                if item and item ~= false then
-                    ItemTooltip.show(item, slot)
-                end
-            end
-        end
-    end)
-
-    slot.MouseLeave:Connect(function()
-        ItemTooltip.hide()
-        if DragManager.dragOverIndex == index then
-            DragManager.dragOverIndex = nil
-        end
-        if not DragManager.isDragging() or DragManager.dragFrom ~= index then
-            slot.BackgroundColor3 = UC.slotBg
-        end
-    end)
-
-     slot.MouseButton2Click:Connect(function()
-        local data = getCurrentData()
-        if data then
-            local item = data.slots[index]
-            if item and item ~= false then
-                if item.EquipSlot then
-                    equipRemote:FireServer(index)
-                elseif item.Type == "Consumable" then
-                    if not CooldownManager.isOnCooldown(item.Id) then
-                        local itemDef = Config.Items[item.Id]
-                        if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
-                            CooldownManager.startCooldown(item.Id, itemDef.UseEffect.Cooldown)
-                        end
-                        useItemRemote:FireServer(index)
-                    end
-                end
             end
         end
     end)
