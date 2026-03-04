@@ -110,4 +110,8 @@ function EquipmentPanel.refresh(equipmentData)
     end
 end
 
+function EquipmentPanel.getSlotFrames()
+    return equipSlotFrames
+end
+
 return EquipmentPanel

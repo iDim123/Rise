@@ -89,6 +89,15 @@ mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)
 -- Build bottom ActionBar
 ActionBarHUD.build(playerGui, Remotes.SetActiveWeapon, Remotes.UseItem)
 
+-- Register entire player equipment panel as one drop target
+local equipPanel = equipPanelFrame  -- это Frame возвращённый из EquipmentPanel.build
+DragManager.registerDropTarget(equipPanel, function(data)
+    if not data or not data.item then return end
+    local item = data.item
+    if not item.EquipSlot then return end
+    Remotes.EquipItem:FireServer(data.slotIndex)
+end)
+
 -- Tab switching
 local function switchTab(tabName)
     activeTab = tabName
@@ -172,15 +181,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             end
         else
             Remotes.SetActiveWeapon:FireServer(keyNumber)
-        end
-    end
-end)
-
--- Cancel drag
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if DragManager.isDragging() then
-            DragManager.reset(InventoryGrid.getSlotFrames())
         end
     end
 end)

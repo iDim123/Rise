@@ -13,6 +13,7 @@ local PANEL_BG = Color3.fromRGB(35, 35, 50)
 
 local equipSlotFrames = {}
 local unequipCallback = nil
+local panelFrame = nil
 
 -- Маппинг слотов слуги → допустимый тип предмета
 local SLOT_TYPE_MAP = {
@@ -170,31 +171,45 @@ function ServantEquipPanel.getSlotFrames()
 end
 
 function ServantEquipPanel.registerDropTargets(servantId)
-    print("[ServantEquip] registerDropTargets called, servantId =", servantId)
-    for slotName, slotFrame in equipSlotFrames do
-        DragManager.registerDropTarget(slotFrame, function(data)
-            print("[ServantEquip] Drop callback fired on slot:", slotName)
-            print("[ServantEquip] dragData:", data)
-            if not data or not data.item then
-                print("[ServantEquip] No drag data or item!")
-                return
-            end
+    if not panelFrame then return end
 
-            print("[ServantEquip] item.Type =", data.item.Type, "item.EquipSlot =", data.item.EquipSlot)
-            if not matchesSlot(data.item, slotName) then
-                print("[ServantEquip] matchesSlot FAILED for", slotName)
-                return
-            end
+    -- Регистрируем ВСЮ панель как один drop target
+    DragManager.registerDropTarget(panelFrame, function(data)
+        if not data or not data.item then return end
 
-            print("[ServantEquip] Firing EquipServantItem:", servantId, data.slotIndex, slotName)
-            Remotes.EquipServantItem:FireServer(servantId, data.slotIndex, slotName)
-        end)
-    end
+        local item = data.item
+        local targetSlot = nil
+
+        -- Ищем подходящий слот по типу предмета
+        for slotName, expectedType in SLOT_TYPE_MAP do
+            if item.Type == expectedType or
+               (item.EquipSlot and item.EquipSlot == slotName) or
+               (item.EquipSlot == "Ring" and (slotName == "Ring1" or slotName == "Ring2")) then
+
+                -- Для колец: сначала пустой слот, потом Ring1
+                if slotName == "Ring1" or slotName == "Ring2" then
+                    if item.Type == "Ring" or item.EquipSlot == "Ring" then
+                        -- Предпочитаем пустой слот
+                        if not targetSlot then
+                            targetSlot = slotName
+                        end
+                    end
+                else
+                    targetSlot = slotName
+                    break
+                end
+            end
+        end
+
+        if not targetSlot then return end
+
+        Remotes.EquipServantItem:FireServer(servantId, data.slotIndex, targetSlot)
+    end)
 end
 
 function ServantEquipPanel.unregisterDropTargets()
-    for _, slotFrame in equipSlotFrames do
-        DragManager.unregisterDropTarget(slotFrame)
+    if panelFrame then
+        DragManager.unregisterDropTarget(panelFrame)
     end
 end
 
