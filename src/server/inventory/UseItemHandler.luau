@@ -1,8 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local modules = ServerScriptService:WaitForChild("modules")
+
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local modules = ReplicatedStorage:WaitForChild("modules")
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))

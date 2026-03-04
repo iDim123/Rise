@@ -2,9 +2,11 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local modules = ServerScriptService:WaitForChild("modules")
+
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local modules = ReplicatedStorage:WaitForChild("modules")
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BloodManager = require(modules:WaitForChild("BloodManager"))
 

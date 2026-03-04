@@ -1,8 +1,10 @@
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local modules = ServerScriptService:WaitForChild("modules")
+
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local modules = ReplicatedStorage:WaitForChild("modules")
 local EnemySpawner = require(modules:WaitForChild("EnemySpawner"))
 
 -- Создаём папку для живых врагов (если EnemySpawner не успел)

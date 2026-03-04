@@ -1,8 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
+local modules = ServerScriptService:WaitForChild("modules")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local modules = ReplicatedStorage:WaitForChild("modules")
 local LootManager = require(modules:WaitForChild("LootManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))

@@ -2,8 +2,10 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local modules = ServerScriptService:WaitForChild("modules")
+
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
-local modules = ReplicatedStorage:WaitForChild("modules")
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 local TICK_RATE = 0.2
