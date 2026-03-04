@@ -130,3 +130,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)
     attackCooldowns[player.UserId] = nil
 end)
+
+Remotes.UseAbility.OnServerEvent:Connect(function(player, key, mousePosition)
+    AbilityManager.useAbility(player, key, mousePosition)
+end)

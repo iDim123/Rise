@@ -57,12 +57,18 @@ Config.Weapons = {
             [2] = { Damage = 20, AnimationId = "rbxassetid://70662356098178" },
             [3] = { Damage = 30, AnimationId = "rbxassetid://70662356098178" },
         },
+        ComboAbility = {
+            Id = "sword_combo",
+            Name = "Sword Combo",
+            Description = "3-hit combo: slash, thrust, heavy strike.",
+            Icon = "rbxassetid://119544363190700",
+        },
         Abilities = {
             Q = {
                 Id = "sword_slash",
                 Name = "Широкий замах",
                 Description = "Наносит урон всем врагам перед собой.",
-                Icon = "rbxassetid://0",
+                Icon = "rbxassetid://109099176664820",
                 AnimationId = "rbxassetid://0",
                 Cooldown = 8,
                 Effects = {
@@ -73,7 +79,7 @@ Config.Weapons = {
                 Id = "sword_thrust",
                 Name = "Выпад",
                 Description = "Мощный удар по одной цели с замедлением.",
-                Icon = "rbxassetid://0",
+                Icon = "rbxassetid://107340020831744",
                 AnimationId = "rbxassetid://0",
                 Cooldown = 12,
                 Effects = {
@@ -93,6 +99,12 @@ Config.Weapons = {
             [1] = { Damage = 30, AnimationId = "rbxassetid://0" },
             [2] = { Damage = 25, AnimationId = "rbxassetid://0" },
             [3] = { Damage = 40, AnimationId = "rbxassetid://0" },
+        },
+        ComboAbility = {
+            Id = "axe_combo",
+            Name = "Axe Combo",
+            Description = "3-hit combo: chop, swing, overhead slam.",
+            Icon = "rbxassetid://0",
         },
         Abilities = {
             Q = {
