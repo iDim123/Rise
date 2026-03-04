@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
@@ -30,7 +31,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
 
         InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
         slotFrames[index] = slot
-        
+
         CooldownManager.registerSlot(slot, function()
             local data = getCurrentData()
             if data and data.slots then
@@ -61,7 +62,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
             InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
             slotFrames[index] = slot
-            
+
             CooldownManager.registerSlot(slot, function()
                 local data = getCurrentData()
                 if data and data.slots then
@@ -89,33 +90,53 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     local sc = Instance.new("UICorner")
     sc.CornerRadius = UDim.new(0, 4)
     sc.Parent = sortBtn
+
+    -- Глобальный обработчик отпускания мыши для drop на внешние targets
+    UserInputService.InputEnded:Connect(function(input, gameProcessed)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and DragManager.isDragging() then
+            local mousePos = UserInputService:GetMouseLocation()
+            local dropped = DragManager.tryDrop(mousePos)
+            if not dropped then
+                -- Не попали ни на drop target, ни на слот инвентаря — отменяем
+                -- (swap обрабатывается в MouseButton1Up конкретного слота)
+            end
+            -- Всегда сбрасываем drag после отпускания
+            DragManager.reset(slotFrames)
+        end
+    end)
 end
 
 function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCurrentData, useItemRemote)
     slot.MouseButton1Down:Connect(function()
-        DragManager.dragFrom = index
-        slot.BackgroundColor3 = UC.slotBgDrag
         local data = getCurrentData()
         if data then
             local item = data.slots[index]
             if item and item ~= false then
-                DragManager.createGhost(item)
+                DragManager.startDrag(index, item)
+                slot.BackgroundColor3 = UC.slotBgDrag
             end
         end
     end)
 
     slot.MouseButton1Up:Connect(function()
-        if DragManager.dragFrom and DragManager.dragFrom ~= index then
-            swapRemote:FireServer(DragManager.dragFrom, index)
+        if DragManager.isDragging() then
+            local fromIndex = DragManager.dragFrom
+            if fromIndex and fromIndex ~= index then
+                -- Проверяем сначала drop targets (слоты слуги и т.п.)
+                local mousePos = UserInputService:GetMouseLocation()
+                local dropped = DragManager.tryDrop(mousePos)
+                if not dropped then
+                    -- Обычный swap внутри инвентаря
+                    swapRemote:FireServer(fromIndex, index)
+                end
+            end
+            DragManager.reset(slotFrames)
         end
-        DragManager.dragFrom = nil
-        DragManager.dragOverIndex = nil
-        DragManager.destroyGhost()
         slot.BackgroundColor3 = UC.slotBg
     end)
 
     slot.MouseEnter:Connect(function()
-        if DragManager.dragFrom and DragManager.dragFrom ~= index then
+        if DragManager.isDragging() and DragManager.dragFrom ~= index then
             DragManager.dragOverIndex = index
             slot.BackgroundColor3 = UC.slotBgTarget
         end
@@ -125,7 +146,7 @@ function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCur
         if DragManager.dragOverIndex == index then
             DragManager.dragOverIndex = nil
         end
-        if not DragManager.dragFrom or DragManager.dragFrom ~= index then
+        if not DragManager.isDragging() or DragManager.dragFrom ~= index then
             slot.BackgroundColor3 = UC.slotBg
         end
     end)
@@ -139,7 +160,6 @@ function InventoryGrid._connectSlot(slot, index, swapRemote, equipRemote, getCur
                     equipRemote:FireServer(index)
                 elseif item.Type == "Consumable" then
                     if not CooldownManager.isOnCooldown(item.Id) then
-                        local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Config"))
                         local itemDef = Config.Items[item.Id]
                         if itemDef and itemDef.UseEffect and itemDef.UseEffect.Cooldown then
                             CooldownManager.startCooldown(item.Id, itemDef.UseEffect.Cooldown)

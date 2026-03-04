@@ -1,5 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local DragManager = require(script.Parent:WaitForChild("DragManager"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local ServantEquipPanel = {}
 
@@ -11,6 +13,37 @@ local PANEL_BG = Color3.fromRGB(35, 35, 50)
 
 local equipSlotFrames = {}
 local unequipCallback = nil
+
+-- Маппинг слотов слуги → допустимый тип предмета
+local SLOT_TYPE_MAP = {
+    Head = "HeadArmor",
+    Chest = "ChestArmor",
+    Legs = "LegsArmor",
+    Feet = "FeetArmor",
+    Hands = "HandsArmor",
+    Amulet = "Amulet",
+    Ring1 = "Ring",
+    Ring2 = "Ring",
+}
+
+local function matchesSlot(item, slotName)
+    local expectedType = SLOT_TYPE_MAP[slotName]
+    if not expectedType then return false end
+
+    -- Проверяем по Type предмета
+    if item.Type == expectedType then return true end
+
+    -- Проверяем по EquipSlot (для Ring1/Ring2 EquipSlot может быть "Ring")
+    if item.EquipSlot then
+        if item.EquipSlot == slotName then return true end
+        -- Ring1 и Ring2 принимают предметы с EquipSlot = "Ring"
+        if (slotName == "Ring1" or slotName == "Ring2") and item.EquipSlot == "Ring" then
+            return true
+        end
+    end
+
+    return false
+end
 
 function ServantEquipPanel.build(parent, x, y, w, h)
     local panel = Instance.new("Frame")
@@ -134,6 +167,26 @@ end
 
 function ServantEquipPanel.getSlotFrames()
     return equipSlotFrames
+end
+
+function ServantEquipPanel.registerDropTargets(servantId)
+    for slotName, slotFrame in equipSlotFrames do
+        DragManager.registerDropTarget(slotFrame, function(data)
+            if not data or not data.item then return end
+
+            if not matchesSlot(data.item, slotName) then
+                return
+            end
+
+            Remotes.EquipServantItem:FireServer(servantId, data.slotIndex, slotName)
+        end)
+    end
+end
+
+function ServantEquipPanel.unregisterDropTargets()
+    for _, slotFrame in equipSlotFrames do
+        DragManager.unregisterDropTarget(slotFrame)
+    end
 end
 
 return ServantEquipPanel

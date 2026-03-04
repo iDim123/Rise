@@ -20,7 +20,7 @@ local servantData = nil
 
 -- ===== Constants =====
 local WINDOW_W = 460
-local WINDOW_H = UC.windowHeight -- совпадает с окном персонажа
+local WINDOW_H = UC.windowHeight
 local HEADER_H = 36
 local NAME_ROW_H = 30
 local EQUIP_PANEL_W = 200
@@ -32,7 +32,6 @@ local BG_COLOR = Color3.fromRGB(25, 25, 35)
 local TEXT_COLOR = Color3.fromRGB(220, 220, 220)
 local GOLD_COLOR = Color3.fromRGB(220, 190, 80)
 
--- Рассчитываем Collection динамически
 local contentY = HEADER_H + NAME_ROW_H + PAD
 local buttonY = contentY + EQUIP_PANEL_H + PAD
 local collectionY = buttonY + BUTTON_H + PAD
@@ -75,7 +74,7 @@ title.TextSize = 20
 title.Font = Enum.Font.GothamBold
 title.Parent = mainFrame
 
--- Name row — full width
+-- Name row
 local nameInput = Instance.new("TextBox")
 nameInput.Name = "NameInput"
 nameInput.Size = UDim2.new(1, -PAD * 2, 0, NAME_ROW_H)
@@ -93,13 +92,13 @@ local nameCorner = Instance.new("UICorner")
 nameCorner.CornerRadius = UDim.new(0, 4)
 nameCorner.Parent = nameInput
 
--- Equipment panel (left, narrow)
+-- Equipment panel (left)
 local equipPanel = ServantEquipPanel.build(mainFrame, PAD, contentY, EQUIP_PANEL_W, EQUIP_PANEL_H)
 
--- Stats panel (right, wide)
+-- Stats panel (right)
 local statsPanel = ServantStatsPanel.build(mainFrame, PAD + EQUIP_PANEL_W + PAD, contentY, STATS_PANEL_W, EQUIP_PANEL_H)
 
--- Buttons row: Summon | Dismiss | Add to Favorite
+-- Buttons row
 local btnCount = 3
 local btnGap = PAD
 local btnW = math.floor((WINDOW_W - PAD * 2 - btnGap * (btnCount - 1)) / btnCount)
@@ -159,7 +158,7 @@ collectionLabel.TextXAlignment = Enum.TextXAlignment.Left
 collectionLabel.Text = "Collection"
 collectionLabel.Parent = mainFrame
 
--- Collection panel — fits exactly within remaining space
+-- Collection panel
 local collectionPanel = ServantCollection.build(mainFrame, PAD, collectionY + collectionLabelH, WINDOW_W - PAD * 2, COLLECTION_H)
 
 -- Servant ActionBar
@@ -181,20 +180,29 @@ local function setButtonsInactive()
     favBtn.TextColor3 = INACTIVE_TEXT
     favBtn.Text = "Add to Favorite"
     nameInput.Text = ""
+    selectedServantId = nil
+    ServantEquipPanel.unregisterDropTargets()
     ServantEquipPanel.refresh(nil)
     ServantStatsPanel.refresh(nil)
 end
 
 local function showServant(servant, activeId)
     selectedServantId = servant.id
-    nameInput.Text = servant.name
+    nameInput.Text = servant.name or ""
+
+    -- Favorite button
     favBtn.Text = servant.favorite and "★ Favorite" or "Add to Favorite"
     favBtn.TextColor3 = servant.favorite and GOLD_COLOR or TEXT_COLOR
     favBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
 
+    -- Equipment & stats panels
+    ServantEquipPanel.unregisterDropTargets()
     ServantEquipPanel.refresh(servant.equipment)
+    ServantEquipPanel.registerDropTargets(servant.id)
+
     ServantStatsPanel.refresh(servant)
 
+    -- Summon / Dismiss visibility
     local isActive = servant.id == activeId
     summonBtn.Visible = not isActive
     dismissBtn.Visible = isActive
@@ -215,7 +223,6 @@ local function refreshUI()
         showServant(servant, servantData.activeId)
     end)
 
-    -- Show selected or first, or inactive if empty
     if #servantData.captured == 0 then
         setButtonsInactive()
     else
@@ -244,6 +251,7 @@ local function refreshUI()
     end
 end
 
+-- Button handlers
 summonBtn.MouseButton1Click:Connect(function()
     if not selectedServantId or not servantData or #servantData.captured == 0 then return end
     Remotes.SummonServant:FireServer(selectedServantId)
@@ -281,7 +289,7 @@ ServantEquipPanel.onUnequip(function(slotId)
     end
 end)
 
--- Auto-refresh when a new servant is captured
+-- Auto-refresh on capture
 Remotes.CaptureResult.OnClientEvent:Connect(function(success, status)
     if success and status == "captured" then
         task.wait(0.3)
@@ -291,6 +299,7 @@ Remotes.CaptureResult.OnClientEvent:Connect(function(success, status)
     end
 end)
 
+-- Toggle with V
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.V then
@@ -298,6 +307,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         mainFrame.Visible = isOpen
         if isOpen then
             refreshUI()
+        else
+            ServantEquipPanel.unregisterDropTargets()
         end
     end
 end)

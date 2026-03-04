@@ -4,14 +4,23 @@ local RunService = game:GetService("RunService")
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 
 local DragManager = {}
+local dropTargets = {}
+
 DragManager.dragFrom = nil
 DragManager.dragOverIndex = nil
 
 local dragGhost = nil
 local screenGui = nil
+local dragData = nil  -- { slotIndex: number, item: table }
 
 function DragManager.init(gui)
     screenGui = gui
+end
+
+function DragManager.startDrag(slotIndex, itemData)
+    DragManager.dragFrom = slotIndex
+    dragData = { slotIndex = slotIndex, item = itemData }
+    DragManager.createGhost(itemData)
 end
 
 function DragManager.createGhost(itemData)
@@ -81,10 +90,36 @@ end
 function DragManager.reset(slotFrames)
     DragManager.dragFrom = nil
     DragManager.dragOverIndex = nil
+    dragData = nil
     DragManager.destroyGhost()
     for _, sf in slotFrames do
         sf.BackgroundColor3 = UC.slotBg
     end
+end
+
+function DragManager.registerDropTarget(slotFrame, callback)
+    dropTargets[slotFrame] = callback
+end
+
+function DragManager.unregisterDropTarget(slotFrame)
+    dropTargets[slotFrame] = nil
+end
+
+function DragManager.tryDrop(mousePos)
+    for slotFrame, callback in dropTargets do
+        local absPos = slotFrame.AbsolutePosition
+        local absSize = slotFrame.AbsoluteSize
+        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+            callback(dragData)
+            return true
+        end
+    end
+    return false
+end
+
+function DragManager.getDragData()
+    return dragData
 end
 
 -- Автообновление позиции призрака
