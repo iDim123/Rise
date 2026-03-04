@@ -2,10 +2,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
+local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local EquipmentPanel = {}
 
 local equipSlotFrames = {}
+local currentEquipment = nil
 
 function EquipmentPanel.build(parent, contentY, unequipRemote)
     local panel = Instance.new("Frame")
@@ -70,7 +72,22 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
         nameLabel.Visible = false
         nameLabel.Parent = slot
 
+        -- Tooltip on hover
+        slot.MouseEnter:Connect(function()
+            if currentEquipment then
+                local itemData = currentEquipment[slotConfig.Id]
+                if itemData and itemData ~= false then
+                    ItemTooltip.show(itemData, slot)
+                end
+            end
+        end)
+
+        slot.MouseLeave:Connect(function()
+            ItemTooltip.hide()
+        end)
+
         slot.MouseButton2Click:Connect(function()
+            ItemTooltip.hide()
             unequipRemote:FireServer(slotConfig.Id)
         end)
 
@@ -81,6 +98,7 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
 end
 
 function EquipmentPanel.refresh(equipmentData)
+    currentEquipment = equipmentData
     if not equipmentData then return end
     for slotId, slotFrame in equipSlotFrames do
         local itemData = equipmentData[slotId]
