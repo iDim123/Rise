@@ -31,7 +31,6 @@ function EnemySpawner.spawn(enemyType, spawnPosition)
         activeEnemies = Instance.new("Folder")
         activeEnemies.Name = "Enemies"
         activeEnemies.Parent = workspace
-        return nil
     end
 
     local enemy = template:Clone()

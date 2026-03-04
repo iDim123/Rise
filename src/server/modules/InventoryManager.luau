@@ -82,6 +82,7 @@ function InventoryManager.addItem(player, itemData)
                 Type = itemData.Type or "Misc",
                 EquipSlot = itemData.EquipSlot or nil,
                 Stats = itemData.Stats or {},
+                ItemLevel = itemData.ItemLevel or 0, 
             }
             return true, i
         end

@@ -154,11 +154,13 @@ local function updateTooltip(recipe)
         return
     end
 
+
     local titleLabel = tooltip:FindFirstChild("Title")
     local iconFrame = tooltip:FindFirstChild("IconFrame")
     local subtitleLabel = tooltip:FindFirstChild("Subtitle")
     local descLabel = tooltip:FindFirstChild("Description")
     local ingContainer = tooltip:FindFirstChild("Ingredients")
+    local resultItem = Config.Items[recipe.Result.ItemId]
 
     titleLabel.Text = recipe.Name
 
@@ -170,7 +172,6 @@ local function updateTooltip(recipe)
         iconText.Visible = false
     else
         iconImage.Visible = false
-        local resultItem = Config.Items[recipe.Result.ItemId]
         iconText.Text = resultItem and resultItem.Name or recipe.Result.ItemId
         iconText.Visible = true
     end
