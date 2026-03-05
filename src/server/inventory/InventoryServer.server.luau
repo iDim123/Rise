@@ -70,7 +70,7 @@ Remotes.UnequipItem.OnServerEvent:Connect(function(player, equipSlotId)
                 if rootPart then
                     local LootManager = require(modules:WaitForChild("LootManager"))
                     for _, entry in lockedItems do
-                        LootManager.dropFromPlayer(player, entry.item, rootPart.Position)
+                        LootManager.dropItemFromPlayer(player, entry.slotIndex, entry.item, entry.item.Amount or 1)
                     end
                 end
             end

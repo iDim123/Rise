@@ -195,8 +195,13 @@ function InventoryGrid.refresh(slotsData, activeWeaponSlot, unlockedSlots)
             if icon then icon.Visible = false end
             local nameLabel = slotFrame:FindFirstChild("NameLabel")
             if nameLabel then nameLabel.Visible = false end
-            local amountLabel = slotFrame:FindFirstChild("AmountLabel")
-            if amountLabel then amountLabel.Visible = false end
+            local amountLabel = slotFrame:FindFirstChild("Amount")
+            if amountLabel then
+                amountLabel.Visible = false
+                amountLabel.Text = ""
+            end
+            local activeFrame = slotFrame:FindFirstChild("ActiveFrame")
+            if activeFrame then activeFrame.Visible = false end
         else
             -- Разблокированный слот
             slotFrame.BackgroundTransparency = 0
