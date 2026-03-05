@@ -9,6 +9,9 @@ local actionBarSlots = {}
 local cachedSlotsData = nil
 local actionBarFrame = nil
 
+local FLASK_WIDTH = 50
+local GAP = 8
+
 function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equipRemote)
     local gui = Instance.new("ScreenGui")
     gui.Name = "ActionBarGui"
@@ -21,8 +24,8 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
     local frame = Instance.new("Frame")
     frame.Name = "ActionBar"
     frame.Size = UDim2.new(0, frameW, 0, frameH)
-frame.AnchorPoint = Vector2.new(0, 1)
-frame.Position = UDim2.new(0.5, -frameW / 2, 1, -10)
+    frame.AnchorPoint = Vector2.new(1, 1)
+    frame.Position = UDim2.new(0.5, -(FLASK_WIDTH / 2) - GAP, 1, -10)
     frame.BackgroundColor3 = UC.windowBg
     frame.BackgroundTransparency = 0.3
     frame.BorderSizePixel = 0

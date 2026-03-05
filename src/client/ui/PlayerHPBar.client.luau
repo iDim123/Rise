@@ -8,31 +8,57 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local player = Players.LocalPlayer
 
 -- ══════════════════════════════════
---  Данные уровня (event-driven)
+--  Level data (event-driven)
 -- ══════════════════════════════════
 local levelData = { Level = 1, XP = 0, XPToNext = 100, MaxHP = 100 }
+local servantLevelData = { Level = 1, XP = 0, XPToNext = 100 }
 
 -- ══════════════════════════════════
---  Размеры (совпадают с ActionBar)
+--  Layout constants
 -- ══════════════════════════════════
-local SLOT_SIZE = Config.Inventory.SlotSize   -- 50
-local PADDING   = Config.Inventory.Padding    -- 4
-local COLS      = Config.Inventory.Columns    -- 8
+local SLOT_SIZE = Config.Inventory.SlotSize       -- 50
+local PADDING   = Config.Inventory.Padding        -- 4
+local COLS      = Config.Inventory.Columns        -- 8
+local ABILITY_SLOTS = 3                            -- LMB, Q, E
 
-local AB_WIDTH  = PADDING + COLS * (SLOT_SIZE + PADDING)  -- 436
-local AB_HEIGHT = SLOT_SIZE + 20                           -- 70
+local AB_WIDTH     = PADDING + COLS * (SLOT_SIZE + PADDING)          -- 436
+local ABIL_WIDTH   = PADDING + ABILITY_SLOTS * (SLOT_SIZE + PADDING) -- 166
+local BAR_ROW_H    = SLOT_SIZE + 20                                   -- 70
 
-local BAR_WIDTH  = AB_WIDTH           -- ширина HP бара = ширина ActionBar
-local BAR_HEIGHT = 22
-local XP_HEIGHT  = 6
-local LEVEL_SIZE = 34
-local GAP        = 6
-local MARGIN     = 10  -- отступ от низа экрана
+local MARGIN       = 10   -- отступ от низа экрана
+local BAR_GAP      = 4    -- зазор между элементами по вертикали
 
--- Полная высота блока: HP + XP + gap + ActionBar
-local HP_BLOCK_H = BAR_HEIGHT + 2 + XP_HEIGHT
+-- Константы (из ActionBar)
+local FLASK_WIDTH = 50
+local GAP = 8
+local AB_HEIGHT = SLOT_SIZE + 20  -- 70
+local BAR_GAP = 10
 
--- Цвета
+-- HP/XP bar dimensions  
+local HP_HEIGHT    = 22
+local XP_HEIGHT    = 6
+local LEVEL_SIZE   = 34
+local LEVEL_GAP    = 6
+local HP_BAR_WIDTH = AB_WIDTH - LEVEL_GAP - LEVEL_SIZE  -- player HP bar width = ActionBar width
+
+-- Vertical positions (from bottom up)
+-- ActionBar bottom edge = 1, -MARGIN
+-- ActionBar top edge    = 1, -(MARGIN + BAR_ROW_H)
+-- HP block bottom       = 1, -(MARGIN + BAR_ROW_H + BAR_GAP)
+local HP_BLOCK_BOTTOM = MARGIN + BAR_ROW_H + BAR_GAP
+local HP_BLOCK_H      = HP_HEIGHT + 2 + XP_HEIGHT  -- 30
+
+-- Servant HP bar width = abilities bar width
+local SERVANT_BAR_WIDTH = HP_BAR_WIDTH
+
+-- Servant Controls
+local SERVANT_CTRL_COLS = 6
+local SERVANT_CTRL_W = PADDING + SERVANT_CTRL_COLS * (SLOT_SIZE + PADDING) -- 328
+local SERVANT_CTRL_H = BAR_ROW_H -- 70
+-- Servant Controls bottom = HP_BLOCK_BOTTOM + HP_BLOCK_H + BAR_GAP
+local SERVANT_CTRL_BOTTOM = HP_BLOCK_BOTTOM + HP_BLOCK_H + BAR_GAP
+
+-- Colors
 local BG_COLOR     = Color3.fromRGB(25, 25, 35)
 local HP_GREEN     = Color3.fromRGB(50, 200, 50)
 local HP_YELLOW    = Color3.fromRGB(220, 180, 30)
@@ -53,53 +79,27 @@ screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 800
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ══════════════════════════════════
---  Контейнер: HP + XP бары + кружок уровня
---  Позиция: привязан к низу, прямо над ActionBar
---  ActionBar: AnchorPoint(0.5, 1), Position(0.5, 0, 1, -MARGIN)
---  HP block: прямо над ним
--- ══════════════════════════════════
+-- ════════════════════════════════════════════
+--  PLAYER SIDE (left) — HP + XP + Level circle
+-- ════════════════════════════════════════════
 
--- Сначала определяем X-позицию левого края (как у ActionBar)
--- ActionBar: центр экрана, ширина AB_WIDTH
--- Левый край ActionBar = 0.5 * viewport - AB_WIDTH/2
--- HP бар = BAR_WIDTH + GAP + LEVEL_SIZE (для круга уровня справа)
+local playerBlock = Instance.new("Frame")
+playerBlock.Name = "PlayerHPBlock"
+playerBlock.Size = UDim2.new(0, HP_BAR_WIDTH + LEVEL_GAP + LEVEL_SIZE, 0, HP_BLOCK_H)
+playerBlock.AnchorPoint = Vector2.new(1, 1)
+playerBlock.Position = UDim2.new(0.5, -(FLASK_WIDTH / 2) - GAP, 1, -(MARGIN + AB_HEIGHT + BAR_GAP))
+playerBlock.BackgroundTransparency = 1
+playerBlock.Parent = screenGui
 
-local TOTAL_W = BAR_WIDTH + GAP + LEVEL_SIZE
-
-local container = Instance.new("Frame")
-container.Name = "PlayerHPBlock"
-container.Size = UDim2.new(0, TOTAL_W, 0, HP_BLOCK_H)
-container.AnchorPoint = Vector2.new(0.5, 1)
--- Располагаем прямо над ActionBar: ActionBar bottom = 1, -MARGIN; ActionBar height = AB_HEIGHT
--- Значит верх ActionBar = 1, -(MARGIN + AB_HEIGHT)
--- HP block bottom = 1, -(MARGIN + AB_HEIGHT + 4)
-container.Position = UDim2.new(0.5, -(AB_WIDTH / 2) + (TOTAL_W / 2), 1, -(MARGIN + AB_HEIGHT + 4))
-container.BackgroundTransparency = 1
-container.Parent = screenGui
-
--- НО: ActionBar центрирован по 0.5, а наш блок должен быть выровнен по ЛЕВОМУ краю ActionBar
--- Пересчитаем: ActionBar left = 0.5, -AB_WIDTH/2
--- HP block left = ActionBar left = 0.5, -AB_WIDTH/2
--- HP block AnchorPoint = (0, 1)
-
-container.AnchorPoint = Vector2.new(0, 1)
-container.Position = UDim2.new(0.5, -AB_WIDTH / 2, 1, -(MARGIN + AB_HEIGHT + 4))
-
--- ══════════════════════════════════
---  HP Bar
--- ══════════════════════════════════
+-- HP Bar
 local hpFrame = Instance.new("Frame")
 hpFrame.Name = "HPBarFrame"
-hpFrame.Size = UDim2.new(0, BAR_WIDTH, 0, BAR_HEIGHT)
+hpFrame.Size = UDim2.new(0, HP_BAR_WIDTH, 0, HP_HEIGHT)
 hpFrame.Position = UDim2.new(0, 0, 0, 0)
 hpFrame.BackgroundColor3 = BG_COLOR
 hpFrame.BorderSizePixel = 0
-hpFrame.Parent = container
-
-local hpFrameCorner = Instance.new("UICorner")
-hpFrameCorner.CornerRadius = UDim.new(0, 4)
-hpFrameCorner.Parent = hpFrame
+hpFrame.Parent = playerBlock
+Instance.new("UICorner", hpFrame).CornerRadius = UDim.new(0, 4)
 
 local hpBar = Instance.new("Frame")
 hpBar.Name = "HPBar"
@@ -107,10 +107,7 @@ hpBar.Size = UDim2.new(1, 0, 1, 0)
 hpBar.BackgroundColor3 = HP_GREEN
 hpBar.BorderSizePixel = 0
 hpBar.Parent = hpFrame
-
-local hpBarCorner = Instance.new("UICorner")
-hpBarCorner.CornerRadius = UDim.new(0, 4)
-hpBarCorner.Parent = hpBar
+Instance.new("UICorner", hpBar).CornerRadius = UDim.new(0, 4)
 
 local hpText = Instance.new("TextLabel")
 hpText.Name = "HPText"
@@ -123,20 +120,15 @@ hpText.Text = "100 / 100"
 hpText.ZIndex = 2
 hpText.Parent = hpFrame
 
--- ══════════════════════════════════
---  XP Bar (под HP)
--- ══════════════════════════════════
+-- XP Bar
 local xpFrame = Instance.new("Frame")
 xpFrame.Name = "XPBarFrame"
-xpFrame.Size = UDim2.new(0, BAR_WIDTH, 0, XP_HEIGHT)
-xpFrame.Position = UDim2.new(0, 0, 0, BAR_HEIGHT + 2)
+xpFrame.Size = UDim2.new(0, HP_BAR_WIDTH, 0, XP_HEIGHT)
+xpFrame.Position = UDim2.new(0, 0, 0, HP_HEIGHT + 2)
 xpFrame.BackgroundColor3 = XP_BG
 xpFrame.BorderSizePixel = 0
-xpFrame.Parent = container
-
-local xpFrameCorner = Instance.new("UICorner")
-xpFrameCorner.CornerRadius = UDim.new(0, 3)
-xpFrameCorner.Parent = xpFrame
+xpFrame.Parent = playerBlock
+Instance.new("UICorner", xpFrame).CornerRadius = UDim.new(0, 3)
 
 local xpBar = Instance.new("Frame")
 xpBar.Name = "XPBar"
@@ -144,10 +136,7 @@ xpBar.Size = UDim2.new(0, 0, 1, 0)
 xpBar.BackgroundColor3 = XP_COLOR
 xpBar.BorderSizePixel = 0
 xpBar.Parent = xpFrame
-
-local xpBarCorner = Instance.new("UICorner")
-xpBarCorner.CornerRadius = UDim.new(0, 3)
-xpBarCorner.Parent = xpBar
+Instance.new("UICorner", xpBar).CornerRadius = UDim.new(0, 3)
 
 local xpText = Instance.new("TextLabel")
 xpText.Name = "XPText"
@@ -160,22 +149,15 @@ xpText.Text = "0 / 100 XP"
 xpText.ZIndex = 2
 xpText.Parent = xpFrame
 
--- ══════════════════════════════════
---  Level Circle (справа от HP бара, как на мокапе)
--- ══════════════════════════════════
+-- Level Circle (right of HP bar)
 local levelFrame = Instance.new("Frame")
 levelFrame.Name = "LevelFrame"
 levelFrame.Size = UDim2.new(0, LEVEL_SIZE, 0, LEVEL_SIZE)
--- Вертикально центрируем по HP блоку
-levelFrame.Position = UDim2.new(0, BAR_WIDTH + GAP, 0.5, -LEVEL_SIZE / 2)
+levelFrame.Position = UDim2.new(0, HP_BAR_WIDTH + LEVEL_GAP, 0.5, -LEVEL_SIZE / 2)
 levelFrame.BackgroundColor3 = LEVEL_BG
 levelFrame.BorderSizePixel = 0
-levelFrame.Parent = container
-
--- Круг (CornerRadius = половина размера)
-local levelCorner = Instance.new("UICorner")
-levelCorner.CornerRadius = UDim.new(0.5, 0)
-levelCorner.Parent = levelFrame
+levelFrame.Parent = playerBlock
+Instance.new("UICorner", levelFrame).CornerRadius = UDim.new(0.5, 0)
 
 local levelStroke = Instance.new("UIStroke")
 levelStroke.Color = LEVEL_BORDER
@@ -192,61 +174,115 @@ levelText.TextSize = 16
 levelText.Font = Enum.Font.GothamBold
 levelText.Parent = levelFrame
 
+-- ════════════════════════════════════════════
+--  SERVANT SIDE (right) — HP + XP + Level circle
+--  Visible only when servant is active
+-- ════════════════════════════════════════════
+
+local servantBlock = Instance.new("Frame")
+servantBlock.Name = "ServantHPBlock"
+servantBlock.Size = UDim2.new(0, LEVEL_SIZE + LEVEL_GAP + SERVANT_BAR_WIDTH, 0, HP_BLOCK_H)
+servantBlock.AnchorPoint = Vector2.new(0, 1)
+servantBlock.Position = UDim2.new(0.5, (FLASK_WIDTH / 2) + GAP, 1, -(MARGIN + AB_HEIGHT + BAR_GAP))
+servantBlock.BackgroundTransparency = 1
+servantBlock.Visible = false
+servantBlock.Parent = screenGui
+
+-- Servant Level Circle (left side of servant block)
+local sLevelFrame = Instance.new("Frame")
+sLevelFrame.Name = "ServantLevelFrame"
+sLevelFrame.Size = UDim2.new(0, LEVEL_SIZE, 0, LEVEL_SIZE)
+sLevelFrame.Position = UDim2.new(0, 0, 0.5, -LEVEL_SIZE / 2)
+sLevelFrame.BackgroundColor3 = LEVEL_BG
+sLevelFrame.BorderSizePixel = 0
+sLevelFrame.Parent = servantBlock
+Instance.new("UICorner", sLevelFrame).CornerRadius = UDim.new(0.5, 0)
+
+local sLevelStroke = Instance.new("UIStroke")
+sLevelStroke.Color = LEVEL_BORDER
+sLevelStroke.Thickness = 2
+sLevelStroke.Parent = sLevelFrame
+
+local sLevelText = Instance.new("TextLabel")
+sLevelText.Name = "LevelText"
+sLevelText.Size = UDim2.new(1, 0, 1, 0)
+sLevelText.BackgroundTransparency = 1
+sLevelText.Text = "1"
+sLevelText.TextColor3 = TEXT_COLOR
+sLevelText.TextSize = 16
+sLevelText.Font = Enum.Font.GothamBold
+sLevelText.Parent = sLevelFrame
+
+-- Servant HP Bar (right of level circle)
+local sHpFrame = Instance.new("Frame")
+sHpFrame.Name = "ServantHPBarFrame"
+sHpFrame.Size = UDim2.new(0, SERVANT_BAR_WIDTH, 0, HP_HEIGHT)
+sHpFrame.Position = UDim2.new(0, LEVEL_SIZE + LEVEL_GAP, 0, 0)
+sHpFrame.BackgroundColor3 = BG_COLOR
+sHpFrame.BorderSizePixel = 0
+sHpFrame.Parent = servantBlock
+Instance.new("UICorner", sHpFrame).CornerRadius = UDim.new(0, 4)
+
+local sHpBar = Instance.new("Frame")
+sHpBar.Name = "HPBar"
+sHpBar.Size = UDim2.new(1, 0, 1, 0)
+sHpBar.BackgroundColor3 = HP_GREEN
+sHpBar.BorderSizePixel = 0
+sHpBar.Parent = sHpFrame
+Instance.new("UICorner", sHpBar).CornerRadius = UDim.new(0, 4)
+
+local sHpText = Instance.new("TextLabel")
+sHpText.Name = "HPText"
+sHpText.Size = UDim2.new(1, 0, 1, 0)
+sHpText.BackgroundTransparency = 1
+sHpText.TextColor3 = TEXT_COLOR
+sHpText.TextSize = 13
+sHpText.Font = Enum.Font.GothamBold
+sHpText.Text = ""
+sHpText.ZIndex = 2
+sHpText.Parent = sHpFrame
+
+-- Servant XP Bar
+local sXpFrame = Instance.new("Frame")
+sXpFrame.Name = "ServantXPBarFrame"
+sXpFrame.Size = UDim2.new(0, SERVANT_BAR_WIDTH, 0, XP_HEIGHT)
+sXpFrame.Position = UDim2.new(0, LEVEL_SIZE + LEVEL_GAP, 0, HP_HEIGHT + 2)
+sXpFrame.BackgroundColor3 = XP_BG
+sXpFrame.BorderSizePixel = 0
+sXpFrame.Parent = servantBlock
+Instance.new("UICorner", sXpFrame).CornerRadius = UDim.new(0, 3)
+
+local sXpBar = Instance.new("Frame")
+sXpBar.Name = "XPBar"
+sXpBar.Size = UDim2.new(0, 0, 1, 0)
+sXpBar.BackgroundColor3 = XP_COLOR
+sXpBar.BorderSizePixel = 0
+sXpBar.Parent = sXpFrame
+Instance.new("UICorner", sXpBar).CornerRadius = UDim.new(0, 3)
+
+local sXpText = Instance.new("TextLabel")
+sXpText.Name = "XPText"
+sXpText.Size = UDim2.new(1, 0, 1, 0)
+sXpText.BackgroundTransparency = 1
+sXpText.TextColor3 = TEXT_DIM
+sXpText.TextSize = 8
+sXpText.Font = Enum.Font.Gotham
+sXpText.Text = ""
+sXpText.ZIndex = 2
+sXpText.Parent = sXpFrame
+
 -- ══════════════════════════════════
---  Servant HP bar (справа вверху — пока оставляем)
---  Будет перенесён в шаге 7c
--- ══════════════════════════════════
-local servantFrame = Instance.new("Frame")
-servantFrame.Name = "ServantHPFrame"
-servantFrame.Size = UDim2.new(0, 150, 0, 16)
-servantFrame.AnchorPoint = Vector2.new(1, 1)
--- Временно: справа, над ActionBar (зеркально)
-servantFrame.Position = UDim2.new(0.5, AB_WIDTH / 2, 1, -(MARGIN + AB_HEIGHT + 8))
-servantFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-servantFrame.BorderSizePixel = 0
-servantFrame.Visible = false
-servantFrame.Parent = screenGui
-
-local servantFrameCorner = Instance.new("UICorner")
-servantFrameCorner.CornerRadius = UDim.new(0, 4)
-servantFrameCorner.Parent = servantFrame
-
-local servantBar = Instance.new("Frame")
-servantBar.Name = "ServantBar"
-servantBar.Size = UDim2.new(1, 0, 1, 0)
-servantBar.BackgroundColor3 = Color3.fromRGB(80, 50, 180)
-servantBar.BorderSizePixel = 0
-servantBar.Parent = servantFrame
-
-local servantBarCorner = Instance.new("UICorner")
-servantBarCorner.CornerRadius = UDim.new(0, 4)
-servantBarCorner.Parent = servantBar
-
-local servantText = Instance.new("TextLabel")
-servantText.Name = "ServantText"
-servantText.Size = UDim2.new(1, 0, 1, 0)
-servantText.BackgroundTransparency = 1
-servantText.TextColor3 = TEXT_COLOR
-servantText.TextSize = 10
-servantText.Font = Enum.Font.GothamBold
-servantText.Text = ""
-servantText.ZIndex = 2
-servantText.Parent = servantFrame
-
--- ══════════════════════════════════
---  Функции обновления
+--  Update functions
 -- ══════════════════════════════════
 local function getHPColor(ratio)
-    if ratio > 0.5 then return HP_GREEN
-    elseif ratio > 0.25 then return HP_YELLOW
-    else return HP_RED end
+    return HP_RED
 end
 
 local function updateLevelDisplay()
     levelText.Text = tostring(levelData.Level)
     if levelData.XPToNext > 0 then
-        local xpRatio = math.clamp(levelData.XP / levelData.XPToNext, 0, 1)
-        xpBar.Size = UDim2.new(xpRatio, 0, 1, 0)
+        local r = math.clamp(levelData.XP / levelData.XPToNext, 0, 1)
+        xpBar.Size = UDim2.new(r, 0, 1, 0)
         xpText.Text = levelData.XP .. " / " .. levelData.XPToNext .. " XP"
     else
         xpBar.Size = UDim2.new(1, 0, 1, 0)
@@ -257,47 +293,69 @@ end
 local function updateHP()
     local character = player.Character
     if not character then return end
-    local currentHP = character:GetAttribute("CurrentHP")
-    local maxHP = character:GetAttribute("MaxHP")
-    if not currentHP or not maxHP or maxHP == 0 then return end
-    local ratio = math.clamp(currentHP / maxHP, 0, 1)
+    local cur = character:GetAttribute("CurrentHP")
+    local max = character:GetAttribute("MaxHP")
+    if not cur or not max or max == 0 then return end
+    local ratio = math.clamp(cur / max, 0, 1)
     hpBar.Size = UDim2.new(ratio, 0, 1, 0)
     hpBar.BackgroundColor3 = getHPColor(ratio)
-    hpText.Text = currentHP .. " / " .. maxHP
+    hpText.Text = cur .. " / " .. max
 end
 
 local function updateServant()
-    local servantsFolder = workspace:FindFirstChild("Servants")
-    if not servantsFolder then servantFrame.Visible = false return end
+    local folder = workspace:FindFirstChild("Servants")
+    if not folder then servantBlock.Visible = false return end
     local found = false
-    for _, servant in servantsFolder:GetChildren() do
+    for _, servant in folder:GetChildren() do
         if servant:GetAttribute("OwnerUserId") == player.UserId then
             local sHP = servant:GetAttribute("CurrentHP")
-            local sMaxHP = servant:GetAttribute("MaxHP")
-            if sHP and sMaxHP and sMaxHP > 0 then
-                servantBar.Size = UDim2.new(math.clamp(sHP / sMaxHP, 0, 1), 0, 1, 0)
-                servantText.Text = servant.Name .. " " .. sHP .. "/" .. sMaxHP
-                servantFrame.Visible = true
+            local sMax = servant:GetAttribute("MaxHP")
+            if sHP and sMax and sMax > 0 then
+                local ratio = math.clamp(sHP / sMax, 0, 1)
+                sHpBar.Size = UDim2.new(ratio, 0, 1, 0)
+                sHpBar.BackgroundColor3 = getHPColor(ratio)
+                sHpText.Text = sHP .. "/" .. sMax
+                servantBlock.Visible = true
                 found = true
             end
             break
         end
     end
-    if not found then servantFrame.Visible = false end
+    if not found then servantBlock.Visible = false end
+end
+
+local function updateServantLevel()
+    sLevelText.Text = tostring(servantLevelData.Level)
+    if servantLevelData.XPToNext > 0 then
+        local r = math.clamp(servantLevelData.XP / servantLevelData.XPToNext, 0, 1)
+        sXpBar.Size = UDim2.new(r, 0, 1, 0)
+        sXpText.Text = servantLevelData.XP .. " / " .. servantLevelData.XPToNext .. " XP"
+    else
+        sXpBar.Size = UDim2.new(1, 0, 1, 0)
+        sXpText.Text = "MAX"
+    end
 end
 
 -- ══════════════════════════════════
 --  Events
 -- ══════════════════════════════════
 Remotes.UpdateLevel.OnClientEvent:Connect(function(data)
-    levelData.Level = data.Level or levelData.Level
-    levelData.XP = data.XP or levelData.XP
+    levelData.Level   = data.Level or levelData.Level
+    levelData.XP      = data.XP or levelData.XP
     levelData.XPToNext = data.XPToNext or levelData.XPToNext
-    levelData.MaxHP = data.MaxHP or levelData.MaxHP
+    levelData.MaxHP   = data.MaxHP or levelData.MaxHP
     updateLevelDisplay()
 end)
 
+Remotes.UpdateServantLevel.OnClientEvent:Connect(function(_servantId, data)
+    servantLevelData.Level   = data.Level or servantLevelData.Level
+    servantLevelData.XP      = data.XP or servantLevelData.XP
+    servantLevelData.XPToNext = data.XPToNext or servantLevelData.XPToNext
+    updateServantLevel()
+end)
+
 updateLevelDisplay()
+updateServantLevel()
 
 RunService.RenderStepped:Connect(function()
     updateHP()

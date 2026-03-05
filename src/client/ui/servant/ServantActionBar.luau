@@ -5,7 +5,8 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local ServantActionBar = {}
 
-local SLOT_SIZE = 50
+local SLOT_SIZE = 40
+local AB_SLOT_SIZE = 50
 local PAD = 4
 local COLS = 6
 local BAR_BG = Color3.fromRGB(25, 25, 35)
@@ -13,7 +14,12 @@ local SLOT_BG = Color3.fromRGB(50, 50, 65)
 local ACTIVE_COLOR = Color3.fromRGB(220, 190, 80)
 local TEXT_COLOR = Color3.fromRGB(200, 200, 200)
 local BIND_COLOR = Color3.fromRGB(180, 180, 100)
-local AB_WIDTH = PAD + 8 * (SLOT_SIZE + PAD)  -- 436
+local AB_WIDTH = PAD + 8 * (AB_SLOT_SIZE + PAD)  -- 436
+
+local FLASK_W = 50
+local GAP_F = 8
+local HP_BLOCK_H = 30
+local BAR_GAP_V = 10
 
 local barGui = nil
 local barFrame = nil
@@ -87,8 +93,8 @@ function ServantActionBar.build(playerGui)
     barFrame = Instance.new("Frame")
     barFrame.Name = "ServantActionBar"
     barFrame.Size = UDim2.new(0, frameW, 0, frameH)
-barFrame.AnchorPoint = Vector2.new(1, 1)
-barFrame.Position = UDim2.new(0.5, AB_WIDTH / 2, 1, -118)
+    barFrame.AnchorPoint = Vector2.new(0, 1)
+    barFrame.Position = UDim2.new(0.5, (FLASK_W / 2) + GAP_F + AB_WIDTH + GAP_F, 1, -10)   
     barFrame.BackgroundColor3 = BAR_BG
     barFrame.BackgroundTransparency = 0.3
     barFrame.BorderSizePixel = 0

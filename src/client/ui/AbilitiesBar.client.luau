@@ -12,7 +12,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- ═══ Constants (matching ActionBar) ═══
 local SLOT_SIZE = Config.Inventory.SlotSize
 local PADDING = Config.Inventory.Padding
-local TOTAL_SLOTS = 3 -- LMB, Q, E
 local WINDOW_BG = Color3.fromRGB(25, 25, 35)
 local SLOT_BG = Color3.fromRGB(50, 50, 65)
 local SLOT_BORDER = Color3.fromRGB(80, 80, 100)
@@ -30,8 +29,19 @@ local TOOLTIP_TEXT = Color3.fromRGB(230, 230, 230)
 local TOOLTIP_SUB = Color3.fromRGB(160, 160, 160)
 local TOOLTIP_CORNER = 8
 
-local SLOT_KEYS = { "LMB", "Q", "E" }
-local KEYCODES = { Q = Enum.KeyCode.Q, E = Enum.KeyCode.E }
+local TOTAL_SLOTS = 8
+local SLOT_KEYS = { "LMB", "Q", "E", "Space", "R", "T", "Z", "X" }
+local KEYCODES = {
+    Q = Enum.KeyCode.Q,
+    E = Enum.KeyCode.E,
+    Space = Enum.KeyCode.Space,
+    R = Enum.KeyCode.R,
+    T = Enum.KeyCode.T,
+    Z = Enum.KeyCode.Z,
+    X = Enum.KeyCode.X,
+}
+local FLASK_WIDTH = 50
+local GAP = 8
 
 -- ═══ State ═══
 local slots = {}
@@ -58,8 +68,8 @@ local actionBarW = PADDING + abCols * (SLOT_SIZE + PADDING)
 local barFrame = Instance.new("Frame")
 barFrame.Name = "AbilitiesBar"
 barFrame.Size = UDim2.new(0, abFrameW, 0, abFrameH)
-barFrame.AnchorPoint = Vector2.new(1, 1)
-barFrame.Position = UDim2.new(0.5, actionBarW / 2, 1, -10)
+barFrame.AnchorPoint = Vector2.new(0, 1)
+barFrame.Position = UDim2.new(0.5, (FLASK_WIDTH / 2) + GAP, 1, -10)
 barFrame.BackgroundColor3 = WINDOW_BG
 barFrame.BackgroundTransparency = 0.3
 barFrame.BorderSizePixel = 0
@@ -350,8 +360,8 @@ end
 -- ═══ Input (only Q and E send remote, LMB handled by CombatInput) ═══
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    for _, key in { "Q", "E" } do
-        if input.KeyCode == KEYCODES[key] then
+    for _, key in { "Q", "E", "Space", "R", "T", "Z", "X" } do
+        if KEYCODES[key] and input.KeyCode == KEYCODES[key] then
             local ability = currentAbilities[key]
             if not ability then return end
             local cd = cooldowns[key]
@@ -374,7 +384,7 @@ RunService.RenderStepped:Connect(function()
     updateAbilities()
 
     local now = tick()
-    for _, key in { "Q", "E" } do
+    for _, key in { "Q", "E", "Space", "R", "T", "Z", "X" } do
         local slot = slots[key]
         local cd = cooldowns[key]
         if cd and now < cd.endTime then
