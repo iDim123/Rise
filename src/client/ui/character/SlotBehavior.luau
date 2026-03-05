@@ -7,10 +7,16 @@ local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local SlotBehavior = {}
 
+local function isLocked(slot)
+    local lockIcon = slot:FindFirstChild("LockIcon")
+    return lockIcon and lockIcon.Visible
+end
+
 function SlotBehavior.connect(slot, index, getItemFn, options)
     -- options: { equipRemote, useItemRemote, setActiveWeaponRemote (optional) }
 
     slot.MouseButton1Down:Connect(function()
+        if isLocked(slot) then return end
         ItemTooltip.hide()
         local item = getItemFn()
         if item and item ~= false then
@@ -20,6 +26,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseEnter:Connect(function()
+        if isLocked(slot) then return end
         if DragManager.isDragging() and DragManager.dragFrom ~= index then
             DragManager.dragOverIndex = index
             slot.BackgroundColor3 = UC.slotBgTarget
@@ -32,6 +39,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseLeave:Connect(function()
+        if isLocked(slot) then return end
         ItemTooltip.hide()
         if DragManager.dragOverIndex == index then
             DragManager.dragOverIndex = nil
@@ -42,6 +50,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseButton2Click:Connect(function()
+        if isLocked(slot) then return end
         ItemTooltip.hide()
         local item = getItemFn()
         if not item or item == false then return end

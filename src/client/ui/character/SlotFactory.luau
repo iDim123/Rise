@@ -134,7 +134,7 @@ function SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, slotIndex
                 amountLabel.Visible = false
             end
         end
-
+        
         slotFrame.BackgroundColor3 = UC.slotBgFilled
     else
         icon.Visible = false

@@ -121,6 +121,7 @@ Players.PlayerAdded:Connect(function(player)
     InventoryManager.addItemFromConfig(player, "Axe", 1)
     InventoryManager.addItemFromConfig(player, "debug_buff_potion", 10)
     InventoryManager.addItemFromConfig(player, "rugged_hide", 900)
+    InventoryManager.addItemFromConfig(player, "small_bag", 1)
 end)
 
 -- PlayerRemoving

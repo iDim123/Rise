@@ -155,6 +155,9 @@ function InventoryManager.swapSlots(player, fromIndex, toIndex)
     if fromIndex < 1 or fromIndex > inv.size then return false end
     if toIndex < 1 or toIndex > inv.size then return false end
 
+    if toIndex > inv.unlockedSlots then return false end
+    if fromIndex > inv.unlockedSlots then return false end
+
     inv.slots[fromIndex], inv.slots[toIndex] = inv.slots[toIndex], inv.slots[fromIndex]
 
     -- Обновляем activeWeaponSlot если оружие переместилось

@@ -12,6 +12,7 @@ local InventoryGrid = {}
 
 local slotFrames = {}
 local savedSwapRemote = nil
+local currentUnlockedSlots = 40
 
 function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, useItemRemote)
     savedSwapRemote = swapRemote
@@ -96,7 +97,10 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             if not dropped then
                 if overIndex and overIndex == dragFrom then
                 elseif overIndex and overIndex ~= dragFrom then
-                    savedSwapRemote:FireServer(dragFrom, overIndex)
+                        if overIndex > currentUnlockedSlots then
+                        else
+                            savedSwapRemote:FireServer(dragFrom, overIndex)
+                        end
                 elseif not overIndex then
 
                     local isOverSlot = false
@@ -163,11 +167,48 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     end)
 end
 
-function InventoryGrid.refresh(slotsData, activeWeaponSlot)
+function InventoryGrid.refresh(slotsData, activeWeaponSlot, unlockedSlots)
+    currentUnlockedSlots = unlockedSlots or 40
+    local maxUnlocked = unlockedSlots or 40
     for i, slotFrame in slotFrames do
         local itemData = slotsData[i]
         if itemData == false then itemData = nil end
-        SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, i)
+
+        if i > maxUnlocked then
+            -- Заблокированный слот
+            slotFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+            slotFrame.BackgroundTransparency = 0.3
+
+            local lockIcon = slotFrame:FindFirstChild("LockIcon")
+            if not lockIcon then
+                lockIcon = Instance.new("TextLabel")
+                lockIcon.Name = "LockIcon"
+                lockIcon.Size = UDim2.new(1, 0, 1, 0)
+                lockIcon.BackgroundTransparency = 1
+                lockIcon.Text = "⬡"  -- или просто текст
+                lockIcon.TextSize = 20
+                lockIcon.Font = Enum.Font.GothamBold
+                lockIcon.TextColor3 = Color3.fromRGB(60, 60, 75)
+                lockIcon.TextTransparency = 0.5
+                lockIcon.Parent = slotFrame
+            end
+            lockIcon.Visible = true
+
+            -- Скрыть содержимое
+            local icon = slotFrame:FindFirstChild("Icon")
+            if icon then icon.Visible = false end
+            local nameLabel = slotFrame:FindFirstChild("NameLabel")
+            if nameLabel then nameLabel.Visible = false end
+            local amountLabel = slotFrame:FindFirstChild("AmountLabel")
+            if amountLabel then amountLabel.Visible = false end
+        else
+            -- Разблокированный слот
+            slotFrame.BackgroundTransparency = 0
+            local lockIcon = slotFrame:FindFirstChild("LockIcon")
+            if lockIcon then lockIcon.Visible = false end
+
+            SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, i)
+        end
     end
 end
 

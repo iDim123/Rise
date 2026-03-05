@@ -5,10 +5,12 @@ local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
 local InventorySync = {}
 
 function InventorySync.sendFullUpdate(player)
+    local inv = InventoryManager.getInventory(player)
     Remotes.UpdateInventory:FireClient(player, {
         slots = InventoryManager.getSlots(player),
         equipment = InventoryManager.getEquipment(player),
-        activeWeaponSlot = InventoryManager.getActiveWeaponSlot(player)
+        activeWeaponSlot = InventoryManager.getActiveWeaponSlot(player),
+        unlockedSlots = inv and inv.unlockedSlots or 40,
     })
 end
 

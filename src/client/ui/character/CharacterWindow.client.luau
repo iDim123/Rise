@@ -121,11 +121,9 @@ end
 
 -- Refresh all
 local function refreshUI(data)
-    if not data then
-        return
-    end
+    if not data then return end
     currentData = data
-    InventoryGrid.refresh(data.slots, data.activeWeaponSlot)
+    InventoryGrid.refresh(data.slots, data.activeWeaponSlot, data.unlockedSlots)
     ActionBarHUD.refresh(data.slots, data.activeWeaponSlot)
     EquipmentPanel.refresh(data.equipment)
     if activeTab == "Crafting" then
