@@ -10,8 +10,16 @@ local HOVER_LINGER = 3  -- seconds to keep billboard after losing hover
 -- State: [enemy] = { lastHoverTime: number, hovered: boolean }
 local enemyState = {}
 
+local function getEnemyHead(enemy)
+    return enemy:FindFirstChild("Head")
+        or enemy:FindFirstChild("UpperTorso")
+        or enemy:FindFirstChild("Torso")
+        or enemy:FindFirstChild("HumanoidRootPart")
+        or enemy.PrimaryPart
+end
+
 local function updateHPBar(enemy)
-    local head = enemy:FindFirstChild("Head")
+    local head = getEnemyHead(enemy)
     if not head then return end
 
     local billboard = head:FindFirstChild("EnemyHPGui")
@@ -62,13 +70,15 @@ local function updateHPBar(enemy)
 end
 
 local function createHPBar(enemy)
-    local head = enemy:FindFirstChild("Head")
     local humanoid = enemy:FindFirstChildOfClass("Humanoid")
     if humanoid then
         humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     end
+
+    local head = getEnemyHead(enemy)
     if not head then
-        head = enemy:WaitForChild("Head", 5)
+        task.wait(3)
+        head = getEnemyHead(enemy)
     end
     if not head then return end
     if head:FindFirstChild("EnemyHPGui") then return end

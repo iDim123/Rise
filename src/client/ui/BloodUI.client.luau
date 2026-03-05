@@ -20,6 +20,14 @@ local BLOOD_DIM = Color3.fromRGB(60, 15, 15)       -- 0% quality
 local BLOOD_BRIGHT = Color3.fromRGB(180, 15, 15)    -- 100% quality
 local FLASK_BG = Color3.fromRGB(20, 18, 22)
 
+local function getEnemyHead(enemy)
+    return enemy:FindFirstChild("Head")
+        or enemy:FindFirstChild("UpperTorso")
+        or enemy:FindFirstChild("Torso")
+        or enemy:FindFirstChild("HumanoidRootPart")
+        or enemy.PrimaryPart
+end
+
 -- ═══ ScreenGui ═══
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BloodHUD"
@@ -174,7 +182,7 @@ local captureLabels = {}
 
 local function createDrinkLabel(enemy)
     if drinkLabels[enemy] then return end
-    local head = enemy:FindFirstChild("Head")
+    local head = getEnemyHead(enemy)
     if not head then return end
 
     local billboard = Instance.new("BillboardGui")
@@ -206,7 +214,7 @@ end
 
 local function createCaptureLabel(enemy)
     if captureLabels[enemy] then return end
-    local head = enemy:FindFirstChild("Head")
+    local head = getEnemyHead(enemy)
     if not head then return end
 
     local billboard = Instance.new("BillboardGui")
