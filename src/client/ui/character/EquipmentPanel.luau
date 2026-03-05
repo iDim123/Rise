@@ -100,11 +100,11 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
     container.BackgroundTransparency = 1
     container.Parent = parent
 
-    -- Левая панель (броня)
+    -- Левая панель
     local leftPanel = Instance.new("Frame")
     leftPanel.Name = "EquipPanelLeft"
     leftPanel.Size = UDim2.new(0, UC.equipPanelInner, 0, UC.equipPanelHeight)
-    leftPanel.Position = UDim2.new(0, UC.windowPadX, 0, 0)
+    leftPanel.Position = UDim2.new(0, UC.leftPanelX, 0, 0)
     leftPanel.BackgroundColor3 = UC.panelBg
     leftPanel.BorderSizePixel = 0
     leftPanel.Parent = container
@@ -115,11 +115,11 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
 
     buildSlotColumn(leftPanel, leftSlots, unequipRemote)
 
-    -- Правая панель (аксессуары)
+    -- Правая панель
     local rightPanel = Instance.new("Frame")
     rightPanel.Name = "EquipPanelRight"
     rightPanel.Size = UDim2.new(0, UC.equipPanelInner, 0, UC.equipPanelHeight)
-    rightPanel.Position = UDim2.new(0, UC.windowWidth - UC.windowPadX - UC.equipPanelInner, 0, 0)
+    rightPanel.Position = UDim2.new(0, UC.rightPanelX, 0, 0)
     rightPanel.BackgroundColor3 = UC.panelBg
     rightPanel.BorderSizePixel = 0
     rightPanel.Parent = container

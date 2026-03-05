@@ -52,17 +52,6 @@ function InventoryManager.getUnlockedSlots(player)
     return inv.unlockedSlots
 end
 
--- Изменить addItem — не добавлять в заблокированные слоты:
--- Заменить цикл поиска пустого слота:
-    for i = 1, inv.unlockedSlots do  -- было inv.size
-        if inv.slots[i] == false or inv.slots[i] == nil then
-            -- ...
-        end
-    end
-
--- Изменить equipItem для Bag — при снятии выбросить предметы из заблокированных слотов:
--- (это будет в InventoryServer)
-
 -- Добавить функцию получения предметов из заблокированных слотов:
 function InventoryManager.getItemsInLockedSlots(player)
     local inv = inventories[player.UserId]
@@ -107,6 +96,7 @@ function InventoryManager.addItem(player, itemData)
     local inv = inventories[player.UserId]
     if not inv then return false, "No inventory" end
 
+    -- Стакаем в существующие слоты (включая заблокированные — предметы уже там)
     if itemData.Stackable and itemData.MaxStack then
         for i = 1, inv.size do
             local slot = inv.slots[i]
@@ -122,7 +112,8 @@ function InventoryManager.addItem(player, itemData)
         end
     end
 
-    for i = 1, inv.size do
+    -- Новый слот — только в разблокированные
+    for i = 1, inv.unlockedSlots do
         if inv.slots[i] == false or inv.slots[i] == nil then
             inv.slots[i] = {
                 Id = itemData.Id,
@@ -134,7 +125,8 @@ function InventoryManager.addItem(player, itemData)
                 Type = itemData.Type or "Misc",
                 EquipSlot = itemData.EquipSlot or nil,
                 Stats = itemData.Stats or {},
-                ItemLevel = itemData.ItemLevel or 0, 
+                ItemLevel = itemData.ItemLevel or 0,
+                BagData = itemData.BagData or nil,
             }
             return true, i
         end
@@ -300,6 +292,7 @@ function InventoryManager.addItemFromConfig(player, itemId, amount)
         EquipSlot = itemDef.EquipSlot,
         Stats = itemDef.Stats,
         ItemLevel = itemDef.ItemLevel or 0,
+        BagData = itemDef.BagData,
     })
 end
 
