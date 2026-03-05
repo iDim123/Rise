@@ -5,9 +5,10 @@ local InventoryManager = {}
 local inventories = {}
 
 function InventoryManager.create(player)
-    local totalSlots = Config.Inventory.Rows * Config.Inventory.Columns
+    local maxSlots = Config.Inventory.Rows * Config.Inventory.Columns
+    local defaultSlots = Config.Inventory.DefaultRows * Config.Inventory.Columns
     local slots = {}
-    for i = 1, totalSlots do
+    for i = 1, maxSlots do
         slots[i] = false
     end
 
@@ -18,11 +19,62 @@ function InventoryManager.create(player)
 
     inventories[player.UserId] = {
         slots = slots,
-        size = totalSlots,
+        size = maxSlots,
+        unlockedSlots = defaultSlots,  -- сколько слотов доступно
         equipment = equipment,
-        activeWeaponSlot = nil, -- номер слота ActionBar с активным оружием
+        activeWeaponSlot = nil,
     }
-    print("[Inventory] Created for " .. player.Name .. " (" .. totalSlots .. " slots)")
+    print("[Inventory] Created for " .. player.Name .. " (" .. defaultSlots .. "/" .. maxSlots .. " slots)")
+end
+
+-- Добавить функцию пересчёта разблокированных слотов:
+function InventoryManager.recalcUnlockedSlots(player)
+    local inv = inventories[player.UserId]
+    if not inv then return end
+
+    local cols = Config.Inventory.Columns
+    local defaultRows = Config.Inventory.DefaultRows
+    local extraRows = 0
+
+    local bagItem = inv.equipment["Bag"]
+    if bagItem and bagItem ~= false and bagItem.BagData then
+        extraRows = bagItem.BagData.ExtraRows or 0
+    end
+
+    local totalRows = math.min(defaultRows + extraRows, Config.Inventory.Rows)
+    inv.unlockedSlots = totalRows * cols
+end
+
+-- Добавить функцию получения количества разблокированных слотов:
+function InventoryManager.getUnlockedSlots(player)
+    local inv = inventories[player.UserId]
+    if not inv then return 0 end
+    return inv.unlockedSlots
+end
+
+-- Изменить addItem — не добавлять в заблокированные слоты:
+-- Заменить цикл поиска пустого слота:
+    for i = 1, inv.unlockedSlots do  -- было inv.size
+        if inv.slots[i] == false or inv.slots[i] == nil then
+            -- ...
+        end
+    end
+
+-- Изменить equipItem для Bag — при снятии выбросить предметы из заблокированных слотов:
+-- (это будет в InventoryServer)
+
+-- Добавить функцию получения предметов из заблокированных слотов:
+function InventoryManager.getItemsInLockedSlots(player)
+    local inv = inventories[player.UserId]
+    if not inv then return {} end
+    local items = {}
+    for i = inv.unlockedSlots + 1, inv.size do
+        if inv.slots[i] and inv.slots[i] ~= false then
+            table.insert(items, { slotIndex = i, item = inv.slots[i] })
+            inv.slots[i] = false
+        end
+    end
+    return items
 end
 
 function InventoryManager.getInventory(player)

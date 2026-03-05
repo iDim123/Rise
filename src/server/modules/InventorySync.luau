@@ -13,10 +13,13 @@ function InventorySync.sendFullUpdate(player)
 end
 
 function InventorySync.getFullData(player)
+    local inv = InventoryManager.getInventory(player)
+    if not inv then return nil end
     return {
         slots = InventoryManager.getSlots(player),
-        equipment = InventoryManager.getEquipment(player),
-        activeWeaponSlot = InventoryManager.getActiveWeaponSlot(player)
+        equipment = inv.equipment,
+        activeWeaponSlot = inv.activeWeaponSlot,
+        unlockedSlots = inv.unlockedSlots,  -- <<< ДОБАВИТЬ
     }
 end
 

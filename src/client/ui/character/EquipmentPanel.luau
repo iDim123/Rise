@@ -9,20 +9,8 @@ local EquipmentPanel = {}
 local equipSlotFrames = {}
 local currentEquipment = nil
 
-function EquipmentPanel.build(parent, contentY, unequipRemote)
-    local panel = Instance.new("Frame")
-    panel.Name = "EquipPanel"
-    panel.Size = UDim2.new(0, UC.equipPanelInner, 0, UC.equipPanelHeight)
-    panel.Position = UDim2.new(0, UC.windowPadX, 0, contentY)
-    panel.BackgroundColor3 = UC.panelBg
-    panel.BorderSizePixel = 0
-    panel.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = panel
-
-    for i, slotConfig in Config.Equipment.Slots do
+local function buildSlotColumn(panel, slots, unequipRemote)
+    for i, slotConfig in slots do
         local slot = Instance.new("TextButton")
         slot.Name = "Equip_" .. slotConfig.Id
         slot.Size = UDim2.new(0, UC.slotSize, 0, UC.slotSize)
@@ -72,7 +60,6 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
         nameLabel.Visible = false
         nameLabel.Parent = slot
 
-        -- Tooltip on hover
         slot.MouseEnter:Connect(function()
             if currentEquipment then
                 local itemData = currentEquipment[slotConfig.Id]
@@ -93,8 +80,57 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
 
         equipSlotFrames[slotConfig.Id] = slot
     end
+end
 
-    return panel
+function EquipmentPanel.build(parent, contentY, unequipRemote)
+    local leftSlots = {}
+    local rightSlots = {}
+    for _, sc in Config.Equipment.Slots do
+        if sc.Side == "Right" then
+            table.insert(rightSlots, sc)
+        else
+            table.insert(leftSlots, sc)
+        end
+    end
+
+    local container = Instance.new("Frame")
+    container.Name = "EquipPanel"
+    container.Size = UDim2.new(1, 0, 0, UC.equipPanelHeight)
+    container.Position = UDim2.new(0, 0, 0, contentY)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    -- Левая панель (броня)
+    local leftPanel = Instance.new("Frame")
+    leftPanel.Name = "EquipPanelLeft"
+    leftPanel.Size = UDim2.new(0, UC.equipPanelInner, 0, UC.equipPanelHeight)
+    leftPanel.Position = UDim2.new(0, UC.windowPadX, 0, 0)
+    leftPanel.BackgroundColor3 = UC.panelBg
+    leftPanel.BorderSizePixel = 0
+    leftPanel.Parent = container
+
+    local lc = Instance.new("UICorner")
+    lc.CornerRadius = UDim.new(0, 6)
+    lc.Parent = leftPanel
+
+    buildSlotColumn(leftPanel, leftSlots, unequipRemote)
+
+    -- Правая панель (аксессуары)
+    local rightPanel = Instance.new("Frame")
+    rightPanel.Name = "EquipPanelRight"
+    rightPanel.Size = UDim2.new(0, UC.equipPanelInner, 0, UC.equipPanelHeight)
+    rightPanel.Position = UDim2.new(0, UC.windowWidth - UC.windowPadX - UC.equipPanelInner, 0, 0)
+    rightPanel.BackgroundColor3 = UC.panelBg
+    rightPanel.BorderSizePixel = 0
+    rightPanel.Parent = container
+
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 6)
+    rc.Parent = rightPanel
+
+    buildSlotColumn(rightPanel, rightSlots, unequipRemote)
+
+    return container
 end
 
 function EquipmentPanel.refresh(equipmentData)

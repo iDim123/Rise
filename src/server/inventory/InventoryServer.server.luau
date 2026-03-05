@@ -46,6 +46,7 @@ end
 Remotes.EquipItem.OnServerEvent:Connect(function(player, slotIndex)
     if type(slotIndex) ~= "number" then return end
     if InventoryManager.equipItem(player, math.floor(slotIndex)) then
+        InventoryManager.recalcUnlockedSlots(player)
         recalcPlayerMaxHP(player)
         InventorySync.sendFullUpdate(player)
     end
@@ -54,7 +55,26 @@ end)
 -- UnequipItem
 Remotes.UnequipItem.OnServerEvent:Connect(function(player, equipSlotId)
     if type(equipSlotId) ~= "string" then return end
+    
+    -- Запоминаем старый Bag перед снятием
+    local wasBag = (equipSlotId == "Bag")
+    
     if InventoryManager.unequipItem(player, equipSlotId) then
+        if wasBag then
+            InventoryManager.recalcUnlockedSlots(player)
+            -- Выбросить предметы из заблокированных слотов
+            local lockedItems = InventoryManager.getItemsInLockedSlots(player)
+            if #lockedItems > 0 then
+                local character = player.Character
+                local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local LootManager = require(modules:WaitForChild("LootManager"))
+                    for _, entry in lockedItems do
+                        LootManager.dropFromPlayer(player, entry.item, rootPart.Position)
+                    end
+                end
+            end
+        end
         recalcPlayerMaxHP(player)
         InventorySync.sendFullUpdate(player)
     end
