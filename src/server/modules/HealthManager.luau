@@ -93,9 +93,19 @@ end)
 
 -- Инициализация игроков
 Players.PlayerAdded:Connect(function(player)
+    local LevelManager = require(script.Parent:WaitForChild("LevelManager"))
+    LevelManager.initPlayer(player)
+
     player.CharacterAdded:Connect(function(character)
         character:WaitForChild("Humanoid")
-        HealthManager.init(character, Config.Player.MaxHP)
+        local maxHP = LevelManager.getPlayerMaxHP(player)
+        HealthManager.init(character, maxHP)
+
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.MaxHealth = maxHP
+            humanoid.Health = maxHP
+        end
     end)
 end)
 

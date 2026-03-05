@@ -31,8 +31,6 @@ function ResourceManager.init(node, nodeType)
         spawnPosition = node:GetPivot().Position,
         spawnCFrame = node:GetPivot(),
     }
-
-    print("[ResourceManager] Initialized " .. nodeType .. " at " .. tostring(node:GetPivot().Position))
 end
 
 function ResourceManager.hit(player, node, damage)

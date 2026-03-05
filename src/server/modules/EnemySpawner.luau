@@ -50,6 +50,10 @@ function EnemySpawner.spawn(enemyType, spawnPosition)
     enemy:SetAttribute("EnemyType", enemyType)
     enemy:SetAttribute("SpawnPosition", spawnPosition)
 
+    -- Level
+    local enemyLevel = config.Level or 1
+    enemy:SetAttribute("Level", enemyLevel)
+    enemy:SetAttribute("EnemyLevel", enemyLevel)
     -- HP
     HealthManager.init(enemy, config.MaxHP)
 

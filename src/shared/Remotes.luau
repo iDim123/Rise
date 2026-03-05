@@ -35,6 +35,8 @@ local events = {
     "UseAbility",
     "AbilityCooldown",
     "ResourceGathered",
+    "UpdateLevel",
+    "UpdateServantLevel",
 }
 
 -- RemoteFunctions

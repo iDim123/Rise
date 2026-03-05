@@ -13,7 +13,7 @@ local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
 local ResourceManager = require(modules:WaitForChild("ResourceManager"))
 local AbilityManager = require(modules:WaitForChild("AbilityManager"))
-
+local LevelManager = require(modules:WaitForChild("LevelManager"))
 local weaponsFolder = ServerStorage:WaitForChild("weapons")
 
 local attackCooldowns = {}
@@ -118,10 +118,17 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
         if distance <= attackRange then
             local directionToTarget = (targetRoot.Position - rootPart.Position).Unit
             local dot = directionToTarget:Dot(mouseDirection)
-            if dot > 0.3 then
+           if dot > 0.3 then
+                -- Damage Modifier по уровню
+                local playerLevel = LevelManager.getPlayerLevel(player)
+                local targetLevel = target:GetAttribute("Level") or target:GetAttribute("EnemyLevel") or playerLevel
+                local dmgMod = LevelManager.getDamageModifier(playerLevel, targetLevel)
+
+                local modifiedDamage = attackDamage * (1 + dmgMod)
+
                 -- DamageReduction на цели
                 local dmgReduction = BuffManager.getStatModifier(target, "DamageReduction")
-                local finalDamage = math.floor(attackDamage * (1 - dmgReduction))
+                local finalDamage = math.floor(modifiedDamage * (1 - dmgReduction))
                 finalDamage = math.max(1, finalDamage)
                 HealthManager.takeDamage(target, finalDamage, character)
             end
