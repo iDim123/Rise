@@ -1,4 +1,28 @@
-local RunService = game:GetService("RunService")
+local function updateHPBar(enemy)
+    local head = enemy:FindFirstChild("Head")
+    if not head then return end
+
+    local billboard = head:FindFirstChild("EnemyHPGui")
+    if not billboard then return end
+
+    local currentHP = enemy:GetAttribute("CurrentHP")
+    local maxHP = enemy:GetAttribute("MaxHP")
+    if not currentHP or not maxHP or maxHP == 0 then return end
+
+    local bg = billboard:FindFirstChild("Background")
+    if not bg then return end
+
+    local hpBar = bg:FindFirstChild("HPBar")
+    if hpBar then
+        hpBar.Size = UDim2.new(currentHP / maxHP, 0, 1, 0)
+    end
+
+    local nameLabel = bg:FindFirstChild("NameLabel")
+    if nameLabel then
+        local bloodQuality = enemy:GetAttribute("BloodQuality") or 0
+        nameLabel.Text = bloodQuality .. "% " .. enemy.Name
+    end
+end
 
 local function createHPBar(enemy)
     local head = enemy:FindFirstChild("Head")
@@ -46,35 +70,12 @@ local function createHPBar(enemy)
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.Text = enemy.Name
     nameLabel.Parent = bg
-end
 
-local function updateHPBar(enemy)
-    local head = enemy:FindFirstChild("Head")
-    if not head then return end
+    updateHPBar(enemy)
 
-    local billboard = head:FindFirstChild("EnemyHPGui")
-    if not billboard then
-        createHPBar(enemy)
-        return
-    end
-
-    local currentHP = enemy:GetAttribute("CurrentHP")
-    local maxHP = enemy:GetAttribute("MaxHP")
-    if not currentHP or not maxHP or maxHP == 0 then return end
-
-    local bg = billboard:FindFirstChild("Background")
-    if not bg then return end
-
-    local hpBar = bg:FindFirstChild("HPBar")
-    if hpBar then
-        hpBar.Size = UDim2.new(currentHP / maxHP, 0, 1, 0)
-    end
-
-    local nameLabel = bg:FindFirstChild("NameLabel")
-    if nameLabel then
-        local bloodQuality = enemy:GetAttribute("BloodQuality") or 0
-        nameLabel.Text = bloodQuality .. "% " .. enemy.Name
-    end
+    enemy:GetAttributeChangedSignal("CurrentHP"):Connect(function()
+        updateHPBar(enemy)
+    end)
 end
 
 local function watchEnemiesFolder(folder)
@@ -90,10 +91,3 @@ local enemiesFolder = workspace:WaitForChild("Enemies", 30)
 if enemiesFolder then
     watchEnemiesFolder(enemiesFolder)
 end
-
-RunService.RenderStepped:Connect(function()
-    if not enemiesFolder then return end
-    for _, enemy in enemiesFolder:GetChildren() do
-        updateHPBar(enemy)
-    end
-end)
