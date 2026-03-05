@@ -1,0 +1,35 @@
+return {
+    Servants = {
+        MaxCaptured = 10,
+        MaxActive = 1,
+        CaptureKey = Enum.KeyCode.T,
+        CaptureRange = 8,
+        CaptureTime = 0,
+        CaptureThreshold = 1,
+        FollowDistance = 6,
+        AttackRange = 5,
+        AggroRange = 20,
+        AttackCooldown = 1.2,
+        PowerBase = 100,
+        EquipmentSlots = {
+            { Id = "Head",   Name = "Head",   Row = 1, Col = 1 },
+            { Id = "Chest",  Name = "Chest",  Row = 2, Col = 1 },
+            { Id = "Legs",   Name = "Legs",   Row = 3, Col = 1 },
+            { Id = "Feet",   Name = "Feet",   Row = 4, Col = 1 },
+            { Id = "Hands",  Name = "Hands",  Row = 5, Col = 1 },
+            { Id = "Amulet", Name = "Amulet", Row = 1, Col = 2 },
+            { Id = "Ring1",  Name = "Ring 1", Row = 2, Col = 2 },
+            { Id = "Ring2",  Name = "Ring 2", Row = 3, Col = 2 },
+        },
+        Modes = {
+            Aggressive = "Aggressive",
+            Defensive = "Defensive",
+            Passive = "Passive",
+        },
+        Commands = {
+            AttackTarget = "AttackTarget",
+            Stay = "Stay",
+            Follow = "Follow",
+        },
+    },
+}
