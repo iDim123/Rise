@@ -159,10 +159,6 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             end
 
             DragManager.reset(slotFrames)
-            local abSlots = ActionBarHUD.getSlots()
-            for _, s in abSlots do
-                s.BackgroundColor3 = UC.slotBg
-            end
         end
     end)
 end

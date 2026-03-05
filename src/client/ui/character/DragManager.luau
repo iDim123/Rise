@@ -95,9 +95,6 @@ function DragManager.reset(slotFrames)
     DragManager.dragOverIndex = nil
     dragData = nil
     DragManager.destroyGhost()
-    for _, sf in slotFrames do
-        sf.BackgroundColor3 = UC.slotBg
-    end
 end
 
 function DragManager.registerDropTarget(slotFrame, callback)

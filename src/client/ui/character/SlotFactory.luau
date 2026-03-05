@@ -11,6 +11,7 @@ function SlotFactory.createSlot(parent, name, posX, posY)
     slot.BorderSizePixel = 1
     slot.BorderColor3 = UC.slotBorder
     slot.Text = ""
+    slot.AutoButtonColor = false  -- <<< ДОБАВИТЬ
     slot.Parent = parent
 
     local c = Instance.new("UICorner")
@@ -134,7 +135,7 @@ function SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, slotIndex
                 amountLabel.Visible = false
             end
         end
-        
+
         slotFrame.BackgroundColor3 = UC.slotBgFilled
     else
         icon.Visible = false
