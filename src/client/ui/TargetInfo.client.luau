@@ -21,7 +21,6 @@ local BAR_STROKE = Color3.fromRGB(50, 0, 0)
 local HP_COLOR = Color3.fromRGB(200, 30, 30)
 local TEXT_COLOR = Color3.fromRGB(225, 225, 225)
 local LEVEL_BG = Color3.fromRGB(30, 30, 38)
-local LEVEL_TEXT = Color3.fromRGB(80, 220, 240)
 local BLOOD_COLOR = Color3.fromRGB(255, 255, 255)
 
 local TOTAL_WIDTH = LEVEL_SIZE + LEVEL_GAP + BAR_WIDTH  -- 300
@@ -82,7 +81,6 @@ levelText.Size = UDim2.new(1, 0, 1, 0)
 levelText.BackgroundTransparency = 1
 levelText.Font = Enum.Font.GothamBold
 levelText.TextSize = 16
-levelText.TextColor3 = LEVEL_TEXT
 levelText.Text = ""
 levelText.Parent = levelFrame
 
