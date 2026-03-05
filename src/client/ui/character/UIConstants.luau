@@ -53,6 +53,9 @@ C.actionRowY = C.equipZoneY + C.equipPanelHeight + 8
 C.actionRowLabelH = 14
 C.actionRowTotalH = C.slotSize + C.actionRowLabelH + 2
 
+C.contentH = C.actionRowY - C.contentY - 4
+C.contentWidth = C.invGridWidth
+
 C.separatorY = C.actionRowY + C.actionRowTotalH + 4
 C.separatorH = 2
 C.actualInvY = C.separatorY + C.separatorH + 4
