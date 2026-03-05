@@ -76,18 +76,6 @@ levelFrame.BorderSizePixel = 0
 levelFrame.Parent = container
 Instance.new("UICorner", levelFrame).CornerRadius = UDim.new(0, 6)
 
-local skullIcon = Instance.new("ImageLabel")
-skullIcon.Name = "SkullIcon"
-skullIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
-skullIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-skullIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
-skullIcon.BackgroundTransparency = 1
-skullIcon.Image = LevelColor.SkullIcon
-skullIcon.ImageColor3 = LevelColor.Colors.Red
-skullIcon.ScaleType = Enum.ScaleType.Fit
-skullIcon.Visible = false
-skullIcon.Parent = levelFrame
-
 local levelText = Instance.new("TextLabel")
 levelText.Name = "LevelText"
 levelText.Size = UDim2.new(1, 0, 1, 0)
@@ -221,20 +209,13 @@ local function updateTargetUI()
         levelText.TextColor3 = color
 
         if LevelColor.isSkull(level, playerLevel) then
-            levelText.Visible = false
-            skullIcon.Visible = true
-            skullIcon.ImageColor3 = LevelColor.Colors.Red   
+            levelText.Text = LevelColor.SkullText
         else
             levelText.Text = tostring(level)
-            levelText.Visible = true
-            skullIcon.Visible = false
         end
     else
         levelText.Text = "?"
-        levelText.Visible = true
-        skullIcon.Visible = false
         levelText.TextColor3 = LevelColor.Colors.White
-        levelStroke.Color = LevelColor.Colors.White
     end
 
     -- HP

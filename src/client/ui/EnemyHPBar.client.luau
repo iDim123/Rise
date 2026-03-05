@@ -114,19 +114,12 @@ local function createHPBar(enemy)
     levelLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     levelLabel.Text = ""
     levelLabel.Parent = billboard
-
-    -- HP bar background (right side, 80% width)
+   
+    -- HP bar background (right of level)
     local bg = Instance.new("Frame")
     bg.Name = "Background"
     bg.Size = UDim2.new(0.83, 0, 0.45, 0)
-    bg.Position = UDim2.new(0.16, 0, 0.275, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    bg.BorderSizePixel = 0
-    bg.Parent = billboard
-
-    local bg = Instance.new("Frame")
-    bg.Name = "Background"
-    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.Position = UDim2.new(0.19, 0, 0.275, 0)
     bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     bg.BorderSizePixel = 0
     bg.Parent = billboard
@@ -139,7 +132,7 @@ local function createHPBar(enemy)
     hpBar.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
     hpBar.BorderSizePixel = 0
     hpBar.Parent = bg
-
+   
     Instance.new("UICorner", hpBar).CornerRadius = UDim.new(0, 4)
 
     enemyState[enemy] = { lastHoverTime = 0, hovered = false }
