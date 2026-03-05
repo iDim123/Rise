@@ -13,6 +13,7 @@ local SLOT_BG = Color3.fromRGB(50, 50, 65)
 local ACTIVE_COLOR = Color3.fromRGB(220, 190, 80)
 local TEXT_COLOR = Color3.fromRGB(200, 200, 200)
 local BIND_COLOR = Color3.fromRGB(180, 180, 100)
+local AB_WIDTH = PAD + 8 * (SLOT_SIZE + PAD)  -- 436
 
 local barGui = nil
 local barFrame = nil
@@ -86,8 +87,8 @@ function ServantActionBar.build(playerGui)
     barFrame = Instance.new("Frame")
     barFrame.Name = "ServantActionBar"
     barFrame.Size = UDim2.new(0, frameW, 0, frameH)
-    barFrame.AnchorPoint = Vector2.new(0.5, 1)
-    barFrame.Position = UDim2.new(0.5, 0, 1, -10 - (SLOT_SIZE + 20) - 8)
+barFrame.AnchorPoint = Vector2.new(1, 1)
+barFrame.Position = UDim2.new(0.5, AB_WIDTH / 2, 1, -118)
     barFrame.BackgroundColor3 = BAR_BG
     barFrame.BackgroundTransparency = 0.3
     barFrame.BorderSizePixel = 0

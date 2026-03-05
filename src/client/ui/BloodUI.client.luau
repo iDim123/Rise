@@ -17,7 +17,8 @@ screenGui.Parent = playerGui
 
 local bloodFrame = Instance.new("Frame")
 bloodFrame.Size = UDim2.new(0, 200, 0, 20)
-bloodFrame.Position = UDim2.new(0.5, -100, 0, 55)
+bloodFrame.AnchorPoint = Vector2.new(0.5, 1)
+bloodFrame.Position = UDim2.new(0.5, 0, 1, -10)
 bloodFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 bloodFrame.BorderSizePixel = 0
 bloodFrame.Parent = screenGui

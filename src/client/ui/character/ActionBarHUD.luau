@@ -21,8 +21,8 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
     local frame = Instance.new("Frame")
     frame.Name = "ActionBar"
     frame.Size = UDim2.new(0, frameW, 0, frameH)
-    frame.AnchorPoint = Vector2.new(0.5, 1)
-    frame.Position = UDim2.new(0.5, 0, 1, -10)
+frame.AnchorPoint = Vector2.new(0, 1)
+frame.Position = UDim2.new(0.5, -frameW / 2, 1, -10)
     frame.BackgroundColor3 = UC.windowBg
     frame.BackgroundTransparency = 0.3
     frame.BorderSizePixel = 0
