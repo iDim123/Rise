@@ -4,11 +4,11 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local C = {}
 
 -- Из конфига
-C.cols = Config.Inventory.Columns
-C.totalRows = Config.Inventory.Rows
-C.displayRows = C.totalRows - 1
-C.slotSize = Config.Inventory.SlotSize
-C.padding = Config.Inventory.Padding
+C.cols = Config.Inventory.Columns       -- 8
+C.totalRows = Config.Inventory.Rows     -- 5
+C.displayRows = C.totalRows - 1         -- 4
+C.slotSize = Config.Inventory.SlotSize  -- 50
+C.padding = Config.Inventory.Padding    -- 4
 
 -- Подсчёт слотов по сторонам
 local leftCount = 0
@@ -21,21 +21,26 @@ for _, sc in Config.Equipment.Slots do
     end
 end
 
-C.leftEquipCount = leftCount
-C.rightEquipCount = rightCount
-C.equipPanelInner = C.padding + C.slotSize + 6 + 40 + C.padding
-C.equipPanelHeight = C.padding + math.max(leftCount, rightCount) * (C.slotSize + C.padding)
+C.leftEquipCount = leftCount   -- 5
+C.rightEquipCount = rightCount -- 5
 
--- Ширина: левая панель + инвентарь + правая панель
-C.invGridWidth = C.padding + C.cols * (C.slotSize + C.padding)
+-- Панель экипировки: слот + отступ + текст
+C.equipPanelInner = C.padding + C.slotSize + 6 + 40 + C.padding  -- ~104
+C.equipPanelHeight = C.padding + math.max(leftCount, rightCount) * (C.slotSize + C.padding) -- 5 слотов
+
+-- Ширина инвентаря (8 слотов)
+C.invGridWidth = C.padding + C.cols * (C.slotSize + C.padding) -- 436
+
+-- Окно = левая панель + зазор + инвентарь + зазор + правая панель
 C.windowPadX = 10
-C.contentWidth = C.equipPanelInner + 8 + C.invGridWidth + 8 + C.equipPanelInner
+C.gapEquipInv = 8
+C.contentWidth = C.equipPanelInner + C.gapEquipInv + C.invGridWidth + C.gapEquipInv + C.equipPanelInner
 C.windowWidth = C.windowPadX * 2 + C.contentWidth
 
--- Позиции панелей внутри окна
+-- Горизонтальные позиции (относительно окна)
 C.leftPanelX = C.windowPadX
-C.invGridX = C.windowPadX + C.equipPanelInner + 8
-C.rightPanelX = C.windowPadX + C.equipPanelInner + 8 + C.invGridWidth + 8
+C.invGridX = C.windowPadX + C.equipPanelInner + C.gapEquipInv
+C.rightPanelX = C.invGridX + C.invGridWidth + C.gapEquipInv
 
 -- Вертикаль
 C.headerH = 36
@@ -43,6 +48,7 @@ C.tabsY = C.headerH
 C.tabsH = 28
 C.contentY = C.tabsY + C.tabsH + 8
 
+-- ActionBar начинается на уровне contentY, рядом с панелями экипировки
 C.actionRowY = C.contentY
 C.actionRowLabelH = 14
 C.actionRowTotalH = C.slotSize + C.actionRowLabelH + 2
@@ -54,7 +60,7 @@ C.actualInvY = C.separatorY + C.separatorH + 4
 C.sortH = 25
 C.actualSortY = C.actualInvY + C.displayRows * (C.slotSize + C.padding) + 4
 
--- Высота окна: больше из (equip панель) и (инвентарь с ActionBar)
+-- Высота окна = максимум из (панели экипировки) и (инвентарь снизу)
 local invBottomY = C.actualSortY + C.sortH + 10
 local equipBottomY = C.contentY + C.equipPanelHeight + 10
 C.windowHeight = math.max(invBottomY, equipBottomY)

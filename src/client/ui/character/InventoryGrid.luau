@@ -21,7 +21,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     -- ActionBar row (slots 1-8)
     for col = 0, UC.cols - 1 do
         local index = col + 1
-        local posX = UC.windowPadX + UC.padding + col * (UC.slotSize + UC.padding)
+        local posX = UC.invGridX + UC.padding + col * (UC.slotSize + UC.padding)
 
         local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, UC.actionRowY)
 
@@ -46,7 +46,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     -- Separator
     local sep = Instance.new("Frame")
     sep.Size = UDim2.new(0, UC.invGridWidth, 0, UC.separatorH)
-    sep.Position = UDim2.new(0, UC.windowPadX, 0, UC.separatorY)
+    sep.Position = UDim2.new(0, UC.invGridX, 0, UC.separatorY)
     sep.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
     sep.BorderSizePixel = 0
     sep.Parent = parent
@@ -55,7 +55,7 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
     for row = 0, UC.displayRows - 1 do
         for col = 0, UC.cols - 1 do
             local index = (row + 1) * UC.cols + col + 1
-            local posX = UC.windowPadX + UC.padding + col * (UC.slotSize + UC.padding)
+            local posX = UC.invGridX + UC.padding + col * (UC.slotSize + UC.padding)
             local posY = UC.actualInvY + row * (UC.slotSize + UC.padding)
 
             local slot = SlotFactory.createSlot(parent, "Slot_" .. index, posX, posY)
