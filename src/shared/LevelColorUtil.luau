@@ -13,6 +13,7 @@ LevelColorUtil.Colors = {
 }
 
 LevelColorUtil.SkullText = "☠"
+LevelColorUtil.SkullIcon = "rbxassetid://116793517"  -- skull decal; replace if needed
 
 function LevelColorUtil.getColor(targetLevel, playerLevel)
     local diff = targetLevel - playerLevel

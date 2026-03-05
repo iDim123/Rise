@@ -82,8 +82,8 @@ skullIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
 skullIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 skullIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 skullIcon.BackgroundTransparency = 1
-skullIcon.Image = SKULL_ICON
-skullIcon.ImageColor3 = LVL_RED
+skullIcon.Image = LevelColor.SkullIcon
+skullIcon.ImageColor3 = LevelColor.Colors.Red
 skullIcon.ScaleType = Enum.ScaleType.Fit
 skullIcon.Visible = false
 skullIcon.Parent = levelFrame
@@ -220,7 +220,7 @@ local function updateTargetUI()
         local color = LevelColor.getColor(level, playerLevel)
         levelText.TextColor3 = color
 
-        if isSkullLevel(level, playerLevel) then
+        if LevelColor.isSkull(level, playerLevel) then
             levelText.Visible = false
             skullIcon.Visible = true
             skullIcon.ImageColor3 = LevelColor.Colors.Red   
