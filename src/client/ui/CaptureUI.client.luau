@@ -149,6 +149,12 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
+        -- Нельзя захватить — не показываем
+        if enemy:GetAttribute("CanCapture") == false then
+            removeCaptureLabel(enemy)
+            continue
+        end
+
         local currentHP = enemy:GetAttribute("CurrentHP")
         local maxHP = enemy:GetAttribute("MaxHP")
 

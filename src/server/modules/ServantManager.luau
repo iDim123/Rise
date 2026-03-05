@@ -89,6 +89,10 @@ function ServantManager.captureEnemy(player, enemyEntity)
     local bloodQuality = enemyEntity:GetAttribute("BloodQuality") or 0
     local enemyConfig = Config.Enemies[enemyType]
 
+    if enemyConfig and enemyConfig.CanCapture == false then
+        return false, "This creature cannot be captured"
+    end
+
     local baseATK = enemyConfig and enemyConfig.Damage or 10
     local baseHP = enemyConfig and enemyConfig.MaxHP or 80
 

@@ -56,6 +56,10 @@ function EnemySpawner.spawn(enemyType, spawnPosition, level)
     enemy:SetAttribute("Level", enemyLevel)
     enemy:SetAttribute("EnemyLevel", enemyLevel)
 
+    if config.CanCapture == false then
+        enemy:SetAttribute("CanCapture", false)
+    end
+
     -- HP
     HealthManager.init(enemy, config.MaxHP)
 
