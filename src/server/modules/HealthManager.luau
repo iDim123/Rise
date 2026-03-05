@@ -110,4 +110,30 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
+function HealthManager.setMaxHP(entity, newMaxHP)
+    local data = healthData[entity]
+    if not data or data.IsDead then return end
+
+    local oldMaxHP = data.MaxHP
+    data.MaxHP = newMaxHP
+    entity:SetAttribute("MaxHP", newMaxHP)
+
+    -- Пропорционально масштабируем текущее HP
+    if oldMaxHP > 0 then
+        local ratio = data.CurrentHP / oldMaxHP
+        data.CurrentHP = math.floor(ratio * newMaxHP)
+        data.CurrentHP = math.max(1, math.min(data.CurrentHP, newMaxHP))
+    else
+        data.CurrentHP = newMaxHP
+    end
+
+    entity:SetAttribute("CurrentHP", data.CurrentHP)
+
+    local humanoid = entity:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.MaxHealth = newMaxHP
+        humanoid.Health = data.CurrentHP
+    end
+end
+
 return HealthManager
