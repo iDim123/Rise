@@ -21,26 +21,23 @@ for _, sc in Config.Equipment.Slots do
     end
 end
 
-C.leftEquipCount = leftCount   -- 5
-C.rightEquipCount = rightCount -- 5
+C.leftEquipCount = leftCount
+C.rightEquipCount = rightCount
 
--- Панель экипировки: слот + отступ + текст
-C.equipPanelInner = C.padding + C.slotSize + 6 + 40 + C.padding  -- ~104
-C.equipPanelHeight = C.padding + math.max(leftCount, rightCount) * (C.slotSize + C.padding) -- 5 слотов
+-- Панель экипировки
+C.equipPanelInner = C.padding + C.slotSize + 6 + 40 + C.padding
+C.equipPanelHeight = C.padding + math.max(leftCount, rightCount) * (C.slotSize + C.padding)
 
--- Ширина инвентаря (8 слотов)
-C.invGridWidth = C.padding + C.cols * (C.slotSize + C.padding) -- 436
+-- Ширина инвентаря
+C.invGridWidth = C.padding + C.cols * (C.slotSize + C.padding)
 
--- Окно = левая панель + зазор + инвентарь + зазор + правая панель
+-- Ширина окна = инвентарь (ActionBar и панели вписываются в эту же ширину)
 C.windowPadX = 10
-C.gapEquipInv = 8
-C.contentWidth = C.equipPanelInner + C.gapEquipInv + C.invGridWidth + C.gapEquipInv + C.equipPanelInner
-C.windowWidth = C.windowPadX * 2 + C.contentWidth
+C.windowWidth = C.windowPadX * 2 + C.invGridWidth
 
--- Горизонтальные позиции (относительно окна)
+-- Горизонтальные позиции панелей экипировки (внутри окна)
 C.leftPanelX = C.windowPadX
-C.invGridX = C.windowPadX + C.equipPanelInner + C.gapEquipInv
-C.rightPanelX = C.invGridX + C.invGridWidth + C.gapEquipInv
+C.rightPanelX = C.windowWidth - C.windowPadX - C.equipPanelInner
 
 -- Вертикаль
 C.headerH = 36
@@ -48,8 +45,11 @@ C.tabsY = C.headerH
 C.tabsH = 28
 C.contentY = C.tabsY + C.tabsH + 8
 
--- ActionBar начинается на уровне contentY, рядом с панелями экипировки
-C.actionRowY = C.contentY
+-- Панели экипировки занимают зону от contentY
+C.equipZoneY = C.contentY
+
+-- ActionBar начинается ПОД панелями экипировки
+C.actionRowY = C.equipZoneY + C.equipPanelHeight + 8
 C.actionRowLabelH = 14
 C.actionRowTotalH = C.slotSize + C.actionRowLabelH + 2
 
@@ -59,11 +59,7 @@ C.actualInvY = C.separatorY + C.separatorH + 4
 
 C.sortH = 25
 C.actualSortY = C.actualInvY + C.displayRows * (C.slotSize + C.padding) + 4
-
--- Высота окна = максимум из (панели экипировки) и (инвентарь снизу)
-local invBottomY = C.actualSortY + C.sortH + 10
-local equipBottomY = C.contentY + C.equipPanelHeight + 10
-C.windowHeight = math.max(invBottomY, equipBottomY)
+C.windowHeight = C.actualSortY + C.sortH + 10
 
 -- Цвета
 C.slotBg = Color3.fromRGB(50, 50, 65)

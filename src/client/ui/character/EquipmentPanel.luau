@@ -96,7 +96,7 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
     local container = Instance.new("Frame")
     container.Name = "EquipPanel"
     container.Size = UDim2.new(1, 0, 0, UC.equipPanelHeight)
-    container.Position = UDim2.new(0, 0, 0, contentY)
+    container.Position = UDim2.new(0, 0, 0, contentY)  -- contentY == UC.contentY, уже верно
     container.BackgroundTransparency = 1
     container.Parent = parent
 
