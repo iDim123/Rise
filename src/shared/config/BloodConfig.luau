@@ -17,6 +17,13 @@ return {
                 Color = Color3.fromRGB(200, 50, 50),
                 Buffs = { DamageBonus = { Min = 0.05, Max = 0.50 } },
             },
+            Creature = {
+                DisplayName = "Животное",
+                Color = Color3.fromRGB(100, 180, 80),
+                Buffs = {
+                    SpeedBonus = { Min = 0.02, Max = 0.20 },
+                },
+            },
         },
     },
 }

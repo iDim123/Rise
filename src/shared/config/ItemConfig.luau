@@ -103,6 +103,16 @@ return {
             Stackable = true,
             MaxStack = 99,
         },
+        rugged_hide = {
+            Id = "rugged_hide",
+            Name = "Rugged Hide",
+            Description = "Thick hide stripped from wild beasts.",
+            Icon = "rbxassetid://0",
+            Type = "Resource",
+            ItemLevel = 0,
+            Stackable = true,
+            MaxStack = 500,
+        },
     },
     ItemTypes = {
         Weapon = "Weapon",

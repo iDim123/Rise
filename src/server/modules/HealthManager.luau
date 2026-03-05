@@ -49,6 +49,7 @@ function HealthManager.die(entity, attacker)
         -- Враг/NPC: сохраняем данные ДО destroy
         local enemyType = entity:GetAttribute("EnemyType")
         local spawnPos = entity:GetAttribute("SpawnPosition")
+        local spawnLevel = entity:GetAttribute("SpawnLevel")
 
         EventBus.fire("EntityDying", entity, attacker)
 
@@ -56,7 +57,7 @@ function HealthManager.die(entity, attacker)
         healthData[entity] = nil
 
         if enemyType and spawnPos then
-            EventBus.fire("EntityRemoved", enemyType, spawnPos)
+            EventBus.fire("EntityRemoved", enemyType, spawnPos, spawnLevel)
         end
     end
 end

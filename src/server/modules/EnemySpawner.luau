@@ -7,7 +7,7 @@ local EventBus = require(script.Parent:WaitForChild("EventBus"))
 
 local EnemySpawner = {}
 
-function EnemySpawner.spawn(enemyType, spawnPosition)
+function EnemySpawner.spawn(enemyType, spawnPosition, level)
     local config = Config.Enemies[enemyType]
     if not config then
         warn("[EnemySpawner] No config for: " .. tostring(enemyType))
@@ -47,13 +47,15 @@ function EnemySpawner.spawn(enemyType, spawnPosition)
         humanoid.WalkSpeed = config.WalkSpeed
     end
 
+    -- Уровень: из спавн-точки, или из конфига, или 1
+    local enemyLevel = level or config.Level or 1
+    
     enemy:SetAttribute("EnemyType", enemyType)
     enemy:SetAttribute("SpawnPosition", spawnPosition)
-
-    -- Level
-    local enemyLevel = config.Level or 1
+    enemy:SetAttribute("SpawnLevel", enemyLevel)
     enemy:SetAttribute("Level", enemyLevel)
     enemy:SetAttribute("EnemyLevel", enemyLevel)
+
     -- HP
     HealthManager.init(enemy, config.MaxHP)
 
@@ -63,21 +65,21 @@ function EnemySpawner.spawn(enemyType, spawnPosition)
     enemy:SetAttribute("BloodType", bloodType)
     enemy:SetAttribute("BloodQuality", math.random(bqRange.Min, bqRange.Max))
 
-    print("[EnemySpawner] Spawned: " .. enemyType .. " at " .. tostring(spawnPosition))
+    print("[EnemySpawner] Spawned: " .. enemyType .. " Lv" .. enemyLevel .. " at " .. tostring(spawnPosition))
     return enemy
 end
 
-function EnemySpawner.respawn(enemyType, spawnPosition)
+function EnemySpawner.respawn(enemyType, spawnPosition, level)
     local config = Config.Enemies[enemyType]
     if not config then return end
 
     task.delay(config.RespawnTime, function()
-        EnemySpawner.spawn(enemyType, spawnPosition)
+        EnemySpawner.spawn(enemyType, spawnPosition, level)
     end)
 end
 
-EventBus.on("EntityRemoved", function(enemyType, spawnPos)
-    EnemySpawner.respawn(enemyType, spawnPos)
+EventBus.on("EntityRemoved", function(enemyType, spawnPos, level)
+    EnemySpawner.respawn(enemyType, spawnPos, level)
 end)
 
 return EnemySpawner

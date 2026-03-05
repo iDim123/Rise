@@ -1,37 +1,40 @@
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local EnemySpawner = require(modules:WaitForChild("EnemySpawner"))
 
--- Создаём папку для живых врагов (если EnemySpawner не успел)
+-- Создаём папку для живых врагов
 if not workspace:FindFirstChild("Enemies") then
     local folder = Instance.new("Folder")
     folder.Name = "Enemies"
     folder.Parent = workspace
 end
 
-local enemiesStorage = ServerStorage:WaitForChild("enemies")
+local function initFromSpawnPoints()
+    local spawnPoints = workspace:FindFirstChild("SpawnPoints")
+    if not spawnPoints then
+        warn("[EnemyManager] No SpawnPoints folder in Workspace")
+        return
+    end
 
-local function initEnemies()
-    for _, template in enemiesStorage:GetChildren() do
-        local enemyType = template:GetAttribute("EnemyType")
+    for _, point in spawnPoints:GetChildren() do
+        local enemyType = point:GetAttribute("EnemyType")
         if not enemyType then continue end
-
-        local spawnPos = template:GetAttribute("SpawnPosition")
-        if not spawnPos then continue end
 
         local config = Config.Enemies[enemyType]
         if not config then
-            warn("[EnemyManager] Skipping " .. template.Name .. ": no config for " .. enemyType)
+            warn("[EnemyManager] No config for: " .. enemyType)
             continue
         end
 
-        EnemySpawner.spawn(enemyType, spawnPos)
+        local spawnPos = point.Position
+        local level = point:GetAttribute("Level")
+
+        EnemySpawner.spawn(enemyType, spawnPos, level)
     end
 end
 
-initEnemies()
+initFromSpawnPoints()
