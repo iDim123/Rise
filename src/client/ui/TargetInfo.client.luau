@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -25,11 +26,18 @@ local BLOOD_COLOR = Color3.fromRGB(255, 255, 255)
 
 local TOTAL_WIDTH = LEVEL_SIZE + LEVEL_GAP + BAR_WIDTH  -- 300
 
+-- ═══ Animation ═══
+local FADE_TIME = 0.25        -- fade in/out duration
+local HP_TWEEN_TIME = 0.3     -- HP bar smooth transition
+local fadeTween = nil
+local hpTween = nil
+local isVisible = false
+
 -- ═══ State ═══
 local currentTarget = nil
-local lockedTarget = nil
 local lastTargetTime = 0
 local TARGET_TIMEOUT = 1
+local lastDisplayedTarget = nil
 
 -- ═══ UI ═══
 local screenGui = Instance.new("ScreenGui")
@@ -40,14 +48,20 @@ screenGui.Parent = playerGui
 screenGui.IgnoreGuiInset = true
 
 -- Container — no background
-local container = Instance.new("Frame")
+local container = Instance.new("CanvasGroup")
+container.GroupTransparency = 1
 container.Name = "TargetInfo"
-container.Size = UDim2.new(0, TOTAL_WIDTH, 0, 70)
+container.Size = UDim2.new(0, TOTAL_WIDTH + 20, 0, 70)
 container.AnchorPoint = Vector2.new(0.5, 0)
 container.Position = UDim2.new(0.5, 0, 0, MARGIN)
 container.BackgroundTransparency = 1
 container.Visible = false
 container.Parent = screenGui
+
+local containerPad = Instance.new("UIPadding")
+containerPad.PaddingLeft = UDim.new(0, 10)
+containerPad.PaddingRight = UDim.new(0, 10)
+containerPad.Parent = container
 
 -- ── Target Name (centered, top) ──
 local nameLabel = Instance.new("TextLabel")
@@ -137,6 +151,33 @@ bloodLabel.Text = ""
 bloodLabel.Visible = false
 bloodLabel.Parent = container
 
+local function fadeIn()
+    if isVisible then return end
+    isVisible = true
+    container.Visible = true
+    if fadeTween then fadeTween:Cancel() end
+    container.GroupTransparency = 1
+    fadeTween = TweenService:Create(container, TweenInfo.new(FADE_TIME), {
+        GroupTransparency = 0
+    })
+    fadeTween:Play()
+end
+
+local function fadeOut()
+    if not isVisible then return end
+    isVisible = false
+    if fadeTween then fadeTween:Cancel() end
+    fadeTween = TweenService:Create(container, TweenInfo.new(FADE_TIME), {
+        GroupTransparency = 1
+    })
+    fadeTween:Play()
+    local thisTween = fadeTween
+    task.delay(FADE_TIME + 0.05, function()
+        if not isVisible and fadeTween == thisTween then
+            container.Visible = false
+        end
+    end)
+end
 -- ═══ Helpers ═══
 local function isValidTarget(model)
     if not model then return false end
@@ -172,11 +213,11 @@ local function getModelFromPart(part)
 end
 
 local function updateTargetUI()
-    local target = lockedTarget or currentTarget
+    local target = currentTarget
+
     if not target or not target.Parent then
-        container.Visible = false
-        currentTarget = nil
-        lockedTarget = nil
+        fadeOut()
+        lastDisplayedTarget = nil
         return
     end
 
@@ -186,11 +227,14 @@ local function updateTargetUI()
     local enemyName = target:GetAttribute("EnemyType") or target.Name
 
     if not curHP or not maxHP then
-        container.Visible = false
+        fadeOut()
         return
     end
 
-    container.Visible = true
+    local targetChanged = (target ~= lastDisplayedTarget)
+
+    fadeIn()
+    lastDisplayedTarget = target
 
     -- Name
     nameLabel.Text = tostring(enemyName)
@@ -218,10 +262,20 @@ local function updateTargetUI()
 
     -- HP
     local ratio = math.clamp(curHP / math.max(maxHP, 1), 0, 1)
-    hpBar.Size = UDim2.new(ratio, 0, 1, 0)
     hpText.Text = tostring(math.ceil(curHP)) .. " / " .. tostring(math.ceil(maxHP))
 
-    -- Blood (only if target has BloodType attribute)
+    if targetChanged then
+        if hpTween then hpTween:Cancel() end
+        hpBar.Size = UDim2.new(ratio, 0, 1, 0)
+    else
+        if hpTween then hpTween:Cancel() end
+        hpTween = TweenService:Create(hpBar, TweenInfo.new(HP_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(ratio, 0, 1, 0)
+        })
+        hpTween:Play()
+    end
+
+    -- Blood
     local bloodType = target:GetAttribute("BloodType")
     local bloodQuality = target:GetAttribute("BloodQuality")
     if bloodType and bloodQuality then
@@ -243,30 +297,7 @@ local function checkMouseTarget()
             return
         end
     end
-    if currentTarget and not lockedTarget then
-        if tick() - lastTargetTime > TARGET_TIMEOUT then
-            currentTarget = nil
-        end
-    end
 end
-
--- ═══ Lock target on click ═══
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local target = mouse.Target
-        if target then
-            local model = getModelFromPart(target)
-            if model and isValidTarget(model) then
-                lockedTarget = model
-                return
-            end
-        end
-    end
-    if input.KeyCode == Enum.KeyCode.Escape then
-        lockedTarget = nil
-    end
-end)
 
 -- ═══ Main loop ═══
 RunService.RenderStepped:Connect(function()
