@@ -12,11 +12,14 @@ return {
             UseEffect = {
                 Type = "ApplyBuffs",
                 Cooldown = 1,
-                Buffs = {
-                    { BuffId = "damage_boost", Duration = 200 },
-                    { BuffId = "slow", Duration = 20 },
-                },
-            },
+                Buffs = {{
+                    BuffId = "damage_boost",
+                    Duration = 200
+                }, {
+                    BuffId = "slow",
+                    Duration = 20
+                }}
+            }
         },
         debug_servant_egg = {
             Id = "debug_servant_egg",
@@ -27,7 +30,10 @@ return {
             ItemLevel = 0,
             Stackable = true,
             MaxStack = 99,
-            UseEffect = { Type = "AddServant", Cooldown = 1 },
+            UseEffect = {
+                Type = "AddServant",
+                Cooldown = 1
+            }
         },
         blood_essence = {
             Id = "blood_essence",
@@ -38,7 +44,7 @@ return {
             Type = "Resource",
             ItemLevel = 0,
             Stackable = true,
-            MaxStack = 500,
+            MaxStack = 500
         },
         health_potion = {
             Id = "health_potion",
@@ -49,7 +55,11 @@ return {
             ItemLevel = 0,
             Stackable = true,
             MaxStack = 20,
-            UseEffect = { Type = "Heal", Amount = 50, Cooldown = 5 },
+            UseEffect = {
+                Type = "Heal",
+                Amount = 50,
+                Cooldown = 5
+            }
         },
         Sword = {
             Id = "Sword",
@@ -59,7 +69,7 @@ return {
             Type = "Weapon",
             ItemLevel = 10,
             Stackable = false,
-            MaxStack = 1,
+            MaxStack = 1
         },
         Axe = {
             Id = "Axe",
@@ -69,7 +79,7 @@ return {
             Type = "Weapon",
             ItemLevel = 8,
             Stackable = false,
-            MaxStack = 1,
+            MaxStack = 1
         },
         iron_helmet = {
             Id = "iron_helmet",
@@ -81,7 +91,9 @@ return {
             ItemLevel = 5,
             Stackable = false,
             MaxStack = 1,
-            Stats = { Defense = 5 },
+            Stats = {
+                Defense = 5
+            }
         },
         wood = {
             Id = "wood",
@@ -91,7 +103,7 @@ return {
             Type = "Resource",
             ItemLevel = 0,
             Stackable = true,
-            MaxStack = 99,
+            MaxStack = 99
         },
         stone = {
             Id = "stone",
@@ -101,7 +113,7 @@ return {
             Type = "Resource",
             ItemLevel = 0,
             Stackable = true,
-            MaxStack = 99,
+            MaxStack = 99
         },
         rugged_hide = {
             Id = "rugged_hide",
@@ -111,7 +123,7 @@ return {
             Type = "Resource",
             ItemLevel = 0,
             Stackable = true,
-            MaxStack = 500,
+            MaxStack = 500
         },
         rugged_hide_helmet = {
             Id = "rugged_hide_helmet",
@@ -123,7 +135,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Head",
-            Stats = { HP = 10 },
+            Stats = {
+                HP = 10
+            }
         },
         rugged_hide_chest = {
             Id = "rugged_hide_chest",
@@ -135,7 +149,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Chest",
-            Stats = { HP = 10 },
+            Stats = {
+                HP = 10
+            }
         },
         rugged_hide_legs = {
             Id = "rugged_hide_legs",
@@ -147,7 +163,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Legs",
-            Stats = { HP = 10 },
+            Stats = {
+                HP = 10
+            }
         },
         rugged_hide_gauntlets = {
             Id = "rugged_hide_gauntlets",
@@ -159,7 +177,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Hands",
-            Stats = { HP = 10 },
+            Stats = {
+                HP = 10
+            }
         },
         rugged_hide_boots = {
             Id = "rugged_hide_boots",
@@ -171,7 +191,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Feet",
-            Stats = { HP = 10 },
+            Stats = {
+                HP = 10
+            }
         },
         small_bag = {
             Id = "small_bag",
@@ -183,7 +205,9 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Bag",
-            BagData = { ExtraRows = 1 },
+            BagData = {
+                ExtraRows = 1
+            }
         },
         large_bag = {
             Id = "large_bag",
@@ -195,8 +219,43 @@ return {
             Stackable = false,
             MaxStack = 1,
             EquipSlot = "Bag",
-            BagData = { ExtraRows = 2 },
+            BagData = {
+                ExtraRows = 2
+            }
         },
+        blood_vial_warrior = {
+            Id = "blood_vial_warrior",
+            Name = "Колба крови воина",
+            Description = "Колба с кровью воина. Выпейте, чтобы сменить тип крови.",
+            Icon = "rbxassetid://115847672921380",
+            Type = "Consumable",
+            ItemLevel = 0,
+            Stackable = true,
+            MaxStack = 30,
+            UseEffect = {
+                Type = "DrinkBloodVial",
+                Cooldown = 1,
+                BloodType = "Warrior",
+                BloodQuality = 50
+            }
+        },
+
+        blood_vial_creature = {
+            Id = "blood_vial_creature",
+            Name = "Колба крови существа",
+            Description = "Колба с кровью существа. Выпейте, чтобы сменить тип крови.",
+            Icon = "rbxassetid://115847672921380",
+            Type = "Consumable",
+            ItemLevel = 0,
+            Stackable = true,
+            MaxStack = 30,
+            UseEffect = {
+                Type = "DrinkBloodVial",
+                Cooldown = 1,
+                BloodType = "Creature",
+                BloodQuality = 100
+            }
+        }
     },
     ItemTypes = {
         Weapon = "Weapon",
@@ -211,6 +270,6 @@ return {
         Misc = "Misc",
         Resource = "Resource",
         Cloak = "Cloak",
-        Bag = "Bag",
-    },
+        Bag = "Bag"
+    }
 }
