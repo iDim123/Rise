@@ -39,7 +39,7 @@ return {
     },
 
     -- Таймер автосмерти в Downed состоянии
-    DownedTimeout = 10,
+    DownedTimeout = 20,
 
     -- Клавиши
     FinishKey = Enum.KeyCode.F,

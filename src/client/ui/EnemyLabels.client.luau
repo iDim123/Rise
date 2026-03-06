@@ -9,6 +9,7 @@ local player = Players.LocalPlayer
 
 local drinkLabels = {}
 local captureLabels = {}
+local bossFinishLabels = {}
 
 local SCAN_INTERVAL = 0.5
 local scanTimer = 0
@@ -77,6 +78,50 @@ local function removeCaptureLabel(enemy)
     end
 end
 
+local function createBossFinishLabel(enemy)
+    if bossFinishLabels[enemy] then return end
+    local head = EnemyUtil.getHead(enemy)
+    if not head then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "BossFinishLabel"
+    billboard.Size = UDim2.new(0, 150, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = head
+    billboard.Parent = head
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0.5, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 200, 50)
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.Text = "Добить [F]"
+    label.Parent = billboard
+
+    if enemy:GetAttribute("CanBossCapture") then
+        local captureLabel = Instance.new("TextLabel")
+        captureLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        captureLabel.Position = UDim2.new(0, 0, 0.5, 0)
+        captureLabel.BackgroundTransparency = 1
+        captureLabel.TextColor3 = Color3.fromRGB(180, 50, 220)
+        captureLabel.TextSize = 13
+        captureLabel.Font = Enum.Font.GothamBold
+        captureLabel.Text = "Захватить [T]"
+        captureLabel.Parent = billboard
+    end
+
+    bossFinishLabels[enemy] = billboard
+end
+
+local function removeBossFinishLabel(enemy)
+    if bossFinishLabels[enemy] then
+        bossFinishLabels[enemy]:Destroy()
+        bossFinishLabels[enemy] = nil
+    end
+end
+
 -- ═══ Scan loop ═══
 RunService.RenderStepped:Connect(function(dt)
     scanTimer += dt
@@ -96,6 +141,7 @@ RunService.RenderStepped:Connect(function(dt)
         if not enemyRoot then
             removeDrinkLabel(enemy)
             removeCaptureLabel(enemy)
+            removeBossFinishLabel(enemy)
             continue
         end
 
@@ -105,23 +151,40 @@ RunService.RenderStepped:Connect(function(dt)
 
         if currentHP and maxHP and maxHP > 0 then
             local hpRatio = currentHP / maxHP
+            local isBoss = enemy:GetAttribute("IsBoss")
 
-            if hpRatio <= Config.Blood.DrinkThreshold and distance <= Config.Blood.DrinkRange then
-                createDrinkLabel(enemy)
-            else
+            if isBoss then
+                -- Bosses: no blood drinking, no normal capture
                 removeDrinkLabel(enemy)
-            end
+                removeCaptureLabel(enemy)
 
-            if enemy:GetAttribute("CanCapture") == false then
-                removeCaptureLabel(enemy)
-            elseif hpRatio <= (Config.Servants.CaptureThreshold or 0.2) and distance <= (Config.Servants.CaptureRange or 8) then
-                createCaptureLabel(enemy)
+                if enemy:GetAttribute("BossState") == "Downed" and distance <= 8 then
+                    createBossFinishLabel(enemy)
+                else
+                    removeBossFinishLabel(enemy)
+                end
             else
-                removeCaptureLabel(enemy)
+                -- Normal enemies
+                removeBossFinishLabel(enemy)
+
+                if hpRatio <= Config.Blood.DrinkThreshold and distance <= Config.Blood.DrinkRange then
+                    createDrinkLabel(enemy)
+                else
+                    removeDrinkLabel(enemy)
+                end
+
+                if enemy:GetAttribute("CanCapture") == false then
+                    removeCaptureLabel(enemy)
+                elseif hpRatio <= (Config.Servants.CaptureThreshold or 0.2) and distance <= (Config.Servants.CaptureRange or 8) then
+                    createCaptureLabel(enemy)
+                else
+                    removeCaptureLabel(enemy)
+                end
             end
         else
             removeDrinkLabel(enemy)
             removeCaptureLabel(enemy)
+            removeBossFinishLabel(enemy)
         end
     end
 end)

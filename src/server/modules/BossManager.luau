@@ -224,6 +224,11 @@ function BossManager.finishBoss(player, bossId)
         EssenceRequired = bossConfig.EssenceRequired,
     })
 
+    Remotes.Notify:FireClient(player, "Эссенция поглощена (" .. BossManager.getEssence(player, bossId) .. "/" .. bossConfig.EssenceRequired .. ")", "success")
+    if firstKill then
+        Remotes.Notify:FireClient(player, "Технология разблокирована: " .. (bossConfig.Unlocks.TooltipTitle or ""), "success")
+    end
+
     return true
 end
 
@@ -233,7 +238,10 @@ function BossManager.captureBoss(player, bossId)
     if not data or data.state ~= BOSS_STATE.DOWNED then return false, "Not downed" end
 
     if not BossManager.isEssenceFull(player, bossId) then
-        return false, "Essence not full"
+        local current = BossManager.getEssence(player, bossId)
+        local required = Config.Bosses[bossId].EssenceRequired
+        Remotes.Notify:FireClient(player, "Эссенция не заполнена (" .. current .. "/" .. required .. ")", "warning")
+        return false
     end
 
     local entity = data.entity
