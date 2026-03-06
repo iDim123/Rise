@@ -14,14 +14,20 @@ local hoveredKey = nil
 local function ensureFrame(screenGui)
     if tooltipFrame then return tooltipFrame end
 
+    local tooltipGui = Instance.new("ScreenGui")
+    tooltipGui.Name = "AbilityTooltipGui"
+    tooltipGui.DisplayOrder = 900
+    tooltipGui.ResetOnSpawn = false
+    tooltipGui.Parent = screenGui.Parent
+
     local frame = Instance.new("Frame")
     frame.Name = "AbilityTooltip"
     frame.BackgroundColor3 = TOOLTIP_BG
     frame.Size = UDim2.new(0, TOOLTIP_WIDTH, 0, 0)
     frame.AutomaticSize = Enum.AutomaticSize.Y
     frame.Visible = false
-    frame.ZIndex = 100
-    frame.Parent = screenGui
+    frame.ZIndex = 200
+    frame.Parent = tooltipGui
 
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, TOOLTIP_CORNER)
 
@@ -51,7 +57,7 @@ local function ensureFrame(screenGui)
     title.TextColor3 = TOOLTIP_TEXT
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.LayoutOrder = 1
-    title.ZIndex = 101
+    title.ZIndex = 201
     title.Parent = frame
 
     local desc = Instance.new("TextLabel")
@@ -65,7 +71,7 @@ local function ensureFrame(screenGui)
     desc.TextXAlignment = Enum.TextXAlignment.Left
     desc.TextWrapped = true
     desc.LayoutOrder = 2
-    desc.ZIndex = 101
+    desc.ZIndex = 201
     desc.Parent = frame
 
     local cdLabel = Instance.new("TextLabel")
@@ -77,7 +83,7 @@ local function ensureFrame(screenGui)
     cdLabel.TextColor3 = TOOLTIP_SUB
     cdLabel.TextXAlignment = Enum.TextXAlignment.Left
     cdLabel.LayoutOrder = 3
-    cdLabel.ZIndex = 101
+    cdLabel.ZIndex = 201
     cdLabel.Parent = frame
 
     tooltipFrame = frame

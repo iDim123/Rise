@@ -6,9 +6,8 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
-local abilitiesFolder = script.Parent:WaitForChild("abilities")
-local AbilityTooltip = require(abilitiesFolder:WaitForChild("AbilityTooltip"))
-local AbilityCooldowns = require(abilitiesFolder:WaitForChild("AbilityCooldowns"))
+local AbilityTooltip = require(script.Parent:WaitForChild("AbilityTooltip"))
+local AbilityCooldowns = require(script.Parent:WaitForChild("AbilityCooldowns"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
