@@ -38,6 +38,13 @@ function BuffManager.applyBuff(entity, buffId, duration, source)
     BuffManager._applyStatEffects(entity)
     BuffManager._sendUpdate(entity)
 
+    -- Recalc player stats
+    local player = Players:GetPlayerFromCharacter(entity)
+    if player then
+        local StatsManager = require(script.Parent:WaitForChild("StatsManager"))
+        StatsManager.recalculate(player)
+    end
+
     local displayName = buffConfig.Name or buffId
     print("[BuffManager] Applied " .. displayName .. " (" .. duration .. "s) to " .. entity.Name)
 
@@ -62,6 +69,13 @@ function BuffManager.removeBuff(entity, buffId)
 
     BuffManager._applyStatEffects(entity)
     BuffManager._sendUpdate(entity)
+
+    -- Recalc player stats
+    local player = Players:GetPlayerFromCharacter(entity)
+    if player then
+        local StatsManager = require(script.Parent:WaitForChild("StatsManager"))
+        StatsManager.recalculate(player)
+    end
 
     return true
 end

@@ -66,6 +66,12 @@ RunService.Heartbeat:Connect(function()
     lastTick = now
 
     for _, player in Players:GetPlayers() do
+        local oldType = player.Character and player.Character:GetAttribute("BloodType")
         BloodManager.tick(player, dt)
+        local newType = player.Character and player.Character:GetAttribute("BloodType")
+        if oldType ~= newType then
+            local StatsManager = require(modules:WaitForChild("StatsManager"))
+            StatsManager.recalculate(player)
+        end
     end
 end)
