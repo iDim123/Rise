@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 local drinkLabels = {}
 local captureLabels = {}
 
-local SCAN_INTERVAL = 0.2
+local SCAN_INTERVAL = 0.5
 local scanTimer = 0
 
 local function createDrinkLabel(enemy)

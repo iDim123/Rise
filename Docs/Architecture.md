@@ -14,65 +14,89 @@
 
 src/
 ├── shared/                          # ReplicatedStorage
-│   ├── Config.luau                  # Все игровые настройки (единый источник данных)
-│   └── Remotes.luau                 # Единый реестр RemoteEvent/RemoteFunction
+│   ├── Config.luau                  # Коллектор: require всех config/* модулей
+│   ├── Remotes.luau                 # Единый реестр RemoteEvent/RemoteFunction
+│   ├── LevelColorUtil.luau          # Shared: цвет уровня по разнице (white→yellow→orange→red→skull)
+│   ├── EnemyUtil.luau               # Shared: getHead() для headless моделей (Wolf и т.д.)
+│   └── config/                      # Модульные конфиги
+│       ├── PlayerConfig.luau
+│       ├── EnemyConfig.luau
+│       ├── WeaponConfig.luau
+│       ├── ItemConfig.luau
+│       ├── BuffConfig.luau
+│       ├── BloodConfig.luau
+│       ├── InventoryConfig.luau
+│       ├── CraftConfig.luau
+│       ├── ResourceConfig.luau
+│       ├── LootConfig.luau
+│       └── ServantConfig.luau
 │
 ├── server/                          # ServerScriptService
 │   ├── Main.server.luau             # Точка входа: загружает модули для регистрации EventBus подписок
 │   ├── modules/                     # Серверные модули (НЕ видны клиенту)
 │   │   ├── EventBus.luau           # Простая event-шина: on(event, cb), fire(event, ...)
-│   │   ├── HealthManager.luau      # HP, урон, смерть (fires EventBus), лечение
+│   │   ├── HealthManager.luau      # HP, урон, смерть (fires EventBus), лечение, setMaxHP
 │   │   ├── BloodManager.luau       # Логика крови (тип, качество, расход, баффы)
-│   │   ├── InventoryManager.luau   # CRUD инвентаря, экипировка, активное оружие
+│   │   ├── InventoryManager.luau   # CRUD инвентаря, экипировка, активное оружие, bag slots
 │   │   ├── InventorySync.luau      # sendFullUpdate / getFullData (общая точка)
 │   │   ├── LootManager.luau        # Дроп лута (слушает EntityDying), подбор, очистка
+│   │   ├── LevelManager.luau       # Уровни, XP, MaxHP формулы, damage modifiers, servant XP
 │   │   ├── ServantManager.luau     # Захват, призыв, отзыв, режимы, экипировка, createFromEgg
-│   │   ├── EnemySpawner.luau       # Спавн/респавн (слушает EntityRemoved)
+│   │   ├── EnemySpawner.luau       # Спавн/респавн (слушает EntityRemoved), random level range
 │   │   ├── BuffManager.luau        # Баффы/дебаффы: applyBuff, removeBuff, getStatModifier, _sendUpdate
 │   │   ├── AbilityManager.luau     # Способности Q/E: useAbility, cooldown, DirectDamage/AoEDamage/ApplyBuff
 │   │   └── ResourceManager.luau    # Ресурсные ноды: init, hit, _destroyNode, _respawnNode
 │   ├── blood/
 │   │   └── BloodServer.server.luau
 │   ├── combat/
-│   │   └── WeaponManager.server.luau
+│   │   └── WeaponManager.server.luau  # Атака игрока: damage modifiers, blood/buff бонусы, resource hit
 │   ├── enemy/
-│   │   ├── EnemyAI.server.luau
-│   │   └── EnemyManager.server.luau
+│   │   ├── EnemyAI.server.luau        # Главный AI loop (0.2s tick)
+│   │   ├── EnemyBehaviors.luau        # Состояния: Idle/Patrol/Chase/Attack/Return, damage modifiers
+│   │   ├── EnemyTargeting.luau        # findNearestPlayer, alertPack (стайное агро)
+│   │   ├── EnemyStateManager.luau     # Хранение состояний, checkTookDamage, patrol points
+│   │   └── EnemyManager.server.luau   # Спавн из SpawnPoints в workspace
 │   ├── inventory/
-│   │   ├── InventoryServer.server.luau
+│   │   ├── InventoryServer.server.luau # Equip/Unequip/Swap/Craft/Use remotes, recalcPlayerMaxHP
 │   │   ├── WeaponHandler.luau
 │   │   ├── CraftHandler.luau
 │   │   └── UseItemHandler.luau
 │   ├── loot/
 │   │   └── LootServer.server.luau
 │   ├── resource/
-│   │   └── ResourceSpawner.server.luau  # Спавн ресурсных нод из ServerStorage/resources
+│   │   └── ResourceSpawner.server.luau
 │   └── servant/
 │       ├── ServantServer.server.luau
 │       └── ServantAI.server.luau
 │
 └── client/                          # StarterPlayerScripts
     ├── camera/
-    │   └── IsometricCamera.client.luau  # Изометрическая камера + вращение ПКМ (yaw) + zoom
+    │   └── IsometricCamera.client.luau
     ├── combat/
     │   ├── CombatInput.client.luau
     │   └── DamageNumbers.client.luau
     ├── input/
     │   └── MouseLook.client.luau
     └── ui/
-        ├── BloodUI.client.luau
-        ├── BuffBar.client.luau          # UI баффов/дебаффов: иконки, таймеры, tooltip
-        ├── AbilitiesBar.client.luau     # UI способностей: LMB/Q/E слоты, cooldown overlay
-        ├── ResourceNumbers.client.luau  # Жёлтые числа "+N ресурс" над головой игрока
-        ├── CaptureUI.client.luau
+        ├── BloodPoolUI.client.luau      # Колба крови: HUD, tween fill/color
+        ├── EnemyLabels.client.luau      # Billboard labels: "Выпить кровь [F]", "Захватить [T]"
+        ├── BuffBar.client.luau          # Баффы/дебаффы: иконки, таймеры, tooltip (top-left)
+        ├── PlayerHPBlock.client.luau    # HP bar, XP bar, level circle (игрок)
+        ├── ServantHPBlock.client.luau   # HP bar, XP bar, level circle (слуга)
+        ├── TargetInfo.client.luau       # Target tooltip: имя, уровень, HP, blood (top-center)
+        ├── EnemyHPBar.client.luau       # Billboard HP bar: hover/linger/damaged, level color, tween
+        ├── ResourceNumbers.client.luau  # Жёлтые числа "+N ресурс"
+        ├── CaptureUI.client.luau        # Cast bar захвата
         ├── CoreGuiSetup.client.luau
-        ├── EnemyHPBar.client.luau
         ├── LootUI.client.luau
-        ├── PlayerHPBar.client.luau
         ├── ServantUI.client.luau
+        ├── abilities/
+        │   ├── AbilitiesBar.client.luau # 8 слотов способностей: LMB/Q/E/Space/R/T/Z/X
+        │   ├── AbilityTooltip.luau      # Tooltip способностей (отдельный ScreenGui, z-order 900)
+        │   └── AbilityCooldowns.luau    # Cooldown tracking для ability слотов
         └── character/
             ├── CharacterWindow.client.luau
-            ├── UIConstants.luau
+            ├── UIConstants.luau         # Layout + HUD bar constants + colors
             ├── SlotFactory.luau
             ├── SlotBehavior.luau
             ├── DragManager.luau
@@ -98,8 +122,8 @@ src/
 ### События
 | Событие | Аргументы | Кто вызывает | Кто слушает |
 |---|---|---|---|
-| EntityDying | entity, attacker | HealthManager.die() | LootManager (дроп лута), HealthManager (EntityDied клиентам) |
-| EntityRemoved | enemyType, spawnPos | HealthManager.die(), ServantManager.captureEnemy() | EnemySpawner (респавн) |
+| EntityDying | entity, attacker | HealthManager.die() | LootManager (дроп лута), LevelManager (XP), HealthManager (EntityDied клиентам) |
+| EntityRemoved | enemyType, spawnPos, spawnLevel | HealthManager.die(), ServantManager.captureEnemy() | EnemySpawner (респавн) |
 | PlayerDied | player, entity, attacker | HealthManager.die() | HealthManager (EntityDied клиентам, респавн) |
 
 ---
@@ -117,6 +141,8 @@ src/
 | HealEvent | Server → Client | Визуализация хила |
 | UpdateInventory | Server → Client | Полное обновление инвентаря |
 | UpdateBuffs | Server → Client | Обновление списка баффов/дебаффов |
+| UpdateLevel | Server → Client | Обновление уровня/XP игрока |
+| UpdateServantLevel | Server → Client | Обновление уровня/XP слуги |
 | ResourceGathered | Server → Client | Уведомление о сборе ресурса (node, resourceId, amount) |
 | SwapSlots | Client → Server | Перестановка слотов (from, to) |
 | EquipItem | Client → Server | Экипировать предмет (slotIndex) |
@@ -135,140 +161,139 @@ src/
 | ServantCommand | Client → Server | Команда слуге (Follow/Stay/AttackTarget) |
 | RenameServant | Client → Server | Переименовать слугу (servantId, newName) |
 | PickupLoot | Client → Server | Подобрать лут (lootPart) |
-| EquipServantItem | Client → Server | Экипировать предмет на слугу (servantId, slotIndex, equipSlotId) |
-| UnequipServantItem | Client → Server | Снять экипировку со слуги (servantId, equipSlotId) |
+| EquipServantItem | Client → Server | Экипировать предмет на слугу |
+| UnequipServantItem | Client → Server | Снять экипировку со слуги |
 | ToggleServantFavorite | Client → Server | Переключить избранное (servantId) |
 | UpdateServantData | Server → Client | Обновление данных слуг |
 
 ### RemoteFunctions
 | Имя | Направление | Назначение |
 |---|---|---|
-| GetInventory | Client → Server | Получить {slots, equipment, activeWeaponSlot} |
+| GetInventory | Client → Server | Получить {slots, equipment, activeWeaponSlot, unlockedSlots} |
 | GetServants | Client → Server | Получить {captured, activeId} |
 
 ---
 
-## Config.luau — секции
+## Config — секции (модульные)
 
-| Секция | Описание |
-|---|---|
-| Config.Player | MaxHP (200), RespawnTime (5) |
-| Config.Enemies | Warrior, TrainingDummy — HP, урон, агро, скорость, лут, кровь |
-| Config.Weapons | Sword, Axe — урон, дальность, комбо, ResourceDamage, Abilities (Q/E), ComboAbility (LMB) |
-| Config.Inventory | Rows=5, Columns=8, SlotSize=50, Padding=4, ActionBarRow=1 |
-| Config.Equipment | Slots: Head, Chest, Legs, Feet, Hands |
-| Config.ItemTypes | Weapon, Head, Chest, Legs, Feet, Hands, Amulet, Ring, Consumable, Misc, Resource |
-| Config.Blood | DrainRate, типы (Outcast, Warrior), баффы |
-| Config.Buffs | Определения баффов: Id, Name, Description, Icon, Type (buff/debuff), StatModifier |
-| Config.ResourceNodes | Tree (MaxHP, ResourceId, ResourcePerHit, RespawnTime), Rock |
-| Config.Servants | Лимиты, режимы, команды, дистанции, EquipmentSlots (8 слотов включая Amulet, Ring1, Ring2) |
-| Config.Items | blood_essence, health_potion, Sword, Axe, iron_helmet, debug_servant_egg, debug_buff_potion, wood, stone — **все предметы тут** |
-| Config.Loot | DropLifetime, PickupRange, PickupKey |
-| Config.Crafting | Recipes: health_potion (10 essence, 1s), health_potion_x5 (50 essence, 3s) |
+| Модуль | Секция | Описание |
+|---|---|---|
+| PlayerConfig | Config.Player | BaseHP=100, HPPerLevel=20, MaxLevel=20, BaseXP=100, RespawnTime=5 |
+| EnemyConfig | Config.Enemies | Warrior (Lv5), Wolf (Lv3-5, PackRadius, CanCapture=false), TrainingDummy |
+| WeaponConfig | Config.Weapons | Sword, Axe — комбо, способности Q/E, ResourceDamage |
+| ItemConfig | Config.Items + Config.ItemTypes | Все предметы: ресурсы, оружие, броня, bags, consumables |
+| BuffConfig | Config.Buffs | Определения баффов: damage_boost, slow и т.д. |
+| BloodConfig | Config.Blood | DrainRate, типы (Outcast, Warrior, Creature), SpeedBonus |
+| InventoryConfig | Config.Inventory + Config.Equipment + Config.Bags | Rows/Cols, Equipment Slots (Left+Right), Bag ExtraRows |
+| CraftConfig | Config.Crafting | Рецепты: potions, hide armor (5 рецептов × 100 rugged_hide) |
+| ResourceConfig | Config.ResourceNodes | Tree, Rock — MaxHP, ResourcePerHit, RespawnTime |
+| LootConfig | Config.Loot | DropLifetime=300, PickupRange=6, PickupKey=F |
+| ServantConfig | Config.Servants | Лимиты, режимы, команды, CaptureThreshold, EquipmentSlots |
 
 ---
 
 ## Ключевые конвенции
 
+### Уровни и опыт
+- Игрок стартует на уровне 1, максимум 20. Формула MaxHP: `BaseHP + HPPerLevel * (Level - 1)`.
+- XP для следующего уровня: `BaseXP * Level`. XP начисляется за убийства (EventBus → EntityDying).
+- Слуги получают XP зеркально игроку с собственным BaseHP из конфига врага.
+- Damage modifiers: overleveled +1% dmg per level, underleveled -4% dmg per level, capped ±100%, min damage 1.
+- Модификаторы применяются в WeaponManager (атака игрока) и EnemyBehaviors (атака врагов).
+
+### Враги
+- Конфиг врагов поддерживает `MinLevel`/`MaxLevel` для рандомного уровня при спавне; `Level` — фиксированный.
+- SpawnPoint атрибут `Level` переопределяет конфиг (для уникальных врагов/боссов).
+- Все враги агрят при входе игрока в AggroRange (Idle/Patrol → Chase).
+- `PackRadius` — стайное агро: при обнаружении цели оповещаются враги того же типа в радиусе.
+- `CanCapture = false` запрещает захват (Wolf).
+- Headless модели (Wolf) поддерживаются через `EnemyUtil.getHead()` (fallback: UpperTorso → Torso → HumanoidRootPart → PrimaryPart).
+
 ### Предметы
-- Все предметы определяются в `Config.Items` с полями: Id, Name, Description, Icon, Type, ItemLevel, Stackable, MaxStack, и опционально EquipSlot, Stats, UseEffect.
+- Все предметы определяются в `Config.Items` с полями: Id, Name, Description, Icon, Type, ItemLevel, Stackable, MaxStack, и опционально EquipSlot, Stats, UseEffect, BagData.
 - Добавление предметов в инвентарь: `InventoryManager.addItemFromConfig(player, itemId, amount)`.
-- Consumable предметы имеют `UseEffect = { Type = "Heal", Amount = N, Cooldown = N }`, `{ Type = "AddServant", Cooldown = N }`, или `{ Type = "ApplyBuffs", Buffs = {{BuffId, Duration}}, Cooldown = N }`.
-- Создание слуги из яйца делегируется `ServantManager.createFromEgg(player, enemyType, bloodQuality)` — единая точка расчёта статов.
+- Consumable предметы имеют `UseEffect = { Type = "Heal"/"AddServant"/"ApplyBuffs", ... }`.
+- Броня с `Stats.HP` увеличивает MaxHP при экипировке (recalcPlayerMaxHP).
+- Bags (`BagData.ExtraRows`) разблокируют дополнительные ряды инвентаря.
 
 ### Инвентарь
-- 40 слотов (5 рядов × 8 колонок). Слоты 1-8 = ActionBar (первый ряд).
-- Пустой слот = `false`. Занятый = таблица `{Id, Name, Icon, Amount, Type, ItemLevel, ...}`.
-- Экипировка хранится отдельно: `equipment[slotId]` (Head, Chest, Legs, Feet, Hands).
-- `activeWeaponSlot` — номер слота ActionBar с выбранным оружием.
-- При `swapSlots` — `activeWeaponSlot` автоматически перемещается за оружием.
-- Оружие (Type = "Weapon") экипируется через ActionBar (клавиши 1-8), а не через панель экипировки. EquipSlot для оружия не используется.
+- По умолчанию 24 слота (3 ряда × 8 колонок), максимум 40 (5 рядов). Слоты 1-8 = ActionBar.
+- Пустой слот = `false`. Занятый = таблица `{Id, Name, Icon, Amount, Type, ...}`.
+- Экипировка: Left panel (Head, Chest, Legs, Feet, Hands), Right panel (Cloak, Amulet, Ring1, Ring2, Bag).
+- Заблокированные слоты (сверх unlocked) затемнены с иконкой замка. При снятии Bag — предметы выпадают.
+- `activeWeaponSlot` — номер слота ActionBar с выбранным оружием. При swapSlots перемещается за оружием.
 
 ### Баффы и дебаффы
 - `BuffManager.applyBuff(entity, buffId, duration, source)` — применяет бафф/дебафф.
-- `BuffManager.getStatModifier(entity, statName)` — возвращает суммарный модификатор (DamageBonus, DamageReduction и т.д.).
-- `BuffManager._sendUpdate(entity)` — отправляет клиенту таблицу активных баффов через `UpdateBuffs`.
-- Клиент отображает баффы (зелёная рамка) и дебаффы (красная рамка) в `BuffBar.client.luau` с таймерами и tooltip.
-- Consumable предметы могут применять баффы через `UseEffect.Type = "ApplyBuffs"`.
+- `BuffManager.getStatModifier(entity, statName)` — суммарный модификатор (DamageBonus, DamageReduction и т.д.).
+- Клиент: BuffBar в левом верхнем углу с таймерами и tooltip. Зелёная рамка = бафф, красная = дебафф.
 
 ### Способности (Abilities)
-- Каждое оружие в `Config.Weapons` имеет `Abilities` (массив для Q/E) и `ComboAbility` (для LMB).
-- `AbilityManager.useAbility(player, key, mousePosition)` — валидация, cooldown, применение эффектов.
-- Типы эффектов: `DirectDamage`, `AoEDamage`, `ApplyBuff`, `ApplyDebuff`.
-- Способности также наносят урон ресурсным нодам через `_hitResourceNodes`.
-- Клиент: `AbilitiesBar.client.luau` показывает 3 слота (LMB/Q/E) с иконками, tooltip и cooldown overlay.
-- Ввод Q/E → `Remotes.UseAbility:FireServer(key, mousePosition)`.
+- 8 слотов: LMB, Q, E, Space, R, T, Z, X. Привязаны к текущему оружию.
+- `AbilityManager.useAbility(player, key, mousePosition)` — валидация, cooldown, эффекты.
+- Типы: DirectDamage, AoEDamage, ApplyBuff, ApplyDebuff.
+- Клиент: AbilitiesBar с модулями AbilityTooltip (z-order 900) и AbilityCooldowns.
+- updateAbilities() вызывается event-driven (Tool add/remove), не каждый кадр.
+
+### Target Info
+- TargetInfo HUD (top-center): имя, уровень (цвет по разнице), HP bar (tween), blood type/quality.
+- Работает на врагов и других игроков. Fade in/out анимация.
+- Уровень: white (≤-5) → yellow (≤0) → orange (≤4) → red (≤9) → skull (≥10). Через LevelColorUtil.
+
+### Enemy HP Bar (Billboard)
+- Скрыт по умолчанию. Показывается при hover (3s linger) или если враг повреждён.
+- Tween HP bar. Level label с цветом через LevelColorUtil.
+- Humanoid DisplayDistanceType = None (скрывает дефолтное имя Roblox).
 
 ### Ресурсы (Resource Gathering)
-- Ресурсные ноды (Tree, Rock) определяются в `Config.ResourceNodes` с полями: MaxHP, ResourceId, ResourcePerHit, RespawnTime.
-- Ноды размещаются в `Workspace → Resources` с атрибутом `NodeType` (String).
-- `ResourceSpawner.server.luau` инициализирует ноды из `ServerStorage/resources`.
-- `ResourceManager.hit(player, node, damage)` — наносит урон ноде, добавляет ресурс в инвентарь, отправляет `ResourceGathered` клиенту.
-- При HP = 0 нода становится прозрачной, респавнится через `RespawnTime` секунд с отключённым коллайдером (включается когда игроки отойдут).
-- `WeaponManager` использует `weaponConfig.ResourceDamage` для расчёта урона нодам (горизонтальная дистанция, без учёта высоты).
-- Клиент: `ResourceNumbers.client.luau` показывает жёлтые числа "+N ресурс" над головой игрока.
+- Ноды (Tree, Rock) в `Workspace → Resources` с атрибутом `NodeType`.
+- `ResourceManager.hit()` → добавляет ресурс в инвентарь → `ResourceGathered` клиенту.
+- При HP = 0 нода прозрачна, респавн через RespawnTime.
 
 ### Обновление клиента
-- Любое изменение инвентаря на сервере → `InventorySync.sendFullUpdate(player)`.
-- Клиент получает `UpdateInventory` → `refreshUI(data)` в CharacterWindow.
-- Формат данных: `{ slots = {...}, equipment = {...}, activeWeaponSlot = number|nil }`.
+- Любое изменение инвентаря → `InventorySync.sendFullUpdate(player)`.
+- Формат: `{ slots, equipment, activeWeaponSlot, unlockedSlots }`.
 
 ### EventBus (серверная event-шина)
 - Модули не вызывают друг друга напрямую для жизненного цикла сущностей.
-- `HealthManager.die()` только помечает смерть и вызывает события. Не знает о лут-системе и респавне.
+- `HealthManager.die()` помечает смерть и вызывает события. Не знает о лут-системе.
 - `LootManager` слушает `EntityDying` → дропает лут.
-- `EnemySpawner` слушает `EntityRemoved` → респавнит врага.
-- `ServantManager.captureEnemy()` вызывает `EventBus.fire("EntityRemoved")` после уничтожения врага.
-- Подписки регистрируются при `require` модуля. `Main.server.luau` загружает HealthManager, LootManager, EnemySpawner для гарантии регистрации.
+- `LevelManager` слушает `EntityDying` → начисляет XP.
+- `EnemySpawner` слушает `EntityRemoved` → респавнит (с сохранением SpawnLevel).
 
 ### Drag-and-drop
 - `DragManager` управляет drag-состоянием, ghost-элементом и drop targets.
-- Drag начинается из `InventoryGrid` или `ActionBarHUD` по `MouseButton1Down`.
-- Drop targets: экипировка игрока (auto-equip), слоты инвентаря (swap).
-- Drop за пределы UI → `DropItem` remote → лут выбрасывается на землю.
-- Ghost создаётся сразу в позиции курсора (без мерцания).
-- Проверка области ActionBar включает +30px вниз для bind labels.
+- Drop targets: экипировка (auto-equip), слоты инвентаря (swap). Drop за пределы → DropItem remote.
 
 ### Tooltip
-- Модульная система в `character/tooltip/`.
-- `ItemTooltip.init(gui)` создаёт отдельный ScreenGui с `DisplayOrder = 999`.
-- `ItemTooltip.show(itemData, slotFrame)` собирает секции и позиционирует tooltip.
-- Позиционирование использует `tooltipGui.AbsoluteSize` для корректного clamp к границам экрана.
-- Tooltip показывается при наведении на: инвентарь, ActionBar, экипировку игрока, экипировку слуги.
-- BuffBar и AbilitiesBar имеют собственные tooltip с clamp к краям экрана.
+- Модульная система в `character/tooltip/`. `ItemTooltip.init(gui)` создаёт ScreenGui с DisplayOrder 999.
+- BuffBar и AbilitiesBar имеют собственные tooltip (AbilityTooltip — DisplayOrder 900).
 
 ### Крафт
-- Клиент кликает рецепт → `CraftItem:FireServer(recipeId)`.
-- Сервер добавляет в очередь, обрабатывает последовательно.
-- Прогресс отправляется через `CraftQueueUpdate` (counts, recipeId, progress 0-1).
-- Клиент показывает счётчик очереди (жёлтый "xN") и прогресс-бар на строке рецепта.
+- Клиент → `CraftItem:FireServer(recipeId)` → сервер ставит в очередь → `CraftQueueUpdate`.
 
 ### Cooldown (Consumable)
-- Клиент запускает `CooldownManager.startCooldown(itemId, duration)` сразу при использовании.
-- Сервер проверяет свой кулдаун независимо (авторитетный).
-- Визуал: тёмная шторка сверху вниз + белое число секунд по центру с чёрной обводкой.
-- `CooldownManager` обновляет все зарегистрированные слоты каждый кадр (RenderStepped).
+- Клиент запускает `CooldownManager.startCooldown()` сразу. Сервер проверяет авторитетно.
+- Визуал: шторка сверху вниз + число секунд.
 
 ### Безопасность
-- Серверные модули находятся в `src/server/modules/` (ServerScriptService) и НЕ реплицируются клиенту.
-- `DropItem` remote имеет rate-limit (0.3 с между вызовами).
-- Модули ссылаются друг на друга через `script.Parent`, на `Config`/`Remotes` — через `ReplicatedStorage`.
+- Серверные модули в ServerScriptService, НЕ реплицируются клиенту.
+- `DropItem` remote имеет rate-limit (0.3с).
 
 ### Горячие клавиши
 | Клавиша | Действие |
 |---|---|
-| C | Открыть/закрыть окно персонажа |
-| V | Открыть/закрыть окно слуг |
-| 1-8 | Выбрать оружие или использовать Consumable (ActionBar) |
-| Q | Способность 1 (зависит от оружия) |
-| E | Способность 2 (зависит от оружия) |
-| F | Выпить кровь / подобрать лут (приоритет по контексту) |
-| T | Захватить врага (начать/отменить каст) |
-| ЛКМ | Атака (зажатие = автоатака, gameProcessed проверяется) |
-| ПКМ (зажатие) | Вращение камеры по горизонтали (yaw) |
-| ПКМ на слоте | Экипировать / использовать Consumable |
+| C | Окно персонажа |
+| V | Окно слуг |
+| 1-8 | ActionBar (оружие / consumable) |
+| LMB | Атака (комбо) |
+| Q, E, Space, R, T, Z, X | Способности (зависят от оружия) |
+| F | Выпить кровь / подобрать лут |
+| T | Захватить врага |
+| ПКМ (зажатие) | Вращение камеры |
+| ПКМ на слоте | Экипировать / использовать |
 | Колесо мыши | Зум камеры |
-| Drag за пределы UI | Выбросить предмет на землю |
+| Drag за UI | Выбросить предмет |
 
 ---
 
@@ -277,43 +302,31 @@ src/
 Main.server.luau
 └── require: HealthManager, LootManager, EnemySpawner (регистрация EventBus подписок)
 
-EventBus.luau (standalone, без зависимостей)
+EventBus.luau (standalone)
 
-HealthManager → EventBus, Config, Remotes
-  EventBus подписки: PlayerDied → FireAllClients + LoadCharacter
-                     EntityDying → FireAllClients EntityDied
-
+HealthManager → EventBus, Config, Remotes, LevelManager
+LevelManager → Config, Remotes, EventBus, Players
 LootManager → InventoryManager, Config, EventBus
-  EventBus подписка: EntityDying → dropLoot
-
 EnemySpawner → HealthManager, Config, EventBus
-  EventBus подписка: EntityRemoved → respawn
-
 ServantManager → EventBus, Config
-  Вызывает: EventBus.fire("EntityRemoved") в captureEnemy()
-  createFromEgg() — единая точка создания слуг (используется из UseItemHandler)
-
-InventoryManager → Config
-InventorySync → InventoryManager, Remotes
-BloodManager → Config (HealthManager через setter)
+BloodManager → Config
 BuffManager → Config, Remotes, Players
 AbilityManager → Config, Remotes, HealthManager, BuffManager, ResourceManager, Players
 ResourceManager → Config, InventoryManager, InventorySync, Remotes, Players
+InventoryManager → Config
+InventorySync → InventoryManager, Remotes
 
 InventoryServer.server.luau (оркестратор)
-├── InventoryManager, InventorySync
+├── InventoryManager, InventorySync, HealthManager, LevelManager
 ├── WeaponHandler → InventoryManager, Config
 ├── CraftHandler → InventoryManager, InventorySync, Remotes, Config
 └── UseItemHandler → InventoryManager, InventorySync, HealthManager, ServantManager, BuffManager, Config
 
-BloodServer → BloodManager, HealthManager, Remotes
-WeaponManager → HealthManager, BloodManager, BuffManager, ResourceManager, AbilityManager, Remotes, Config
-EnemyAI → HealthManager, Config
+WeaponManager → HealthManager, BloodManager, BuffManager, ResourceManager, AbilityManager, LevelManager, Remotes, Config
+EnemyAI → EnemyBehaviors, EnemyStateManager
+EnemyBehaviors → HealthManager, LevelManager, Config, EnemyStateManager, EnemyTargeting
+EnemyTargeting → Players, EnemyStateManager
 EnemyManager → EnemySpawner, Config
-ServantServer → ServantManager, HealthManager, InventoryManager, InventorySync, Remotes, Config
-ServantAI → HealthManager, Config
-LootServer → LootManager, InventoryManager, InventorySync, Remotes
-ResourceSpawner → ResourceManager, Config
 
 ---
 
@@ -330,35 +343,40 @@ CharacterWindow.client.luau (оркестратор)
 ├── ActionBarHUD ← UIConstants, SlotFactory, SlotBehavior
 ├── CooldownManager (standalone, RenderStepped loop)
 └── ItemTooltip (tooltip/)
-    ├── TooltipConstants
-    ├── TooltipHeader ← TooltipConstants
-    ├── TooltipAttributes ← TooltipConstants, Config
-    ├── TooltipDescription ← TooltipConstants
-    └── TooltipFooter ← TooltipConstants
 
-BuffBar.client.luau ← Remotes, Config (standalone UI)
-AbilitiesBar.client.luau ← Remotes, Config (standalone UI)
-ResourceNumbers.client.luau ← Remotes, Config (standalone UI)
-IsometricCamera.client.luau (standalone, UserInputService + RunService)
+AbilitiesBar.client.luau ← Remotes, Config, AbilityTooltip, AbilityCooldowns
+AbilityTooltip.luau (standalone, создаёт ScreenGui DisplayOrder 900)
+AbilityCooldowns.luau (standalone)
+
+PlayerHPBlock.client.luau ← Remotes, UIConstants (создаёт PlayerHUD ScreenGui)
+ServantHPBlock.client.luau ← Remotes, UIConstants (использует PlayerHUD ScreenGui)
+BloodPoolUI.client.luau ← Config, Remotes, TweenService
+EnemyLabels.client.luau ← Config, EnemyUtil
+TargetInfo.client.luau ← LevelColorUtil, TweenService
+EnemyHPBar.client.luau ← LevelColorUtil, EnemyUtil, TweenService
+BuffBar.client.luau ← Remotes, Config
+ResourceNumbers.client.luau ← Remotes, Config
+CaptureUI.client.luau ← Config, Remotes
+IsometricCamera.client.luau (standalone)
 
 ---
 
 ## Известные технические долги
 
 1. ~~HealthManager.die() бог-функция~~ → **закрыто** (EventBus, v1.3)
-2. **ServantUI.client.luau** — монолит ~300 строк. Разбить на модули по аналогии с `character/`.
-3. ~~CombatInput.client.luau — нет проверки gameProcessed~~ → **закрыто** (уже было исправлено)
-4. ~~UseItemHandler.AddServant дублирует recalcStats~~ → **закрыто** (ServantManager.createFromEgg, v1.3)
+2. **ServantUI.client.luau** — монолит ~300 строк. Разбить на модули.
+3. ~~CombatInput.client.luau — нет проверки gameProcessed~~ → **закрыто**
+4. ~~UseItemHandler.AddServant дублирует recalcStats~~ → **закрыто** (v1.3)
 5. ~~CraftPanel.updateTooltip — resultItem scope~~ → **закрыто** (v1.3)
 6. ~~InventoryManager.addItem — не сохраняет ItemLevel~~ → **закрыто** (v1.3)
-7. ~~WeaponManager — жёсткая привязка к Config.Weapons.Sword~~ → **закрыто** (динамическое определение оружия, v1.4)
-8. **EnemyHPBar** — обновляет все HP-бары каждый RenderStepped даже если HP не менялось.
-9. **BloodUI / CaptureUI** — оба итерируют всех врагов каждый кадр. Можно объединить и снизить частоту.
-10. ~~Config.Items.Sword — нет EquipSlot~~ → **не баг** (оружие экипируется через ActionBar).
-11. ~~Нет rate-limit на DropItem~~ → **закрыто** (0.3s cooldown, v1.3)
-12. ~~Дублирование слот-логики~~ → **закрыто** (SlotBehavior.luau, v1.4)
-13. ~~EnemySpawner.spawn — return nil при создании папки~~ → **закрыто** (v1.3)
-14. **BuffBar/AbilitiesBar** — standalone UI, не интегрированы в CharacterWindow систему. При рефакторинге UI стоит объединить.
+7. ~~WeaponManager — жёсткая привязка к Sword~~ → **закрыто** (v1.4)
+8. ~~EnemyHPBar — обновляет каждый кадр~~ → **закрыто** (AttributeChanged + hover/linger, v1.5)
+9. ~~BloodUI / CaptureUI — дублируют итерацию~~ → **закрыто** (EnemyLabels объединяет, v1.5)
+10. ~~Нет rate-limit на DropItem~~ → **закрыто** (v1.3)
+11. ~~Дублирование слот-логики~~ → **закрыто** (SlotBehavior, v1.4)
+12. ~~EnemySpawner.spawn — return nil~~ → **закрыто** (v1.3)
+13. ~~BuffBar/AbilitiesBar standalone~~ → **закрыто** (AbilitiesBar разбит на модули, v1.5)
+14. **CraftPanel.luau** — 17.6 КБ. Отложено (система стабильна, не расширяется).
 
 ---
 
@@ -369,5 +387,6 @@ IsometricCamera.client.luau (standalone, UserInputService + RunService)
 | 1.0 | — | Базовый бой, инвентарь, экипировка, враги, камера |
 | 1.1 | develop_1.1 | Кровь, слуги, floating damage, лут |
 | 1.2 | develop_1.2 | Крафт, consumables, cooldown визуал, UI рефакторинг, Remote registry |
-| 1.3 | develop_1.3 | Drag-and-drop экипировки (игрок + слуга), модульный ItemTooltip, tooltip везде, дроп на землю, серверные модули в ServerScriptService, EventBus, рефакторинг техдолга |
-| 1.4 | develop_1.4 | Рефакторинг WeaponManager (динамическое оружие, Axe), BuffManager (баффы/дебаффы + UI), AbilityManager (Q/E способности + LMB combo + UI), ResourceManager (сбор ресурсов Tree/Rock + floating numbers + респавн), SlotBehavior (единая слот-логика), вращение камеры ПКМ, исправление drag-drop ActionBar |
+| 1.3 | develop_1.3 | Drag-and-drop, модульный ItemTooltip, дроп на землю, EventBus, рефакторинг техдолга |
+| 1.4 | develop_1.4 | Динамическое оружие (Axe), BuffManager, AbilityManager, ResourceManager, SlotBehavior, вращение камеры |
+| 1.5 | develop_1.5 | Модульный Config, Level/XP система, Wolf (random level, pack aggro), крафт брони, правая панель экипировки (Cloak-Bag), Target Info, рефакторинг UI (BloodUI→BloodPoolUI+EnemyLabels, PlayerHPBar→Player+ServantHPBlock, AbilitiesBar→modules), tween анимации, LevelColorUtil, EnemyUtil, damage modifiers для врагов |

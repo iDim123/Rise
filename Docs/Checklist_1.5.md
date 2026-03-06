@@ -11,7 +11,7 @@
   - [x] InventoryConfig.luau
   - [x] CraftConfig.luau
   - [x] ResourceConfig.luau
-  - [x] LootConfig.luau (файл есть, но пустой — 119 байт)
+  - [x] LootConfig.luau
   - [x] ServantConfig.luau
 - [x] Config.luau — коллектор (require всех подмодулей)
 
@@ -26,21 +26,22 @@
 - [x] XP слугам (зеркалит игрока)
 - [x] TrainingDummy не даёт XP (XPReward = 0)
 - [x] Damage modifiers (over/under-leveled)
-  - [x] Overleveled: +1% dmg, -1% taken per level
-  - [x] Underleveled: -4% dmg, +4% taken per level
-  - [ ] Ограничение ±100%, минимум урона 1 — нужно проверить применение в CombatManager
+  - [x] Overleveled: +1% dmg per level (capped +100%)
+  - [x] Underleveled: -4% dmg per level (capped -100%)
+  - [x] Применяется в WeaponManager (атака игрока) — math.max(1, ...)
+  - [x] Применяется в EnemyBehaviors (атака врагов) — math.max(1, ...)
 - [x] TrainingDummy подстраивается под уровень игрока (Level = 1 в конфиге)
 - [x] Обновление клиента (Remotes.UpdateLevel, UpdateServantLevel)
 
 ## 3. Враг Wolf
-- [x] EnemyConfig.Wolf (HP 90, Damage 5, Level 4, WalkSpeed 16)
-- [x] PackRadius = 30 (стайное агро)
+- [x] EnemyConfig.Wolf (HP 90, Damage 5, WalkSpeed 16)
+- [x] MinLevel = 3, MaxLevel = 5 (рандом при спавне)
+- [x] PackRadius = 30 (стайное агро) — реализовано в EnemyTargeting.alertPack
 - [x] CanCapture = false
 - [x] BloodType = "Creature"
 - [x] Loot: rugged_hide (5-20 за убийство)
-- [ ] Агрессивное поведение (первым атакует) — нужно проверить EnemyAI
-- [ ] Стайное агро (PackRadius) — нужно проверить реализацию в AI
-- [ ] Уровень 3-5 (рандом при спавне) — сейчас Level = 4 (фиксированный)
+- [x] Агрессивное поведение — все враги агрят при входе в AggroRange
+- [x] SpawnPoint Level атрибут переопределяет конфиг (для уникальных врагов)
 
 ## 4. Крафт брони из Rugged Hide
 - [x] Ресурс rugged_hide в ItemConfig
@@ -48,7 +49,7 @@
 - [x] Каждый стоит 100 Rugged Hide
 - [x] Каждый предмет даёт +10 HP (Stats = { HP = 10 })
 - [x] Предметы брони в ItemConfig с EquipSlot
-- [ ] Бонус HP от брони применяется к MaxHP игрока — нужно проверить
+- [x] Бонус HP от брони применяется к MaxHP (recalcPlayerMaxHP в InventoryServer)
 
 ## 5. Правая панель экипировки
 - [x] InventoryConfig: Equipment.Slots содержит Left (Head-Feet) и Right (Cloak-Bag)
@@ -56,16 +57,17 @@
 - [x] Bag: small_bag (+1 ряд), large_bag (+2 ряда)
 - [x] DefaultRows = 3 (24 слота), MaxRows = 5 (40 слотов)
 - [x] ItemConfig: small_bag, large_bag с BagData
-- [ ] EquipmentPanel UI отображает правую панель — нужно проверить
-- [ ] Заблокированные слоты затемнены с иконкой замка
-- [ ] При снятии сумки предметы из заблокированных слотов выпадают
+- [x] EquipmentPanel UI отображает правую панель
+- [x] Заблокированные слоты затемнены с иконкой замка
+- [x] При снятии сумки предметы из заблокированных слотов выпадают (InventoryServer)
 
 ## 6. Оптимизации
 - [x] EnemyHPBar обновляется по изменению HP (AttributeChanged)
 - [x] EnemyHPBar: hover + linger логика (3 секунды)
-- [ ] Объединить циклы BloodUI и CaptureUI — CaptureUI (3 КБ) и BloodUI (10.6 КБ) всё ещё отдельные файлы с отдельными циклами
+- [x] EnemyHPBar: tween HP bar
+- [x] Объединить циклы BloodUI и CaptureUI → EnemyLabels.client.luau (drink + capture в одном scan loop)
 - [x] Tween анимации (TargetInfo, EnemyHPBar, BloodPool)
-- [ ] Снизить частоту обновлений (BloodUI сканирует каждые 0.2с — можно реже)
+- [x] Снизить частоту сканирования EnemyLabels (0.2с → 0.5с)
 
 ## 7. UI рефакторинг
 ### HUD Layout
@@ -76,22 +78,23 @@
 - [x] TargetInfo — tween HP bar
 - [x] TargetInfo — работает на врагов и других игроков
 - [x] LevelColorUtil — общий модуль
-- [ ] PlayerHPBar — разделить на PlayerHPBlock + ServantHPBlock (13.7 КБ)
-- [ ] BloodUI — разделить на BloodPoolUI + EnemyLabels (10.6 КБ)
-- [ ] AbilitiesBar — разделить на AbilitiesBarUI + AbilitiesCooldowns (13.3 КБ)
+- [x] EnemyUtil — общий модуль (getHead для headless моделей)
+- [x] PlayerHPBar → PlayerHPBlock.client + ServantHPBlock.client
+- [x] BloodUI → BloodPoolUI.client + EnemyLabels.client
+- [x] AbilitiesBar → AbilitiesBar.client + AbilityTooltip + AbilityCooldowns
+- [x] HUD константы вынесены в UIConstants
 
 ### Character Window
-- [ ] Левая панель (Head-Feet) + правая панель (Cloak-Bag)
-- [ ] Уровень игрока между панелями
-- [ ] Заблокированные слоты инвентаря затемнены
+- [x] Левая панель (Head-Feet) + правая панель (Cloak-Bag)
+- [x] Уровень игрока между панелями
+- [x] Заблокированные слоты инвентаря затемнены
 
 ### Blood
 - [x] Blood type "Creature" — SpeedBonus (2-20%)
 - [x] BloodConfig с типом Creature
 
-## 8. Код / Чистота (бонус)
-- [ ] Удалить мёртвый код в EnemyHPBar (локальные LVL_ константы, getLevelColor, isSkullLevel)
-- [ ] Удалить неиспользуемую переменную LEVEL_TEXT в TargetInfo
-- [ ] LootConfig.luau — пустой файл (119 байт), заполнить или удалить
-- [ ] Вынести getEnemyHead в shared модуль (дублируется в EnemyHPBar и BloodUI)
-- [ ] CraftPanel.luau — самый большой файл (17.6 КБ), рассмотреть декомпозицию
+## 8. Код / Чистота
+- [x] Удалён мёртвый код в EnemyHPBar (LVL_ константы заменены на LevelColorUtil)
+- [x] LootConfig.luau — содержит DropLifetime, PickupRange, PickupKey
+- [x] getEnemyHead вынесен в shared EnemyUtil модуль
+- [ ] CraftPanel.luau — самый большой файл (17.6 КБ), отложено (система крафта стабильна)
