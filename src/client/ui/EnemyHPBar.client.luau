@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LevelColor = require(ReplicatedStorage:WaitForChild("LevelColorUtil"))
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -9,6 +10,8 @@ local HOVER_LINGER = 3  -- seconds to keep billboard after losing hover
 
 -- State: [enemy] = { lastHoverTime: number, hovered: boolean }
 local enemyState = {}
+local HP_TWEEN_TIME = 0.3
+local hpTweens = {}  -- [enemy] = tween
 
 local function getEnemyHead(enemy)
     return enemy:FindFirstChild("Head")
@@ -34,7 +37,6 @@ local function updateHPBar(enemy)
     local hovered = state and state.hovered
     local lingering = state and (tick() - (state.lastHoverTime or 0) < HOVER_LINGER)
 
-    -- Show if: damaged OR currently hovered OR still lingering
     billboard.Enabled = damaged or hovered or lingering
 
     local bg = billboard:FindFirstChild("Background")
@@ -42,33 +44,37 @@ local function updateHPBar(enemy)
 
     local hpBar = bg:FindFirstChild("HPBar")
     if hpBar then
-        hpBar.Size = UDim2.new(currentHP / maxHP, 0, 1, 0)
-        local levelLabel = billboard:FindFirstChild("LevelLabel")
-        if levelLabel then
-            local level = enemy:GetAttribute("Level")
-            local playerLevel = 1
-            local character = player.Character
-            if character then
-                playerLevel = character:GetAttribute("Level") or 1
-            end
-
-            if level then
-                local color = LevelColor.getColor(level, playerLevel)
-                levelLabel.TextColor3 = color
-                if LevelColor.isSkull(level, playerLevel) then
-                    levelLabel.Text = LevelColor.SkullText
-                else
-                    levelLabel.Text = tostring(level)
-                end
-            else
-                levelLabel.Text = "?"
-                levelLabel.TextColor3 = LevelColor.Colors.White
-            end
-        end
+        local ratio = currentHP / maxHP
+        if hpTweens[enemy] then hpTweens[enemy]:Cancel() end
+        hpTweens[enemy] = TweenService:Create(hpBar, TweenInfo.new(HP_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(ratio, 0, 1, 0)
+        })
+        hpTweens[enemy]:Play()
     end
 
-end
+    local levelLabel = billboard:FindFirstChild("LevelLabel")
+    if levelLabel then
+        local level = enemy:GetAttribute("Level")
+        local playerLevel = 1
+        local character = player.Character
+        if character then
+            playerLevel = character:GetAttribute("Level") or 1
+        end
 
+        if level then
+            local color = LevelColor.getColor(level, playerLevel)
+            levelLabel.TextColor3 = color
+            if LevelColor.isSkull(level, playerLevel) then
+                levelLabel.Text = LevelColor.SkullText
+            else
+                levelLabel.Text = tostring(level)
+            end
+        else
+            levelLabel.Text = "?"
+            levelLabel.TextColor3 = LevelColor.Colors.White
+        end
+    end
+end
 local function createHPBar(enemy)
     local humanoid = enemy:FindFirstChildOfClass("Humanoid")
     if humanoid then
@@ -190,6 +196,10 @@ local function watchEnemiesFolder(folder)
     end)
     folder.ChildRemoved:Connect(function(enemy)
         enemyState[enemy] = nil
+        if hpTweens[enemy] then
+            hpTweens[enemy]:Cancel()
+            hpTweens[enemy] = nil
+        end
     end)
 end
 

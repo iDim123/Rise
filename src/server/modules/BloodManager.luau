@@ -16,17 +16,17 @@ function BloodManager.init(player)
     playerBlood[player.UserId] = {
         Type = "Outcast",
         Quality = 0,
-        Amount = 100,
+        Amount = 50,
     }
 
     local character = player.Character
     if character then
         character:SetAttribute("BloodType", "Outcast")
         character:SetAttribute("BloodQuality", 0)
-        character:SetAttribute("BloodAmount", 100)
+        character:SetAttribute("BloodAmount", 50)
     end
 
-    print("[Blood] Initialized for " .. player.Name .. ": Outcast 100%")
+    print("[Blood] Initialized for " .. player.Name .. ": Outcast 50%")
 end
 
 function BloodManager.getData(player)

@@ -297,6 +297,13 @@ local function checkMouseTarget()
             return
         end
     end
+
+    -- No valid target under cursor — check timeout
+    if currentTarget then
+        if tick() - lastTargetTime > TARGET_TIMEOUT then
+            currentTarget = nil
+        end
+    end
 end
 
 -- ═══ Main loop ═══

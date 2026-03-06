@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
@@ -19,6 +20,10 @@ local MARGIN = 10
 local BLOOD_DIM = Color3.fromRGB(60, 15, 15)       -- 0% quality
 local BLOOD_BRIGHT = Color3.fromRGB(180, 15, 15)    -- 100% quality
 local FLASK_BG = Color3.fromRGB(20, 18, 22)
+
+local BLOOD_TWEEN_TIME = 0.4
+local bloodSizeTween = nil
+local bloodColorTween = nil
 
 local function getEnemyHead(enemy)
     return enemy:FindFirstChild("Head")
@@ -137,12 +142,21 @@ local function updateBloodBar()
     local typeConfig = Config.Blood.Types[bloodType]
     local displayName = typeConfig and typeConfig.DisplayName or bloodType
 
-    -- Fill ratio (amount)
+    -- Fill ratio (amount) — smooth tween
     local ratio = math.clamp(bloodAmount / 100, 0, 1)
-    bloodBar.Size = UDim2.new(1, 0, ratio, 0)
+    if bloodSizeTween then bloodSizeTween:Cancel() end
+    bloodSizeTween = TweenService:Create(bloodBar, TweenInfo.new(BLOOD_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, ratio, 0)
+    })
+    bloodSizeTween:Play()
 
-    -- Color by quality
-    bloodBar.BackgroundColor3 = getBloodColor(bloodQuality)
+    -- Color by quality — smooth tween
+    local targetColor = getBloodColor(bloodQuality)
+    if bloodColorTween then bloodColorTween:Cancel() end
+    bloodColorTween = TweenService:Create(bloodBar, TweenInfo.new(BLOOD_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundColor3 = targetColor
+    })
+    bloodColorTween:Play()
 
     -- Icon (from blood type config)
     local icon = typeConfig and typeConfig.Icon or ""
@@ -159,9 +173,6 @@ local function updateBloodBar()
     else
         qualityText.Text = bloodQuality .. "%"
     end
-
-    -- Amount inside flask
-    -- amountText.Text = math.floor(bloodAmount) .. "%"
 end
 
 local function connectBloodAttributes(character)

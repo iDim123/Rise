@@ -66,7 +66,7 @@ local HP_RED       = Color3.fromRGB(200, 30, 30)
 local XP_COLOR     = Color3.fromRGB(100, 80, 220)
 local XP_BG        = Color3.fromRGB(18, 18, 26)
 local LEVEL_BG     = Color3.fromRGB(35, 30, 55)
-local LEVEL_BORDER = Color3.fromRGB(100, 80, 220)
+local LEVEL_BORDER = Color3.fromRGB(60, 15, 15)
 local TEXT_COLOR   = Color3.fromRGB(255, 255, 255)
 local TEXT_DIM     = Color3.fromRGB(180, 180, 200)
 
