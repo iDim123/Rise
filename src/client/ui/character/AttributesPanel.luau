@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-
+local UC = require(script.Parent:WaitForChild("UIConstants"))
 local AttributesPanel = {}
 
 local panelFrame = nil
@@ -144,15 +144,20 @@ end
 function AttributesPanel.build(parent, contentY, screenGui)
 	panelFrame = Instance.new("ScrollingFrame")
 	panelFrame.Name = "AttributesPanel"
-	panelFrame.Position = UDim2.new(0, 10, 0, contentY)
-	panelFrame.Size = UDim2.new(1, -20, 1, -contentY - 10)
-	panelFrame.BackgroundTransparency = 1
+	panelFrame.Position = UDim2.new(0, UC.windowPadX, 0, contentY)
+	panelFrame.Size = UDim2.new(0, UC.contentWidth, 0, UC.contentH)
 	panelFrame.ScrollBarThickness = 4
 	panelFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 	panelFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 	panelFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	panelFrame.Visible = false
 	panelFrame.Parent = parent
+	panelFrame.BackgroundColor3 = UC.panelBg
+	panelFrame.BackgroundTransparency = 0
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = panelFrame
 
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, ROW_PAD)
