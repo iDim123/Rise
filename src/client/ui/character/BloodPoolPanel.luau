@@ -6,6 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 
 local BloodPoolPanel = {}
+local attributeConnections = {}
 
 local panelFrame = nil
 local player = Players.LocalPlayer
@@ -136,6 +137,7 @@ function BloodPoolPanel.build(parent, contentY)
 	qualityLabel = Instance.new("TextLabel")
 	qualityLabel.Name = "QualityLabel"
 	qualityLabel.Size = UDim2.new(0, 80, 0, 18)
+	qualityLabel.Position = UDim2.new(0, 0, 0, 10)
 	qualityLabel.BackgroundTransparency = 1
 	qualityLabel.Font = Enum.Font.GothamBold
 	qualityLabel.TextSize = 13
@@ -146,7 +148,7 @@ function BloodPoolPanel.build(parent, contentY)
 
 	-- Tier labels row
 	local tierLabelRow = Instance.new("Frame")
-	tierLabelRow.Size = UDim2.new(1, -90, 0, 14)
+	tierLabelRow.Size = UDim2.new(1, -110, 0, 14)
 	tierLabelRow.Position = UDim2.new(0, 90, 0, 0)
 	tierLabelRow.BackgroundTransparency = 1
 	tierLabelRow.Parent = qualityRow
@@ -170,7 +172,7 @@ function BloodPoolPanel.build(parent, contentY)
 	-- Bar background
 	local barBg = Instance.new("Frame")
 	barBg.Name = "BarBg"
-	barBg.Size = UDim2.new(1, -90, 0, BAR_HEIGHT)
+	barBg.Size = UDim2.new(1, -100, 0, BAR_HEIGHT)
 	barBg.Position = UDim2.new(0, 90, 0, 16)
 	barBg.BackgroundColor3 = BAR_BG
 	barBg.BorderSizePixel = 0
@@ -201,6 +203,13 @@ function BloodPoolPanel.build(parent, contentY)
 
 	-- ── Row 3+: Bonus descriptions ──
 	-- Will be built dynamically in refresh
+	player.CharacterAdded:Connect(function()
+		if panelFrame and panelFrame.Visible then
+			task.wait(0.5)
+			connectAttributes()
+			BloodPoolPanel.refresh()
+		end
+	end)
 
 	return panelFrame
 end
@@ -309,14 +318,36 @@ function BloodPoolPanel.refresh()
 	end
 end
 
+local function connectAttributes()
+    -- Disconnect old
+    for _, conn in attributeConnections do
+        conn:Disconnect()
+    end
+    attributeConnections = {}
+
+    local character = player.Character
+    if not character then return end
+
+    local attrs = { "BloodType", "BloodQuality", "BloodAmount" }
+    for _, attr in attrs do
+        local conn = character:GetAttributeChangedSignal(attr):Connect(function()
+            if panelFrame and panelFrame.Visible then
+                BloodPoolPanel.refresh()
+            end
+        end)
+        table.insert(attributeConnections, conn)
+    end
+end
+
 -- ═══ Visibility ═══
 function BloodPoolPanel.setVisible(visible)
-	if panelFrame then
-		panelFrame.Visible = visible
-	end
-	if visible then
-		BloodPoolPanel.refresh()
-	end
+    if panelFrame then
+        panelFrame.Visible = visible
+    end
+    if visible then
+        connectAttributes()
+        BloodPoolPanel.refresh()
+    end
 end
 
 return BloodPoolPanel
