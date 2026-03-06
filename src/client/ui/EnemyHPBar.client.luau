@@ -3,6 +3,8 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LevelColor = require(ReplicatedStorage:WaitForChild("LevelColorUtil"))
 local TweenService = game:GetService("TweenService")
+local EnemyUtil = require(ReplicatedStorage:WaitForChild("EnemyUtil"))
+
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -13,16 +15,8 @@ local enemyState = {}
 local HP_TWEEN_TIME = 0.3
 local hpTweens = {}  -- [enemy] = tween
 
-local function getEnemyHead(enemy)
-    return enemy:FindFirstChild("Head")
-        or enemy:FindFirstChild("UpperTorso")
-        or enemy:FindFirstChild("Torso")
-        or enemy:FindFirstChild("HumanoidRootPart")
-        or enemy.PrimaryPart
-end
-
 local function updateHPBar(enemy)
-    local head = getEnemyHead(enemy)
+    local head = EnemyUtil.getHead(enemy)
     if not head then return end
 
     local billboard = head:FindFirstChild("EnemyHPGui")
@@ -81,10 +75,10 @@ local function createHPBar(enemy)
         humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     end
 
-    local head = getEnemyHead(enemy)
+    local head = EnemyUtil.getHead(enemy)
     if not head then
         task.wait(3)
-        head = getEnemyHead(enemy)
+        head = EnemyUtil.getHead(enemy)
     end
     if not head then return end
     if head:FindFirstChild("EnemyHPGui") then return end
