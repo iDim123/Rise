@@ -4,46 +4,15 @@ local RunService = game:GetService("RunService")
 local Remotes = {}
 
 -- RemoteEvents
-local events = {
-    "AttackRequest",
-    "DamageEvent",
-    "EntityDied",
-    "HealEvent",
-    "UpdateInventory",
-    "SwapSlots",
-    "EquipItem",
-    "UnequipItem",
-    "SetActiveWeapon",
-    "CraftItem",
-    "CraftQueueUpdate",
-    "UseItem",
-    "DrinkBloodRequest",
-    "CaptureRequest",
-    "CaptureResult",
-    "SummonServant",
-    "DismissServant",
-    "SetServantMode",
-    "ServantCommand",
-    "RenameServant",
-    "PickupLoot",
-    "DropItem", 
-    "EquipServantItem",
-    "UnequipServantItem",
-    "ToggleServantFavorite",
-    "UpdateServantData",
-    "UpdateBuffs",
-    "UseAbility",
-    "AbilityCooldown",
-    "ResourceGathered",
-    "UpdateLevel",
-    "UpdateServantLevel",
-}
+local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "UpdateInventory", "SwapSlots", "EquipItem",
+                "UnequipItem", "SetActiveWeapon", "CraftItem", "CraftQueueUpdate", "UseItem", "DrinkBloodRequest",
+                "CaptureRequest", "CaptureResult", "SummonServant", "DismissServant", "SetServantMode",
+                "ServantCommand", "RenameServant", "PickupLoot", "DropItem", "EquipServantItem", "UnequipServantItem",
+                "ToggleServantFavorite", "UpdateServantData", "UpdateBuffs", "UseAbility", "AbilityCooldown",
+                "ResourceGathered", "UpdateLevel", "UpdateServantLevel", "UpdateStats"}
 
 -- RemoteFunctions
-local functions = {
-    "GetInventory",
-    "GetServants",
-}
+local functions = {"GetInventory", "GetServants"}
 
 if RunService:IsServer() then
     for _, name in events do

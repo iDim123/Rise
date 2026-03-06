@@ -1,6 +1,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
 local modules = ServerScriptService:WaitForChild("modules")
+local StatsManager = require(modules:WaitForChild("StatsManager"))
 
 require(modules:WaitForChild("HealthManager"))
 require(modules:WaitForChild("LootManager"))
@@ -16,6 +17,14 @@ RunService.Heartbeat:Connect(function(dt)
     if buffTickAccumulator >= BUFF_TICK_RATE then
         buffTickAccumulator = 0
         BuffManager.tick()
+    end
+end)
+
+-- HealthRegen: tick every 1 second
+task.spawn(function()
+    while true do
+        task.wait(1)
+        StatsManager.tickRegen()
     end
 end)
 

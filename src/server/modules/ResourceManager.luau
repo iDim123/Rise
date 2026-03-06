@@ -29,20 +29,30 @@ function ResourceManager.init(node, nodeType)
         maxHP = config.MaxHP,
         resourceId = config.ResourceId,
         spawnPosition = node:GetPivot().Position,
-        spawnCFrame = node:GetPivot(),
+        spawnCFrame = node:GetPivot()
     }
 end
 
 function ResourceManager.hit(player, node, damage)
     local data = nodeData[node]
-    if not data then print("[Resource] No data for node") return false end
-    if data.currentHP <= 0 then print("[Resource] Node already dead") return false end
+    if not data then
+        print("[Resource] No data for node")
+        return false
+    end
+    if data.currentHP <= 0 then
+        print("[Resource] Node already dead")
+        return false
+    end
 
     -- Validate distance (horizontal only, using nearest part)
     local character = player.Character
-    if not character then return false end
+    if not character then
+        return false
+    end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return false end
+    if not rootPart then
+        return false
+    end
 
     local closestDist = math.huge
     local parts = {}
@@ -50,14 +60,18 @@ function ResourceManager.hit(player, node, damage)
         table.insert(parts, node)
     else
         for _, desc in node:GetDescendants() do
-            if desc:IsA("BasePart") then table.insert(parts, desc) end
+            if desc:IsA("BasePart") then
+                table.insert(parts, desc)
+            end
         end
     end
     for _, part in parts do
         local dx = rootPart.Position.X - part.Position.X
         local dz = rootPart.Position.Z - part.Position.Z
         local hDist = math.sqrt(dx * dx + dz * dz)
-        if hDist < closestDist then closestDist = hDist end
+        if hDist < closestDist then
+            closestDist = hDist
+        end
     end
 
     if closestDist > 15 then
@@ -73,7 +87,14 @@ function ResourceManager.hit(player, node, damage)
     -- Calculate resources gained
     local config = Config.ResourceNodes[data.nodeType]
     local resourceAmount = math.floor(actualDamage * (config.ResourcePerHit or 1))
-    if resourceAmount < 1 then resourceAmount = 1 end
+    if resourceAmount < 1 then
+        resourceAmount = 1
+    end
+
+    -- ResourceYield modifier
+    local StatsManager = require(modules:WaitForChild("StatsManager"))
+    local yieldMod = StatsManager.get(player, "ResourceYield")
+    resourceAmount = math.max(1, math.floor(resourceAmount * yieldMod))
 
     -- Give resources to player
     local added = InventoryManager.addItemFromConfig(player, data.resourceId, resourceAmount)
@@ -94,7 +115,9 @@ function ResourceManager.hit(player, node, damage)
 end
 
 function ResourceManager._destroyNode(node, data)
-    if respawning[node] then return end
+    if respawning[node] then
+        return
+    end
     respawning[node] = true
 
     local nodeType = data.nodeType
@@ -117,7 +140,9 @@ end
 
 function ResourceManager._respawnNode(node, nodeType, spawnCFrame)
     local config = Config.ResourceNodes[nodeType]
-    if not config then return end
+    if not config then
+        return
+    end
 
     if not node or not node.Parent then
         respawning[node] = nil
@@ -143,7 +168,7 @@ function ResourceManager._respawnNode(node, nodeType, spawnCFrame)
         maxHP = config.MaxHP,
         resourceId = config.ResourceId,
         spawnPosition = spawnCFrame.Position,
-        spawnCFrame = spawnCFrame,
+        spawnCFrame = spawnCFrame
     }
 
     respawning[node] = nil

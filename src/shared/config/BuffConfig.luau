@@ -3,12 +3,12 @@ return {
         damage_boost = {
             Id = "damage_boost",
             Name = "Усиление урона",
-            Description = "+30% к урону на время действия.",
+            Description = "+30% к физической силе на время действия.",
             Icon = "rbxassetid://110176616320571",
             Type = "Buff",
-            Stat = "DamageBonus",
+            Stat = "PhysicalPower",
             Value = 0.30,
-            Stackable = false,
+            Stackable = false
         },
         slow = {
             Id = "slow",
@@ -16,19 +16,19 @@ return {
             Description = "-40% скорости передвижения.",
             Icon = "rbxassetid://110176616320571",
             Type = "Debuff",
-            Stat = "Slow",
-            Value = 0.40,
-            Stackable = false,
+            Stat = "MoveSpeed",
+            Value = -0.40,
+            Stackable = false
         },
         damage_reduction = {
             Id = "damage_reduction",
             Name = "Укрепление",
-            Description = "-20% получаемого урона.",
+            Description = "+20% физического сопротивления.",
             Icon = "rbxassetid://110176616320571",
             Type = "Buff",
-            Stat = "DamageReduction",
-            Value = 0.20,
-            Stackable = false,
+            Stat = "PhysResistance",
+            Value = 20,
+            Stackable = false
         },
         speed_boost = {
             Id = "speed_boost",
@@ -36,9 +36,9 @@ return {
             Description = "+25% скорости передвижения.",
             Icon = "rbxassetid://110176616320571",
             Type = "Buff",
-            Stat = "SpeedBonus",
+            Stat = "MoveSpeed",
             Value = 0.25,
-            Stackable = false,
-        },
-    },
+            Stackable = false
+        }
+    }
 }

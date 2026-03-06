@@ -43,6 +43,9 @@ Remotes.DrinkBloodRequest.OnServerEvent:Connect(function(player)
 
     if bestEnemy then
         BloodManager.drinkBlood(player, bestEnemy)
+        -- Recalc stats (blood changed)
+        local StatsManager = require(modules:WaitForChild("StatsManager"))
+        StatsManager.recalculate(player)
     end
 end)
 

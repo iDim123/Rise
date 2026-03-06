@@ -12,7 +12,7 @@ function HealthManager.init(entity, maxHP)
     healthData[entity] = {
         CurrentHP = maxHP,
         MaxHP = maxHP,
-        IsDead = false,
+        IsDead = false
     }
     entity:SetAttribute("MaxHP", maxHP)
     entity:SetAttribute("CurrentHP", maxHP)
@@ -21,13 +21,19 @@ end
 
 function HealthManager.takeDamage(entity, damage, attacker)
     local data = healthData[entity]
-    if not data or data.IsDead then return end
+    if not data or data.IsDead then
+        return
+    end
 
     data.CurrentHP = math.max(0, data.CurrentHP - damage)
     entity:SetAttribute("CurrentHP", data.CurrentHP)
 
     local attackerName = attacker and attacker.Name or "Unknown"
     Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
+
+    -- Mark combat for regen timer
+    local StatsManager = require(modules:WaitForChild("StatsManager"))
+    StatsManager.markCombat(entity)
 
     if data.CurrentHP <= 0 then
         HealthManager.die(entity, attacker)
@@ -36,7 +42,9 @@ end
 
 function HealthManager.die(entity, attacker)
     local data = healthData[entity]
-    if not data then return end
+    if not data then
+        return
+    end
 
     data.IsDead = true
     entity:SetAttribute("IsDead", true)
@@ -64,7 +72,18 @@ end
 
 function HealthManager.heal(entity, amount)
     local data = healthData[entity]
-    if not data or data.IsDead then return end
+    if not data or data.IsDead then
+        return
+    end
+
+    -- HealingReceived modifier
+    local Players = game:GetService("Players")
+    local player = Players:GetPlayerFromCharacter(entity)
+    if player then
+        local StatsManager = require(modules:WaitForChild("StatsManager"))
+        local healMod = StatsManager.get(player, "HealingReceived")
+        amount = amount * healMod
+    end
 
     local oldHP = data.CurrentHP
     data.CurrentHP = math.min(data.MaxHP, data.CurrentHP + amount)
@@ -97,6 +116,9 @@ Players.PlayerAdded:Connect(function(player)
     local LevelManager = require(script.Parent:WaitForChild("LevelManager"))
     LevelManager.initPlayer(player)
 
+    local StatsManager = require(modules:WaitForChild("StatsManager"))
+    StatsManager.recalculate(player)
+
     player.CharacterAdded:Connect(function(character)
         character:WaitForChild("Humanoid")
         local maxHP = LevelManager.getPlayerMaxHP(player)
@@ -112,7 +134,9 @@ end)
 
 function HealthManager.setMaxHP(entity, newMaxHP)
     local data = healthData[entity]
-    if not data or data.IsDead then return end
+    if not data or data.IsDead then
+        return
+    end
 
     local oldMaxHP = data.MaxHP
     data.MaxHP = newMaxHP

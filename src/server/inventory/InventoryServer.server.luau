@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
 
-local Config = require(ReplicatedStorage:WaitForChild("Config"))   
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
@@ -15,36 +15,15 @@ local UseItemHandler = require(script.Parent:WaitForChild("UseItemHandler"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 local function recalcPlayerMaxHP(player)
-    local character = player.Character
-    if not character then return end
-
-    -- Базовый HP (из LevelManager если есть, иначе Config)
-    local baseMaxHP = Config.Player.MaxHP
-
-    -- Пробуем получить из LevelManager
-    local ok, LevelManager = pcall(function()
-        return require(modules:WaitForChild("LevelManager", 1))
-    end)
-    if ok and LevelManager and LevelManager.getPlayerMaxHP then
-        baseMaxHP = LevelManager.getPlayerMaxHP(player)
-    end
-
-    -- Бонус от экипировки
-    local equipment = InventoryManager.getEquipment(player)
-    local bonusHP = 0
-    for _, item in equipment do
-        if item and item ~= false and item.Stats and item.Stats.HP then
-            bonusHP = bonusHP + item.Stats.HP
-        end
-    end
-
-    local totalMaxHP = baseMaxHP + bonusHP
-    HealthManager.setMaxHP(character, totalMaxHP)
+    local StatsManager = require(modules:WaitForChild("StatsManager"))
+    StatsManager.recalculate(player)
 end
 
 -- EquipItem
 Remotes.EquipItem.OnServerEvent:Connect(function(player, slotIndex)
-    if type(slotIndex) ~= "number" then return end
+    if type(slotIndex) ~= "number" then
+        return
+    end
     if InventoryManager.equipItem(player, math.floor(slotIndex)) then
         InventoryManager.recalcUnlockedSlots(player)
         recalcPlayerMaxHP(player)
@@ -54,11 +33,13 @@ end)
 
 -- UnequipItem
 Remotes.UnequipItem.OnServerEvent:Connect(function(player, equipSlotId)
-    if type(equipSlotId) ~= "string" then return end
-    
+    if type(equipSlotId) ~= "string" then
+        return
+    end
+
     -- Запоминаем старый Bag перед снятием
     local wasBag = (equipSlotId == "Bag")
-    
+
     if InventoryManager.unequipItem(player, equipSlotId) then
         if wasBag then
             InventoryManager.recalcUnlockedSlots(player)
@@ -87,7 +68,9 @@ end
 
 -- SwapSlots
 Remotes.SwapSlots.OnServerEvent:Connect(function(player, fromIndex, toIndex)
-    if type(fromIndex) ~= "number" or type(toIndex) ~= "number" then return end
+    if type(fromIndex) ~= "number" or type(toIndex) ~= "number" then
+        return
+    end
     if InventoryManager.swapSlots(player, math.floor(fromIndex), math.floor(toIndex)) then
         InventorySync.sendFullUpdate(player)
     end

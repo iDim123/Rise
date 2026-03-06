@@ -50,6 +50,46 @@ function BloodManager.getBuffs(player)
     return buffs
 end
 
+function BloodManager.getStatBonuses(character)
+	local bonuses = {}
+	local bloodType = character:GetAttribute("BloodType")
+	local quality = character:GetAttribute("BloodQuality") or 0
+
+	if not bloodType or quality <= 0 then return bonuses end
+
+	local typeConfig = Config.Blood.Types[bloodType]
+	if not typeConfig or not typeConfig.Tiers then return bonuses end
+
+	local thresholds = Config.Blood.TierThresholds
+	if not thresholds then return bonuses end
+
+	local hasMAX = (quality >= thresholds.MAX)
+
+	for tierKey, tierData in typeConfig.Tiers do
+		if tierKey == "MAX" then continue end
+
+		local threshold = thresholds[tierKey]
+		if quality >= threshold and tierData.Stat then
+			local qMin = tierData.QualityRange[1]
+			local qMax = tierData.QualityRange[2]
+			local t = math.clamp((quality - qMin) / math.max(qMax - qMin, 1), 0, 1)
+			local bonus = tierData.Min + (tierData.Max - tierData.Min) * t
+
+			if hasMAX then
+				local maxTier = typeConfig.Tiers.MAX
+				if maxTier and maxTier.Type == "BoostAll" then
+					bonus = bonus * maxTier.Multiplier
+				end
+			end
+
+			-- Apply BloodBonusPower (from other sources, not blood itself to avoid recursion)
+			bonuses[tierData.Stat] = (bonuses[tierData.Stat] or 0) + bonus
+		end
+	end
+
+	return bonuses
+end
+
 function BloodManager.drinkBlood(player, enemyEntity)
     local data = playerBlood[player.UserId]
     if not data then return false end

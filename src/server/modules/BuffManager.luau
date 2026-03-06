@@ -107,6 +107,23 @@ function BuffManager.getStatModifier(entity, statName)
     return total
 end
 
+function BuffManager.getAllStatModifiers(entity)
+	local result = {}
+	local buffs = activeBuffs[entity]
+	if not buffs then return result end
+
+	local now = tick()
+	for buffId, data in buffs do
+		local remaining = data.duration - (now - data.startTime)
+		if remaining > 0 and data.config.Stat then
+			local statId = data.config.Stat
+			result[statId] = (result[statId] or 0) + data.config.Value
+		end
+	end
+
+	return result
+end
+
 function BuffManager.clearBuffs(entity)
     if not activeBuffs[entity] then return end
     activeBuffs[entity] = nil
@@ -116,30 +133,24 @@ end
 
 -- Применяет эффекты скорости на Humanoid
 function BuffManager._applyStatEffects(entity)
-    local humanoid = entity:FindFirstChild("Humanoid")
-    if not humanoid then return end
+	-- For players, StatsManager handles side effects
+	local player = Players:GetPlayerFromCharacter(entity)
+	if player then return end
 
-    -- Базовая скорость
-    local baseSpeed = 16
+	-- For enemies: apply speed effects directly
+	local humanoid = entity:FindFirstChild("Humanoid")
+	if not humanoid then return end
 
-    -- Проверяем враг ли это
-    local enemyType = entity:GetAttribute("EnemyType")
-    if enemyType then
-        local enemyConfig = Config.Enemies[enemyType]
-        if enemyConfig then
-            baseSpeed = enemyConfig.WalkSpeed
-        end
-    end
+	local enemyType = entity:GetAttribute("EnemyType")
+	local baseSpeed = 16
+	if enemyType then
+		local enemyConfig = Config.Enemies[enemyType]
+		if enemyConfig then baseSpeed = enemyConfig.WalkSpeed end
+	end
 
-    local speedBonus = BuffManager.getStatModifier(entity, "SpeedBonus")
-    local slow = BuffManager.getStatModifier(entity, "Slow")
-
-    local finalSpeed = baseSpeed * (1 + speedBonus) * (1 - slow)
-    finalSpeed = math.max(0, finalSpeed)
-
-    humanoid.WalkSpeed = finalSpeed
+	local speedMod = BuffManager.getStatModifier(entity, "MoveSpeed")
+	humanoid.WalkSpeed = math.max(0, baseSpeed * (1 + speedMod))
 end
-
     -- Отправляет обновление баффов клиенту
     function BuffManager._sendUpdate(entity)
         local buffs = BuffManager.getActiveBuffs(entity)
