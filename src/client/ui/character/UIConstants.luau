@@ -78,4 +78,31 @@ C.textColor = Color3.fromRGB(220, 220, 220)
 C.bindColor = Color3.fromRGB(180, 180, 100)
 C.activeStrokeColor = Color3.fromRGB(50, 130, 255)
 
+-- ═══ HUD Bar Constants ═══
+C.FLASK_WIDTH = 50
+C.GAP = 8
+C.MARGIN = 10
+C.AB_HEIGHT = C.slotSize + 20  -- 70
+
+C.HP_HEIGHT = 22
+C.XP_HEIGHT = 6
+C.LEVEL_SIZE = 34
+C.LEVEL_GAP = 6
+
+C.AB_WIDTH = C.padding + C.cols * (C.slotSize + C.padding)
+C.HP_BAR_WIDTH = C.AB_WIDTH - C.LEVEL_GAP - C.LEVEL_SIZE
+C.HP_BLOCK_H = C.HP_HEIGHT + 2 + C.XP_HEIGHT
+
+-- Colors (HUD)
+C.BG_COLOR = Color3.fromRGB(25, 25, 35)
+C.HP_GREEN = Color3.fromRGB(50, 200, 50)
+C.HP_YELLOW = Color3.fromRGB(220, 180, 30)
+C.HP_RED = Color3.fromRGB(200, 30, 30)
+C.XP_COLOR = Color3.fromRGB(100, 80, 220)
+C.XP_BG = Color3.fromRGB(18, 18, 26)
+C.LEVEL_BG = Color3.fromRGB(35, 30, 55)
+C.LEVEL_BORDER = Color3.fromRGB(60, 15, 15)
+C.TEXT_COLOR = Color3.fromRGB(255, 255, 255)
+C.TEXT_DIM = Color3.fromRGB(180, 180, 200)
+
 return C
