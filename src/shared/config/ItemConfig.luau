@@ -255,6 +255,37 @@ return {
                 BloodType = "Creature",
                 BloodQuality = 100
             }
+        },
+        blood_ring = {
+            Id = "blood_ring",
+            Name = "Кровавое кольцо",
+            Description = "Кольцо, пропитанное кровавой эссенцией.",
+            Icon = "rbxassetid://0",
+            Type = "Ring",
+            EquipSlot = "Ring",
+            ItemLevel = 6,
+            Stackable = false,
+            MaxStack = 1,
+            Stats = {
+                PhysicalPower = 3,
+                MagicalPower = 2
+            }
+        },
+
+        blood_necklace = {
+            Id = "blood_necklace",
+            Name = "Кровавое ожерелье",
+            Description = "Ожерелье, наполненное силой крови.",
+            Icon = "rbxassetid://0",
+            Type = "Amulet",
+            EquipSlot = "Amulet",
+            ItemLevel = 6,
+            Stackable = false,
+            MaxStack = 1,
+            Stats = {
+                MaxHP = 15,
+                HealthRegen = 0.1
+            }
         }
     },
     ItemTypes = {

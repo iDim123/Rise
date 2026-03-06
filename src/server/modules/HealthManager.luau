@@ -38,6 +38,22 @@ function HealthManager.takeDamage(entity, damage, attacker)
     StatsManager.markCombat(entity)
 
     if data.CurrentHP <= 0 then
+        local bossId = entity:GetAttribute("BossId")
+        if bossId then
+            local BossManager = require(modules:WaitForChild("BossManager"))
+            if BossManager.getBossState(bossId) == BossManager.BOSS_STATE.ALIVE then
+                -- Don't kill, just down
+                data.CurrentHP = 1
+                entity:SetAttribute("CurrentHP", 1)
+                local humanoid = entity:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Health = 1
+                end
+                BossManager.onBossDowned(bossId, attacker)
+                return -- don't call die()
+            end
+        end
+
         HealthManager.die(entity, attacker)
     end
 end
