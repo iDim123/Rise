@@ -12,7 +12,7 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "ResourceGathered", "UpdateLevel", "UpdateServantLevel", "UpdateStats"}
 
 -- RemoteFunctions
-local functions = {"GetInventory", "GetServants"}
+local functions = {"GetInventory", "GetServants", "GetPlayerStats"}
 
 if RunService:IsServer() then
     for _, name in events do

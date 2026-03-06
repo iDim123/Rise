@@ -206,4 +206,8 @@ Players.PlayerRemoving:Connect(function(player)
 	StatsManager.cleanup(player)
 end)
 
+Remotes.GetPlayerStats.OnServerInvoke = function(player)
+	return StatsManager.getAll(player)
+end
+
 return StatsManager

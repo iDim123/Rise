@@ -12,6 +12,8 @@ local InventoryGrid = require(script.Parent:WaitForChild("InventoryGrid"))
 local ActionBarHUD = require(script.Parent:WaitForChild("ActionBarHUD"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local AttributesPanel = require(script.Parent:WaitForChild("AttributesPanel"))
+local BloodPoolPanel = require(script.Parent:WaitForChild("BloodPoolPanel"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -80,6 +82,9 @@ end
 -- Build panels
 local equipPanelFrame = EquipmentPanel.build(mainFrame, UC.contentY, Remotes.UnequipItem)
 local craftPanelFrame = CraftPanel.build(mainFrame, UC.contentY, Remotes.CraftItem, screenGui)
+local bloodPoolFrame = BloodPoolPanel.build(mainFrame, UC.contentY)
+local attributesFrame = AttributesPanel.build(mainFrame, UC.contentY, screenGui)
+AttributesPanel.connectRemote()
 
 -- Build inventory
 InventoryGrid.build(mainFrame, Remotes.SwapSlots, Remotes.EquipItem, function()
@@ -92,11 +97,15 @@ mainFrame.Size = UDim2.new(0, UC.windowWidth, 0, UC.windowHeight)
 ActionBarHUD.build(playerGui, Remotes.SetActiveWeapon, Remotes.UseItem, Remotes.EquipItem)
 
 -- Register entire player equipment panel as one drop target
-local equipPanel = equipPanelFrame  -- это Frame возвращённый из EquipmentPanel.build
+local equipPanel = equipPanelFrame -- это Frame возвращённый из EquipmentPanel.build
 DragManager.registerDropTarget(equipPanel, function(data)
-    if not data or not data.item then return end
+    if not data or not data.item then
+        return
+    end
     local item = data.item
-    if not item.EquipSlot then return end
+    if not item.EquipSlot then
+        return
+    end
     Remotes.EquipItem:FireServer(data.slotIndex)
 end)
 
@@ -108,6 +117,8 @@ local function switchTab(tabName)
     end
     equipPanelFrame.Visible = (tabName == "Equipment")
     CraftPanel.setVisible(tabName == "Crafting")
+    BloodPoolPanel.setVisible(tabName == "Blood Pool")
+    AttributesPanel.setVisible(tabName == "Attributes")
     if tabName == "Crafting" and currentData then
         CraftPanel.refresh(currentData.slots)
     end
@@ -121,7 +132,9 @@ end
 
 -- Refresh all
 local function refreshUI(data)
-    if not data then return end
+    if not data then
+        return
+    end
     currentData = data
     InventoryGrid.refresh(data.slots, data.activeWeaponSlot, data.unlockedSlots)
     ActionBarHUD.refresh(data.slots, data.activeWeaponSlot)
