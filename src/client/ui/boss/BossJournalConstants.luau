@@ -1,0 +1,28 @@
+local C = {}
+
+-- Layout
+C.HEADER_H = 44
+C.CARD_PADDING = 10
+C.CORNER_RADIUS = 10
+C.CARD_HEIGHT = 280
+C.IMAGE_SIZE = 180
+C.INFO_X = 200
+
+-- Colors
+C.BG_COLOR = Color3.fromRGB(25, 25, 35)
+C.HEADER_BG = Color3.fromRGB(30, 30, 42)
+C.CARD_BG = Color3.fromRGB(35, 35, 50)
+C.STROKE_COLOR = Color3.fromRGB(80, 80, 100)
+C.TEXT_COLOR = Color3.fromRGB(220, 220, 220)
+C.TEXT_DIM = Color3.fromRGB(140, 140, 160)
+C.ACCENT_COLOR = Color3.fromRGB(200, 50, 50)
+
+C.ESSENCE_EMPTY = Color3.fromRGB(60, 60, 80)
+C.ESSENCE_FILLED = Color3.fromRGB(200, 50, 50)
+C.ESSENCE_FULL = Color3.fromRGB(50, 200, 80)
+
+C.TECH_LOCKED = Color3.fromRGB(100, 100, 120)
+C.TECH_UNLOCKED = Color3.fromRGB(220, 180, 50)
+C.CAPTURED_COLOR = Color3.fromRGB(180, 50, 220)
+
+return C

@@ -7,20 +7,25 @@ local LootManager = {}
 
 local activeLoot = {} -- { [lootPart] = { itemData, spawnTime } }
 
-function LootManager.dropLoot(enemyEntity)
-	local enemyType = enemyEntity:GetAttribute("EnemyType")
-	if not enemyType then return end
+function LootManager.dropLoot(enemyEntity, customLoot)
+    local lootTable = customLoot
 
-	local enemyConfig = Config.Enemies[enemyType]
-	if not enemyConfig or not enemyConfig.Loot then return end
+    if not lootTable then
+        local enemyType = enemyEntity:GetAttribute("EnemyType")
+        if not enemyType then return end
 
-	local rootPart = enemyEntity:FindFirstChild("HumanoidRootPart")
-	if not rootPart then return end
+        local enemyConfig = Config.Enemies[enemyType]
+        if not enemyConfig or not enemyConfig.Loot then return end
+        lootTable = enemyConfig.Loot
+    end
 
-	local basePosition = rootPart.Position
-	local dropIndex = 0
+    local rootPart = enemyEntity:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
 
-	for _, lootEntry in enemyConfig.Loot do
+    local basePosition = rootPart.Position
+    local dropIndex = 0
+
+    for _, lootEntry in lootTable do
 		-- Проверяем шанс
 		if math.random() > lootEntry.Chance then continue end
 

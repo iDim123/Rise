@@ -14,12 +14,11 @@ return {
             EssenceRequired = 2, -- сколько раз убить для захвата
             XPReward = 150,
             Location = "Кровавый лес",
-            Description = "Могущественный воин, познавший силу крови.",
-            Image = "rbxassetid://0",
+            Description = "Могущественный воин, познавший силу крови. Его удары пропитаны кровавой энергией, а его жажда крови не знает границ. Он бродит по Кровавому лесу в поисках жертв, чтобы утолить свою жажду и стать ещё сильнее.",
+            Image = "rbxassetid://87767728636951",
             BloodType = nil, -- нет типа крови, нельзя пить
             BloodQuality = nil,
             CanCapture = false, -- нельзя обычным захватом
-
             Loot = {{
                 ItemId = "blood_essence",
                 Amount = {
@@ -28,13 +27,18 @@ return {
                 },
                 Chance = 1.0
             }},
-
-            Unlocks = {
+            Unlocks = {{
                 Type = "Recipes",
-                Icon = "rbxassetid://0",
-                TooltipTitle = "Кровавая ковка",
+                Icon = "rbxassetid://78556678380740",
+                Name = "Кровавая ковка",
+                Description = "Открывает рецепты кровавых украшений.",
                 Recipes = {"blood_ring", "blood_necklace"}
-            }
+            }, {
+                Type = "Loot",
+                Icon = "rbxassetid://133649527466179",
+                Name = "Малая сумка",
+                Description = "Содержит различные ресурсы."
+            }}
         }
     },
 
