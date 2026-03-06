@@ -83,6 +83,7 @@ function BossManager.unlockTech(player, bossId)
     if unlockedTechs[player.UserId][bossId] then return false end -- already unlocked
 
     unlockedTechs[player.UserId][bossId] = true
+    Remotes.UnlockTech:FireClient(player, bossId)
 
     local bossConfig = Config.Bosses[bossId]
     if bossConfig and bossConfig.Unlocks then

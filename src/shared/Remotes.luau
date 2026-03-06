@@ -10,7 +10,7 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "ServantCommand", "RenameServant", "PickupLoot", "DropItem", "EquipServantItem", "UnequipServantItem",
                 "ToggleServantFavorite", "UpdateServantData", "UpdateBuffs", "UseAbility", "AbilityCooldown",
                 "ResourceGathered", "UpdateLevel", "UpdateServantLevel", "UpdateStats", "BossFinish", "BossCapture",
-                "BossFinishResult", "BossCaptureResult"}
+                "BossFinishResult", "BossCaptureResult", "UnlockTech"}
 
 -- RemoteFunctions
 local functions = {"GetInventory", "GetServants", "GetPlayerStats", "GetBossData"}

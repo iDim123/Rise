@@ -11,6 +11,7 @@ local tooltip = nil
 local currentData = nil
 local queueCounts = {}
 local craftProgress = {} -- [recipeId] = 0..1
+local unlockedTechs = {}
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
@@ -352,7 +353,12 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
     local totalH = recipePadding
 
     for idx, recipe in recipes do
+
         local row = Instance.new("TextButton")
+        if recipe.RequiresTech then
+            row.Visible = false
+            row.Active = false
+        end
         row.Name = "Recipe_" .. recipe.Id
         row.Size = UDim2.new(1, -recipePadding * 2, 0, recipeRowH)
         row.Position = UDim2.new(0, recipePadding, 0, totalH)
@@ -470,7 +476,8 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
             recipe = recipe,
             queueLabel = queueLabel,
             progressBg = progressBg,
-            progressFill = progressFill
+            progressFill = progressFill,
+            requiresTech = recipe.RequiresTech
         }
 
         totalH = totalH + recipeRowH + recipePadding
@@ -487,6 +494,24 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
             craftProgress[progressRecipeId] = progressValue
         end
         updateQueueDisplay()
+    end)
+
+    Remotes.UnlockTech.OnClientEvent:Connect(function(bossId)
+        unlockedTechs[bossId] = true
+        CraftPanel.updateTechVisibility()
+    end)
+
+    -- Initial tech check: request boss data to know what's unlocked
+    task.spawn(function()
+        local bossData = Remotes.GetBossData:InvokeServer()
+        if bossData then
+            for bossId, data in bossData do
+                if data.TechUnlocked then
+                    unlockedTechs[bossId] = true
+                end
+            end
+        end
+        CraftPanel.updateTechVisibility()
     end)
 
     return craftPanel
@@ -516,6 +541,26 @@ function CraftPanel.setVisible(v)
     end
     if not v then
         hideTooltip()
+    end
+end
+
+function CraftPanel.updateTechVisibility()
+    local totalH = 4
+    local recipeRowH = 40
+    local recipePadding = 4
+    for _, entry in recipeButtons do
+        if entry.requiresTech then
+            local visible = unlockedTechs[entry.requiresTech] == true
+            entry.frame.Visible = visible
+            entry.frame.Active = visible
+        end
+        if entry.frame.Visible then
+            entry.frame.Position = UDim2.new(0, recipePadding, 0, totalH)
+            totalH = totalH + recipeRowH + recipePadding
+        end
+    end
+    if craftPanel then
+        craftPanel.CanvasSize = UDim2.new(0, 0, 0, totalH)
     end
 end
 

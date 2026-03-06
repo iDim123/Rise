@@ -97,6 +97,25 @@ end
 function CraftHandler.onCraftItem(player, recipeId)
     if type(recipeId) ~= "string" then return end
 
+    -- Find recipe
+    local recipe = nil
+    for _, r in Config.Crafting.Recipes do
+        if r.Id == recipeId then
+            recipe = r
+            break
+        end
+    end
+    if not recipe then return end
+
+    -- Check tech requirement
+    if recipe.RequiresTech then
+        local BossManager = require(modules:WaitForChild("BossManager"))
+        if not BossManager.hasTech(player, recipe.RequiresTech) then
+            print("[Craft] " .. player.Name .. " tried to craft " .. recipeId .. " without tech " .. recipe.RequiresTech)
+            return
+        end
+    end
+
     if not craftQueues[player.UserId] then
         craftQueues[player.UserId] = {}
     end
