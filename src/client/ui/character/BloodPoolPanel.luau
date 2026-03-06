@@ -16,6 +16,7 @@ local bloodTypeLabel = nil
 local bloodAmountLabel = nil
 local qualityLabel = nil
 local qualityBar = nil
+local qualityRow = nil
 local tierMarkers = {}   -- { I = frame, II = frame, MAX = frame }
 local bonusLabels = {}   -- { frame, ... }
 
@@ -54,6 +55,13 @@ function BloodPoolPanel.build(parent, contentY)
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = panelFrame
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingTop = UDim.new(0, 4)
+	padding.PaddingBottom = UDim.new(0, 4)
+	padding.PaddingLeft = UDim.new(0, 4)
+	padding.PaddingRight = UDim.new(0, 4)
+	padding.Parent = panelFrame
 
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 6)
@@ -118,7 +126,7 @@ function BloodPoolPanel.build(parent, contentY)
 	bloodAmountLabel.Parent = infoFrame
 
 	-- ── Row 2: Quality bar ──
-	local qualityRow = Instance.new("Frame")
+	qualityRow = Instance.new("Frame")
 	qualityRow.Name = "QualityRow"
 	qualityRow.Size = UDim2.new(1, 0, 0, 40)
 	qualityRow.BackgroundTransparency = 1
@@ -209,7 +217,10 @@ function BloodPoolPanel.refresh()
 	local amount = character:GetAttribute("BloodAmount") or 0
 
 	local typeConfig = Config.Blood.Types[bloodType]
-
+	local hasTiers = typeConfig and typeConfig.Tiers and next(typeConfig.Tiers) ~= nil
+	if qualityRow then
+		qualityRow.Visible = hasTiers
+	end
 	-- Header
 	if typeConfig then
 		bloodIconImage.Image = typeConfig.Icon or ""
