@@ -39,6 +39,43 @@ return {
                 Name = "Малая сумка",
                 Description = "Содержит различные ресурсы."
             }}
+        },
+        SawmillBoss = {
+            Name = "Глава лесопилки",
+            Level = 14,
+            Act = 1,
+            MaxHP = 80,
+            Damage = 10,
+            AttackRange = 5,
+            AggroRange = 25,
+            AttackCooldown = 1.4,
+            WalkSpeed = 12,
+            RespawnTime = 10,
+            EssenceRequired = 2,
+            XPReward = 100,
+            Location = "Лесопилка",
+            Description = "Жестокий надсмотрщик, управляющий старой лесопилкой. Знает секреты обработки древесины.",
+            Image = "rbxassetid://123248253802708", -- замени на свой ассет
+            BloodType = nil,
+            BloodQuality = nil,
+            CanCapture = false,
+
+            Loot = {{
+                ItemId = "wood",
+                Amount = {
+                    Min = 20,
+                    Max = 40
+                },
+                Chance = 1.0
+            }},
+
+            Unlocks = {{
+                Type = "Recipes",
+                Icon = "rbxassetid://120841469219855", -- иконка досок
+                Name = "Обработка древесины",
+                Description = "Открывает рецепт обработки древесины в доски.",
+                Recipes = {"wooden_plank"}
+            }}
         }
     },
 

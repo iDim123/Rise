@@ -128,6 +128,21 @@ return {
             }},
             CraftTime = 5,
             RequiresTech = "BloodWarrior"
+        }, {
+            Id = "wooden_plank",
+            Name = "Доска",
+            Description = "Обработанная деревянная доска.",
+            Icon = "rbxassetid://0", -- замени на свой ассет
+            Result = {
+                ItemId = "wooden_plank",
+                Amount = 1
+            },
+            Ingredients = {{
+                ItemId = "wood",
+                Amount = 10
+            }},
+            CraftTime = 2,
+            RequiresTech = "SawmillBoss"
         }}
     }
 }

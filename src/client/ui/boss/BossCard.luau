@@ -126,6 +126,7 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
     imageContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
     imageContainer.ClipsDescendants = true
     imageContainer.BorderSizePixel = 0
+    imageContainer.ZIndex = 1
     imageContainer.Parent = card
 
     -- Round only left corners
@@ -139,6 +140,8 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
     bossImage.Image = bConfig.Image or ""
     bossImage.ScaleType = Enum.ScaleType.Crop -- fill and crop overflow
     bossImage.Parent = imageContainer
+
+    Instance.new("UICorner", bossImage).CornerRadius = UDim.new(0, 8)
 
     if not bConfig.Image or bConfig.Image == "rbxassetid://0" or bConfig.Image == "" then
         local fallback = Instance.new("TextLabel")
@@ -329,6 +332,55 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
     essenceContainer.Parent = infoFrame
 
     createEssenceBar(essenceContainer, currentEssence, requiredEssence)
+
+    -- ═══ Level lock overlay ═══
+    local Players = game:GetService("Players")
+    local localPlayer = Players.LocalPlayer
+    local character = localPlayer.Character
+    local playerLevel = 1
+    if character then
+        playerLevel = character:GetAttribute("Level") or 1
+    end
+
+    local bossLevel = bConfig.Level or 1
+    if bossLevel - playerLevel > 10 then
+        -- Dark blur overlay
+        local lockOverlay = Instance.new("Frame")
+        lockOverlay.Name = "LevelLockOverlay"
+        lockOverlay.Size = UDim2.new(1, 0, 1, 0)
+        lockOverlay.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+        lockOverlay.BackgroundTransparency = 0.1
+        lockOverlay.BorderSizePixel = 0
+        lockOverlay.ZIndex = 10
+        lockOverlay.Parent = card
+
+        Instance.new("UICorner", lockOverlay).CornerRadius = UDim.new(0, 8)
+
+        -- Blurred inner panels to hide content
+        local blurPanel = Instance.new("Frame")
+        blurPanel.Size = UDim2.new(1, 0, 1, 0)
+        blurPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+        blurPanel.BackgroundTransparency = 0.3
+        blurPanel.BorderSizePixel = 0
+        blurPanel.ZIndex = 11
+        blurPanel.Parent = lockOverlay
+
+        Instance.new("UICorner", blurPanel).CornerRadius = UDim.new(0, 8)
+
+        -- Level text
+        local lockLevel = Instance.new("TextLabel")
+        lockLevel.Size = UDim2.new(1, 0, 0, 30)
+        lockLevel.AnchorPoint = Vector2.new(0.5, 0.5)
+        lockLevel.Position = UDim2.new(0.5, 0, 0.5, 0)
+        lockLevel.BackgroundTransparency = 1
+        lockLevel.Text = "Lvl: " .. bossLevel
+        lockLevel.TextColor3 = C.ACCENT_COLOR
+        lockLevel.TextSize = 28
+        lockLevel.Font = Enum.Font.GothamBold
+        lockLevel.ZIndex = 12
+        lockLevel.Parent = lockOverlay
+
+    end
 
     return card, {
         frame = card,

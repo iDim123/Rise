@@ -286,6 +286,16 @@ return {
                 MaxHP = 15,
                 HealthRegen = 0.1
             }
+        },
+        wooden_plank = {
+            Id = "wooden_plank",
+            Name = "Доска",
+            Description = "Обработанная древесина. Используется в строительстве.",
+            Icon = "rbxassetid://0", -- замени на свой ассет
+            Type = "Resource",
+            ItemLevel = 0,
+            Stackable = true,
+            MaxStack = 500
         }
     },
     ItemTypes = {
