@@ -25,7 +25,8 @@ return {
             AttackCooldown = 1.2,
             WalkSpeed = 16,       -- волки быстрее
             RespawnTime = 10,
-            Level = 4,            -- 3-5, среднее
+            MinLevel = 3,
+            MaxLevel = 5,
             XPReward = 35,
             CanCapture = false,
             BloodType = "Creature",

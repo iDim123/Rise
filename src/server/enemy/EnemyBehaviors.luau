@@ -4,7 +4,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
-
+local LevelManager = require(modules:WaitForChild("LevelManager"))
 local EnemyStateManager = require(script.Parent:WaitForChild("EnemyStateManager"))
 local EnemyTargeting = require(script.Parent:WaitForChild("EnemyTargeting"))
 
@@ -103,7 +103,13 @@ function EnemyBehaviors.update(enemy)
 			local now = tick()
 			if now - state.LastAttack >= config.AttackCooldown then
 				state.LastAttack = now
-				HealthManager.takeDamage(target, config.Damage, enemy)
+
+				local enemyLevel = enemy:GetAttribute("Level") or config.Level or 1
+				local targetLevel = target:GetAttribute("Level") or 1
+				local dmgMod = LevelManager.getDamageModifier(enemyLevel, targetLevel)
+				local finalDamage = math.max(1, math.floor(config.Damage * (1 + dmgMod)))
+
+				HealthManager.takeDamage(target, finalDamage, enemy)
 			end
 		else
 			state.State = STATE.CHASE

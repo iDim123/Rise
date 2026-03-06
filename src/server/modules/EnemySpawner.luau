@@ -47,9 +47,16 @@ function EnemySpawner.spawn(enemyType, spawnPosition, level)
         humanoid.WalkSpeed = config.WalkSpeed
     end
 
-    -- Уровень: из спавн-точки, или из конфига, или 1
-    local enemyLevel = level or config.Level or 1
-    
+
+    local enemyLevel = level
+    if not enemyLevel then
+        if config.MinLevel and config.MaxLevel then
+            enemyLevel = math.random(config.MinLevel, config.MaxLevel)
+        else
+            enemyLevel = config.Level or 1
+        end
+    end
+
     enemy:SetAttribute("EnemyType", enemyType)
     enemy:SetAttribute("SpawnPosition", spawnPosition)
     enemy:SetAttribute("SpawnLevel", enemyLevel)
