@@ -27,7 +27,7 @@ function HealthManager.takeDamage(entity, damage, attacker)
         return
     end
 
-    data.CurrentHP = math.max(0, data.CurrentHP - damage)
+    data.CurrentHP = math.floor(math.max(0, data.CurrentHP - damage))
     entity:SetAttribute("CurrentHP", data.CurrentHP)
 
     local attackerName = attacker and attacker.Name or "Unknown"
@@ -84,11 +84,11 @@ function HealthManager.heal(entity, amount)
     if player then
         local StatsManager = require(modules:WaitForChild("StatsManager"))
         local healMod = StatsManager.get(player, "HealingReceived")
-        amount = amount * healMod
+        amount = math.floor(amount * healMod)
     end
 
     local oldHP = data.CurrentHP
-    data.CurrentHP = math.min(data.MaxHP, data.CurrentHP + amount)
+    data.CurrentHP = math.floor(math.min(data.MaxHP, data.CurrentHP + amount))
     local actualHeal = data.CurrentHP - oldHP
     entity:SetAttribute("CurrentHP", data.CurrentHP)
 

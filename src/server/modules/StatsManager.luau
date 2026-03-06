@@ -183,14 +183,14 @@ function StatsManager.tickRegen()
 		if not StatsManager.isInCombat(character) then
 			local regenRate = StatsManager.get(player, "HealthRegen")
 			local maxHP = hpData.MaxHP
-			local regenPerSec = maxHP * regenRate / 60
-			if regenPerSec > 0 then
-				HealthManager.heal(character, regenPerSec)
+			-- 1% MaxHP за тик (тик = 10 сек)
+			local regenAmount = math.max(1, math.floor(maxHP * 0.01 * regenRate))
+			if regenAmount >= 1 then
+				HealthManager.heal(character, regenAmount)
 			end
 		end
 	end
 end
-
 -- ══════════════════════════════════
 --  Cleanup
 -- ══════════════════════════════════

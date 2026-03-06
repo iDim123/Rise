@@ -20,10 +20,10 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- HealthRegen: tick every 1 second
+-- HealthRegen: tick every 10 seconds
 task.spawn(function()
     while true do
-        task.wait(1)
+        task.wait(10)
         StatsManager.tickRegen()
     end
 end)
