@@ -95,22 +95,18 @@ local function createSeparator(parent)
 end
 
 -- ═══ Build Card ═══
-function BossCard.build(parent, bossId, bConfig, pData, yOffset)
+function BossCard.build(parent, bossId, bConfig, pData, yOffset, isLocked)
     local card = Instance.new("Frame")
     card.Name = "BossCard_" .. bossId
-    card.Size = UDim2.new(1, -C.CARD_PADDING * 2, 0, C.CARD_HEIGHT)
+    card.Size = UDim2.new(1, -C.CARD_PADDING * 2 - 1, 0, C.CARD_HEIGHT - 1)
     card.Position = UDim2.new(0, C.CARD_PADDING, 0, yOffset)
     card.BackgroundColor3 = C.CARD_BG
     card.BackgroundTransparency = 0.15
     card.BorderSizePixel = 0
+    card.ClipsDescendants = true -- clip children inside rounded corners
     card.Parent = parent
 
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-
-    local cardStroke = Instance.new("UIStroke")
-    cardStroke.Color = C.STROKE_COLOR
-    cardStroke.Thickness = 1
-    cardStroke.Parent = card
 
     local currentEssence = pData and pData.Essence or 0
     local requiredEssence = bConfig.EssenceRequired or 1
@@ -315,8 +311,10 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
             lockIcon.Parent = iconFrame
         end
 
-        -- Tooltip on hover
-        BossTooltip.attach(iconFrame, unlock.Name or "Награда", unlock.Description)
+        if not isLocked then
+            BossTooltip.attach(iconFrame, unlock.Name or "Награда", unlock.Description)
+        end
+
     end
 
     -- Separator 3
@@ -343,7 +341,7 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
     end
 
     local bossLevel = bConfig.Level or 1
-    if bossLevel - playerLevel > 10 then
+    if isLocked then
         -- Dark blur overlay
         local lockOverlay = Instance.new("Frame")
         lockOverlay.Name = "LevelLockOverlay"
@@ -352,6 +350,7 @@ function BossCard.build(parent, bossId, bConfig, pData, yOffset)
         lockOverlay.BackgroundTransparency = 0.1
         lockOverlay.BorderSizePixel = 0
         lockOverlay.ZIndex = 10
+        lockOverlay.Active = true
         lockOverlay.Parent = card
 
         Instance.new("UICorner", lockOverlay).CornerRadius = UDim.new(0, 8)

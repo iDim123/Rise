@@ -1,5 +1,4 @@
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
@@ -7,6 +6,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local C = require(script.Parent:WaitForChild("BossJournalConstants"))
 local BossCard = require(script.Parent:WaitForChild("BossCard"))
 local BossTooltip = require(script.Parent:WaitForChild("BossTooltip"))
+local ActTabs = require(script.Parent:WaitForChild("ActTabs"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -16,6 +16,7 @@ local BossJournal = {}
 local isOpen = false
 local bossData = nil
 local bossCards = {}
+local playerLevel = 1
 
 local screenGui, mainFrame, scrollFrame
 
@@ -29,7 +30,7 @@ function BossJournal.build()
     screenGui.Parent = playerGui
 
     BossTooltip.init(screenGui)
-    -- ═══ Fullscreen background ═══
+
     mainFrame = Instance.new("Frame")
     mainFrame.Name = "BossJournalWindow"
     mainFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -39,17 +40,15 @@ function BossJournal.build()
     mainFrame.Visible = false
     mainFrame.Parent = screenGui
 
-    -- Background image (dark atmospheric art)
     local bgImage = Instance.new("ImageLabel")
     bgImage.Name = "BackgroundImage"
     bgImage.Size = UDim2.new(1, 0, 1, 0)
     bgImage.BackgroundTransparency = 1
-    bgImage.Image = "rbxassetid://130567382079214" -- замени на свой ассет
+    bgImage.Image = "rbxassetid://130567382079214"
     bgImage.ImageTransparency = 0.4
     bgImage.ScaleType = Enum.ScaleType.Crop
     bgImage.Parent = mainFrame
 
-    -- Dark overlay for readability
     local overlay = Instance.new("Frame")
     overlay.Name = "DarkOverlay"
     overlay.Size = UDim2.new(1, 0, 1, 0)
@@ -58,7 +57,7 @@ function BossJournal.build()
     overlay.BorderSizePixel = 0
     overlay.Parent = mainFrame
 
-    -- ═══ Header (top bar) ═══
+    -- Header
     local headerFrame = Instance.new("Frame")
     headerFrame.Size = UDim2.new(1, 0, 0, C.HEADER_H)
     headerFrame.BackgroundColor3 = C.HEADER_BG
@@ -90,23 +89,26 @@ function BossJournal.build()
     closeBtn.AutoButtonColor = false
     closeBtn.ZIndex = 2
     closeBtn.Parent = headerFrame
-
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
-
     closeBtn.Activated:Connect(function()
         BossJournal.close()
     end)
 
-    -- ═══ Center content container ═══
+    -- Act Tabs
+    ActTabs.init(mainFrame, function()
+        BossJournal.rebuildList()
+    end)
+
+    -- Content container
     local contentContainer = Instance.new("Frame")
     contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(0.5, 0, 1, -(C.HEADER_H + 20))
+    contentContainer.Size = UDim2.new(0.5, 0, 1, -(C.HEADER_H + 52))
     contentContainer.AnchorPoint = Vector2.new(0.5, 0)
-    contentContainer.Position = UDim2.new(0.5, 0, 0, C.HEADER_H + 10)
+    contentContainer.Position = UDim2.new(0.5, 0, 0, C.HEADER_H + 46)
     contentContainer.BackgroundTransparency = 1
     contentContainer.Parent = mainFrame
 
-    -- ═══ Scroll frame inside center container ═══
+    -- Scroll frame
     scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Name = "BossListScroll"
     scrollFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -118,7 +120,7 @@ function BossJournal.build()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollFrame.Parent = contentContainer
 
-    -- Listen for updates
+    -- Remote listeners
     Remotes.BossFinishResult.OnClientEvent:Connect(function(result)
         if not bossData then return end
         local bossId = result.BossId
@@ -142,6 +144,15 @@ function BossJournal.build()
             BossJournal.rebuildList()
         end
     end)
+
+    Remotes.UpdateLevel.OnClientEvent:Connect(function(data)
+        if data and data.Level then
+            playerLevel = data.Level
+            if isOpen then
+                BossJournal.rebuildList()
+            end
+        end
+    end)
 end
 
 -- ═══ Rebuild list ═══
@@ -153,9 +164,11 @@ function BossJournal.rebuildList()
 
     if not bossData or not scrollFrame then return end
 
-    -- Remove old layout if exists
-    local oldLayout = scrollFrame:FindFirstChildOfClass("UIListLayout")
-    if oldLayout then oldLayout:Destroy() end
+    for _, child in scrollFrame:GetChildren() do
+        if child:IsA("UIListLayout") or child:IsA("UIPadding") then
+            child:Destroy()
+        end
+    end
 
     local listLayout = Instance.new("UIListLayout")
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -167,28 +180,29 @@ function BossJournal.rebuildList()
     listPadding.PaddingBottom = UDim.new(0, C.CARD_PADDING)
     listPadding.Parent = scrollFrame
 
-    -- Sort by Act, then Level
+    local currentAct = ActTabs.getSelectedAct()
+
     local sortedIds = {}
     for bossId, _ in bossData do
-        table.insert(sortedIds, bossId)
+        local bConfig = Config.Bosses and Config.Bosses[bossId]
+        if bConfig and (bConfig.Act or 1) == currentAct then
+            table.insert(sortedIds, bossId)
+        end
     end
     table.sort(sortedIds, function(a, b)
-        local da = bossData[a]
-        local db = bossData[b]
-        if (da.Act or 1) ~= (db.Act or 1) then
-            return (da.Act or 1) < (db.Act or 1)
-        end
+        local da = Config.Bosses[a]
+        local db = Config.Bosses[b]
         return (da.Level or 1) < (db.Level or 1)
     end)
 
     for idx, bossId in sortedIds do
         local pData = bossData[bossId]
-        local bConfig = Config.Bosses and Config.Bosses[bossId]
+        local bConfig = Config.Bosses[bossId]
         if not bConfig then continue end
 
-        local _, cardData = BossCard.build(scrollFrame, bossId, bConfig, pData, 0)
+        local isLocked = (bConfig.Level or 0) - playerLevel > 10
+        local _, cardData = BossCard.build(scrollFrame, bossId, bConfig, pData, 0, isLocked)
         cardData.frame.LayoutOrder = idx
-        -- Position managed by UIListLayout, not manual yOffset
         cardData.frame.Position = UDim2.new(0, 0, 0, 0)
         bossCards[bossId] = cardData
     end
@@ -204,6 +218,7 @@ function BossJournal.open()
         local data = Remotes.GetBossData:InvokeServer()
         if data then
             bossData = data
+            ActTabs.rebuild(bossData)
             BossJournal.rebuildList()
         end
     end)
