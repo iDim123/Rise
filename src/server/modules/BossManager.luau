@@ -151,9 +151,17 @@ function BossManager.onBossDowned(bossId, attacker)
         entity:SetAttribute("CurrentHP", 1)
         entity:SetAttribute("Invulnerable", true)
         local humanoid = entity:FindFirstChild("Humanoid")
+        local rootPart = entity:FindFirstChild("HumanoidRootPart")
         if humanoid then
             humanoid.Health = 1
             humanoid.WalkSpeed = 0
+            if rootPart then
+                -- Disable physics so model stays in place
+                rootPart.Anchored = true
+                -- Tilt forward to lie on the ground
+                local pos = rootPart.Position
+                rootPart.CFrame = CFrame.new(pos.X, pos.Y - 2, pos.Z) * CFrame.Angles(-math.pi / 2, 0, 0)
+            end
         end
     end
 
@@ -325,19 +333,18 @@ function BossManager.spawnBoss(bossId, spawnPosition)
 
     -- Use EnemySpawner-like logic but with boss config
     local ServerStorage = game:GetService("ServerStorage")
-    local enemiesStorage = ServerStorage:FindFirstChild("enemies")
-    if not enemiesStorage then
-        warn("[BossManager] No enemies folder in ServerStorage")
+    local bossesStorage = ServerStorage:FindFirstChild("bosses")
+    if not bossesStorage then
+        warn("[BossManager] No bosses folder in ServerStorage")
         return nil
     end
 
-    -- Boss uses a Warrior template (or a dedicated boss template if it exists)
-    local templateName = bossId
-    local template = enemiesStorage:FindFirstChild(templateName)
+    local template = bossesStorage:FindFirstChild(bossId)
     if not template then
-        -- Fallback to Warrior template
-        template = enemiesStorage:FindFirstChild("Warrior")
+        warn("[BossManager] No template for boss: " .. bossId)
+        return nil
     end
+    
     if not template then
         warn("[BossManager] No template for boss: " .. bossId)
         return nil
@@ -354,6 +361,7 @@ function BossManager.spawnBoss(bossId, spawnPosition)
     entity.Name = bossConfig.Name or bossId
     entity.Parent = activeEnemies
 
+    
     local rootPart = entity:FindFirstChild("HumanoidRootPart")
     if rootPart then
         rootPart.Anchored = false
@@ -365,6 +373,7 @@ function BossManager.spawnBoss(bossId, spawnPosition)
         humanoid.WalkSpeed = bossConfig.WalkSpeed or 14
     end
 
+    entity:SetAttribute("DisplayName", bossConfig.Name)
     entity:SetAttribute("EnemyType", bossId)
     entity:SetAttribute("SpawnPosition", spawnPosition)
     entity:SetAttribute("Level", bossConfig.Level or 1)

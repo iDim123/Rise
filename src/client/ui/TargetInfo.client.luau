@@ -24,11 +24,11 @@ local TEXT_COLOR = Color3.fromRGB(225, 225, 225)
 local LEVEL_BG = Color3.fromRGB(30, 30, 38)
 local BLOOD_COLOR = Color3.fromRGB(255, 255, 255)
 
-local TOTAL_WIDTH = LEVEL_SIZE + LEVEL_GAP + BAR_WIDTH  -- 300
+local TOTAL_WIDTH = LEVEL_SIZE + LEVEL_GAP + BAR_WIDTH -- 300
 
 -- ═══ Animation ═══
-local FADE_TIME = 0.25        -- fade in/out duration
-local HP_TWEEN_TIME = 0.3     -- HP bar smooth transition
+local FADE_TIME = 0.25 -- fade in/out duration
+local HP_TWEEN_TIME = 0.3 -- HP bar smooth transition
 local fadeTween = nil
 local hpTween = nil
 local isVisible = false
@@ -152,10 +152,14 @@ bloodLabel.Visible = false
 bloodLabel.Parent = container
 
 local function fadeIn()
-    if isVisible then return end
+    if isVisible then
+        return
+    end
     isVisible = true
     container.Visible = true
-    if fadeTween then fadeTween:Cancel() end
+    if fadeTween then
+        fadeTween:Cancel()
+    end
     container.GroupTransparency = 1
     fadeTween = TweenService:Create(container, TweenInfo.new(FADE_TIME), {
         GroupTransparency = 0
@@ -164,9 +168,13 @@ local function fadeIn()
 end
 
 local function fadeOut()
-    if not isVisible then return end
+    if not isVisible then
+        return
+    end
     isVisible = false
-    if fadeTween then fadeTween:Cancel() end
+    if fadeTween then
+        fadeTween:Cancel()
+    end
     fadeTween = TweenService:Create(container, TweenInfo.new(FADE_TIME), {
         GroupTransparency = 1
     })
@@ -180,7 +188,9 @@ local function fadeOut()
 end
 -- ═══ Helpers ═══
 local function isValidTarget(model)
-    if not model then return false end
+    if not model then
+        return false
+    end
 
     -- Enemy: lives in Enemies folder
     local enemiesFolder = workspace:FindFirstChild("Enemies")
@@ -199,7 +209,9 @@ local function isValidTarget(model)
 end
 
 local function getModelFromPart(part)
-    if not part then return nil end
+    if not part then
+        return nil
+    end
     local current = part
     while current and current ~= workspace do
         if current:IsA("Model") then
@@ -224,7 +236,7 @@ local function updateTargetUI()
     local curHP = target:GetAttribute("CurrentHP")
     local maxHP = target:GetAttribute("MaxHP")
     local level = target:GetAttribute("Level")
-    local enemyName = target:GetAttribute("EnemyType") or target.Name
+    local enemyName = target:GetAttribute("DisplayName") or target.Name
 
     if not curHP or not maxHP then
         fadeOut()
@@ -265,13 +277,18 @@ local function updateTargetUI()
     hpText.Text = tostring(math.ceil(curHP)) .. " / " .. tostring(math.ceil(maxHP))
 
     if targetChanged then
-        if hpTween then hpTween:Cancel() end
+        if hpTween then
+            hpTween:Cancel()
+        end
         hpBar.Size = UDim2.new(ratio, 0, 1, 0)
     else
-        if hpTween then hpTween:Cancel() end
-        hpTween = TweenService:Create(hpBar, TweenInfo.new(HP_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(ratio, 0, 1, 0)
-        })
+        if hpTween then
+            hpTween:Cancel()
+        end
+        hpTween = TweenService:Create(hpBar,
+            TweenInfo.new(HP_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(ratio, 0, 1, 0)
+            })
         hpTween:Play()
     end
 

@@ -26,6 +26,9 @@ function HealthManager.takeDamage(entity, damage, attacker)
     if not data or data.IsDead then
         return
     end
+    if entity:GetAttribute("Invulnerable") then
+        return
+    end
 
     data.CurrentHP = math.floor(math.max(0, data.CurrentHP - damage))
     entity:SetAttribute("CurrentHP", data.CurrentHP)

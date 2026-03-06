@@ -99,6 +99,8 @@ function BloodManager.drinkBlood(player, enemyEntity)
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return false end
 
+    if enemyEntity:GetAttribute("IsBoss") then return false end
+    
     -- Проверка дистанции
     local enemyRoot = enemyEntity:FindFirstChild("HumanoidRootPart")
     if not enemyRoot then return false end
