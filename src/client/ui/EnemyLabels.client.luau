@@ -100,17 +100,15 @@ local function createBossFinishLabel(enemy)
     label.Text = "Добить [F]"
     label.Parent = billboard
 
-    if enemy:GetAttribute("CanBossCapture") then
-        local captureLabel = Instance.new("TextLabel")
-        captureLabel.Size = UDim2.new(1, 0, 0.5, 0)
-        captureLabel.Position = UDim2.new(0, 0, 0.5, 0)
-        captureLabel.BackgroundTransparency = 1
-        captureLabel.TextColor3 = Color3.fromRGB(180, 50, 220)
-        captureLabel.TextSize = 13
-        captureLabel.Font = Enum.Font.GothamBold
-        captureLabel.Text = "Захватить [T]"
-        captureLabel.Parent = billboard
-    end
+    local captureLabel = Instance.new("TextLabel")
+    captureLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    captureLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    captureLabel.BackgroundTransparency = 1
+    captureLabel.TextColor3 = Color3.fromRGB(180, 50, 220)
+    captureLabel.TextSize = 13
+    captureLabel.Font = Enum.Font.GothamBold
+    captureLabel.Text = "Захватить [T]"
+    captureLabel.Parent = billboard
 
     bossFinishLabels[enemy] = billboard
 end

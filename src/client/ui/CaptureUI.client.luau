@@ -49,16 +49,48 @@ castText.Font = Enum.Font.GothamBold
 castText.Text = "Захват..."
 castText.Parent = castFrame
 
--- ===== Hotkey T =====
+-- ═══ Helper: find nearby downed boss ═══
+local function findNearbyDownedBoss()
+    local character = player.Character
+    if not character then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    if not enemiesFolder then return nil end
+
+    for _, enemy in enemiesFolder:GetChildren() do
+        if not enemy:GetAttribute("IsBoss") then continue end
+        if enemy:GetAttribute("BossState") ~= "Downed" then continue end
+
+        local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
+        if not enemyRoot then continue end
+
+        local distance = (enemyRoot.Position - rootPart.Position).Magnitude
+        if distance <= 8 then
+            return enemy:GetAttribute("BossId") or enemy:GetAttribute("EnemyType")
+        end
+    end
+    return nil
+end
+
+-- ═══ Hotkey T ═══
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Config.Servants.CaptureKey then
-        if isCasting then
-            isCasting = false
-            castFrame.Visible = false
-            Remotes.CaptureRequest:FireServer("cancel")
+        -- Check if there's a downed boss nearby first
+        local bossId = findNearbyDownedBoss()
+        if bossId then
+            Remotes.BossCapture:FireServer(bossId)
         else
-            Remotes.CaptureRequest:FireServer("start")
+            -- Normal servant capture
+            if isCasting then
+                isCasting = false
+                castFrame.Visible = false
+                Remotes.CaptureRequest:FireServer("cancel")
+            else
+                Remotes.CaptureRequest:FireServer("start")
+            end
         end
     end
 end)

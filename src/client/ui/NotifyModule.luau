@@ -32,7 +32,7 @@ local container = Instance.new("Frame")
 container.Name = "NotifyContainer"
 container.Size = UDim2.new(0, NOTIFY_WIDTH, 1, 0)
 container.AnchorPoint = Vector2.new(0.5, 1)
-container.Position = UDim2.new(0.5, 0, 1, -120)
+container.Position = UDim2.new(0.5, 0, 1, -180)
 container.BackgroundTransparency = 1
 container.Parent = screenGui
 
@@ -56,17 +56,17 @@ function NotifyModule.show(text, notifType)
     frame.Position = UDim2.new(0, 0, 1, 0)
     frame.AnchorPoint = Vector2.new(0, 0)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    frame.BackgroundTransparency = 0.2
+    frame.BackgroundTransparency = 0.5
     frame.Parent = container
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = frame
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color
-    stroke.Thickness = 1.5
-    stroke.Parent = frame
+    -- local stroke = Instance.new("UIStroke")
+    -- stroke.Color = color
+    -- stroke.Thickness = 1
+    -- stroke.Parent = frame
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, -16, 1, 0)
@@ -103,9 +103,9 @@ function NotifyModule.show(text, notifType)
         TweenService:Create(label, TweenInfo.new(FADE_TIME), {
             TextTransparency = 1
         }):Play()
-        TweenService:Create(stroke, TweenInfo.new(FADE_TIME), {
-            Transparency = 1
-        }):Play()
+        -- TweenService:Create(stroke, TweenInfo.new(FADE_TIME), {
+        --     Transparency = 1
+        -- }):Play()
         fadeOut:Play()
         fadeOut.Completed:Wait()
         frame:Destroy()

@@ -352,11 +352,6 @@ function BossManager.spawnBoss(bossId, spawnPosition)
         warn("[BossManager] No template for boss: " .. bossId)
         return nil
     end
-    
-    if not template then
-        warn("[BossManager] No template for boss: " .. bossId)
-        return nil
-    end
 
     local activeEnemies = workspace:FindFirstChild("Enemies")
     if not activeEnemies then
@@ -381,6 +376,8 @@ function BossManager.spawnBoss(bossId, spawnPosition)
         humanoid.WalkSpeed = bossConfig.WalkSpeed or 14
     end
 
+    entity:SetAttribute("BossId", bossId)
+    entity:SetAttribute("IsBoss", true)  
     entity:SetAttribute("DisplayName", bossConfig.Name)
     entity:SetAttribute("EnemyType", bossId)
     entity:SetAttribute("SpawnPosition", spawnPosition)
