@@ -127,13 +127,13 @@ EventBus.on("PlayerDied", function(player, entity, attacker)
         humanoid.WalkSpeed = 0
         humanoid.JumpPower = 0
         humanoid.JumpHeight = 0
+        humanoid.Health = 0
     end
 
     Remotes.EntityDied:FireAllClients(entity)
-    Remotes.PlayerDied:FireClient(player, Config.Player.RespawnTime) -- передаём время клиенту
+    Remotes.PlayerDied:FireClient(player, Config.Player.RespawnTime)
 
-    -- Авто-респавн (страховка)
-    task.delay(Config.Player.RespawnTime + 2, function() -- +2 сек запас
+    task.delay(Config.Player.RespawnTime + 2, function()
         if player.Parent and entity and entity:GetAttribute("IsDead") then
             player:LoadCharacter()
         end

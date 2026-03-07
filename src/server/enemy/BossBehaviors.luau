@@ -75,12 +75,9 @@ function BossBehaviors.update(enemy)
             local aggroRoot = aggroChar:FindFirstChild("HumanoidRootPart")
             local aggroHum = aggroChar:FindFirstChild("Humanoid")
 
-            -- Target invalid: dead, destroyed, or no longer in workspace
-            if not aggroRoot or not aggroHum or aggroHum.Health <= 0 or not aggroChar.Parent then
+            if not aggroRoot or not aggroHum or aggroHum.Health <= 0 or not aggroChar.Parent or
+                aggroChar:GetAttribute("IsDead") then
                 state.AggroTarget = nil
-            else
-                target = aggroChar
-                distToTarget = (aggroRoot.Position - position).Magnitude
             end
         end
 

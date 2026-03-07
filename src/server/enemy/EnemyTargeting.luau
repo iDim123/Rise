@@ -6,27 +6,28 @@ local STATE = EnemyStateManager.STATE
 local EnemyTargeting = {}
 
 function EnemyTargeting.findNearestPlayer(position, range)
-	local nearest = nil
-	local nearestDist = range
+    local nearest = nil
+    local nearestDist = range
 
-	for _, player in Players:GetPlayers() do
-		local character = player.Character
-		if not character then continue end
+    for _, player in Players:GetPlayers() do
+        local character = player.Character
+        if not character then continue end
+        if character:GetAttribute("IsDead") then continue end  -- ← ДОБАВИТЬ
 
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart then continue end
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then continue end
 
-		local humanoid = character:FindFirstChild("Humanoid")
-		if not humanoid or humanoid.Health <= 0 then continue end
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then continue end
 
-		local dist = (rootPart.Position - position).Magnitude
-		if dist < nearestDist then
-			nearest = character
-			nearestDist = dist
-		end
-	end
+        local dist = (rootPart.Position - position).Magnitude
+        if dist < nearestDist then
+            nearest = character
+            nearestDist = dist
+        end
+    end
 
-	return nearest, nearestDist
+    return nearest, nearestDist
 end
 
 function EnemyTargeting.alertPack(enemy, target, config)
