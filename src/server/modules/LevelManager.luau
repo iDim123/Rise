@@ -279,7 +279,7 @@ EventBus.on("EntityDying", function(entity, attacker)
     print("[LevelManager] " .. player.Name .. " gained " .. xpReward .. " XP from " .. enemyType)
 
     -- XP активному слуге (если призван)
-    local ServantManager = require(modules:WaitForChild("ServantManager"))
+    local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
     local servantData = ServantManager.getData(player)
     if servantData and servantData.activeId then
         LevelManager.addServantXP(servantData.activeId, xpReward)

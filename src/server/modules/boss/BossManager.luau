@@ -1,4 +1,4 @@
-Copylocal Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
@@ -18,7 +18,7 @@ local activeBosses = {} -- [bossId] = { entity, state, downedTimer, downedAttack
 local BOSS_STATE = {
     ALIVE = "Alive",
     DOWNED = "Downed",
-    DEAD = "Dead",
+    DEAD = "Dead"
 }
 
 BossManager.BOSS_STATE = BOSS_STATE
@@ -101,7 +101,7 @@ function BossManager.registerBoss(bossId, entity)
         entity = entity,
         state = BOSS_STATE.ALIVE,
         downedTimer = nil,
-        downedAttacker = nil,
+        downedAttacker = nil
     }
     entity:SetAttribute("IsBoss", true)
     entity:SetAttribute("BossId", bossId)
@@ -120,7 +120,9 @@ end
 
 function BossManager.onBossDowned(bossId, attacker)
     local data = activeBosses[bossId]
-    if not data or data.state ~= BOSS_STATE.ALIVE then return end
+    if not data or data.state ~= BOSS_STATE.ALIVE then
+        return
+    end
 
     data.state = BOSS_STATE.DOWNED
     data.downedAttacker = attacker
@@ -155,7 +157,9 @@ end
 
 function BossManager.autoDeath(bossId)
     local data = activeBosses[bossId]
-    if not data or data.state ~= BOSS_STATE.DOWNED then return end
+    if not data or data.state ~= BOSS_STATE.DOWNED then
+        return
+    end
 
     print("[BossManager] " .. bossId .. " auto-died (no one finished/captured)")
     BossManager.killBoss(bossId)
@@ -163,7 +167,9 @@ end
 
 function BossManager.killBoss(bossId)
     local data = activeBosses[bossId]
-    if not data then return end
+    if not data then
+        return
+    end
 
     data.state = BOSS_STATE.DEAD
 
@@ -245,7 +251,8 @@ function BossManager.spawnBoss(bossId, spawnPosition)
 
     BossManager.registerBoss(bossId, entity)
 
-    print("[BossManager] Spawned boss: " .. bossConfig.Name .. " Lv" .. bossConfig.Level .. " at " .. tostring(spawnPosition))
+    print("[BossManager] Spawned boss: " .. bossConfig.Name .. " Lv" .. bossConfig.Level .. " at " ..
+              tostring(spawnPosition))
     return entity
 end
 

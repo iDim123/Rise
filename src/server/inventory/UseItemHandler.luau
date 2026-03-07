@@ -7,7 +7,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
-local ServantManager = require(modules:WaitForChild("ServantManager"))
+local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
 
 local UseItemHandler = {}
 

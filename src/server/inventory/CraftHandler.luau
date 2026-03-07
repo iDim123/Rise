@@ -109,7 +109,7 @@ function CraftHandler.onCraftItem(player, recipeId)
 
     -- Check tech requirement
     if recipe.RequiresTech then
-        local BossManager = require(modules:WaitForChild("BossManager"))
+        local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
         if not BossManager.hasTech(player, recipe.RequiresTech) then
             print("[Craft] " .. player.Name .. " tried to craft " .. recipeId .. " without tech " .. recipe.RequiresTech)
             return
