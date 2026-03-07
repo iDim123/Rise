@@ -58,6 +58,8 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
     local character = player.Character
     if not character then return end
 
+    if character:GetAttribute("IsDead") then return end 
+
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid or humanoid.Health <= 0 then return end
 

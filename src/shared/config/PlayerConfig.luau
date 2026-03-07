@@ -5,6 +5,6 @@ return {
         MaxLevel = 20,
         BaseXP = 100,
         MaxHP = 200, -- оставляем для обратной совместимости
-        RespawnTime = 5,
-    },
+        RespawnTime = 100
+    }
 }

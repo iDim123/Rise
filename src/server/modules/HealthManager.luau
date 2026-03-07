@@ -122,9 +122,21 @@ end
 
 -- Подписки
 EventBus.on("PlayerDied", function(player, entity, attacker)
+    local humanoid = entity:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.JumpHeight = 0
+    end
+
     Remotes.EntityDied:FireAllClients(entity)
-    task.delay(Config.Player.RespawnTime, function()
-        player:LoadCharacter()
+    Remotes.PlayerDied:FireClient(player, Config.Player.RespawnTime) -- передаём время клиенту
+
+    -- Авто-респавн (страховка)
+    task.delay(Config.Player.RespawnTime + 2, function() -- +2 сек запас
+        if player.Parent and entity and entity:GetAttribute("IsDead") then
+            player:LoadCharacter()
+        end
     end)
 end)
 
@@ -159,5 +171,17 @@ function HealthManager.setMaxHP(entity, newMaxHP)
         humanoid.Health = data.CurrentHP
     end
 end
+
+Remotes.PlayerRespawn.OnServerEvent:Connect(function(player)
+    local character = player.Character
+    if not character then
+        return
+    end
+    if not character:GetAttribute("IsDead") then
+        return
+    end
+
+    player:LoadCharacter()
+end)
 
 return HealthManager

@@ -71,13 +71,16 @@ function BossBehaviors.update(enemy)
         target = nil
     else
         if state.AggroTarget then
-            local aggroRoot = state.AggroTarget:FindFirstChild("HumanoidRootPart")
-            local aggroHum = state.AggroTarget:FindFirstChild("Humanoid")
-            if aggroRoot and aggroHum and aggroHum.Health > 0 then
-                target = state.AggroTarget
-                distToTarget = (aggroRoot.Position - position).Magnitude
-            else
+            local aggroChar = state.AggroTarget
+            local aggroRoot = aggroChar:FindFirstChild("HumanoidRootPart")
+            local aggroHum = aggroChar:FindFirstChild("Humanoid")
+
+            -- Target invalid: dead, destroyed, or no longer in workspace
+            if not aggroRoot or not aggroHum or aggroHum.Health <= 0 or not aggroChar.Parent then
                 state.AggroTarget = nil
+            else
+                target = aggroChar
+                distToTarget = (aggroRoot.Position - position).Magnitude
             end
         end
 
