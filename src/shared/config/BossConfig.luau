@@ -38,7 +38,40 @@ return {
                 Icon = "rbxassetid://133649527466179",
                 Name = "Малая сумка",
                 Description = "Содержит различные ресурсы."
-            }}
+            }},
+            Abilities = {
+                BloodSlash = {
+                    Name = "Кровавый удар",
+                    Type = "DirectDamage",
+                    Damage = 30,
+                    Range = 8,
+                    Cooldown = 6,
+                    Priority = 1, -- higher = used first when available
+                    MinHP = 0, -- use at any HP %
+                    Animation = nil -- animation id (optional)
+                },
+                BloodNova = {
+                    Name = "Кровавая волна",
+                    Type = "AoEDamage",
+                    Damage = 20,
+                    Radius = 12,
+                    Cooldown = 12,
+                    Priority = 2,
+                    MinHP = 0,
+                    Animation = nil
+                },
+                BloodRage = {
+                    Name = "Ярость крови",
+                    Type = "Enrage",
+                    SpeedMultiplier = 1.5,
+                    DamageMultiplier = 1.3,
+                    Duration = 5,
+                    Cooldown = 20,
+                    Priority = 3,
+                    MinHP = 0.5, -- only use below 50% HP
+                    Animation = nil
+                }
+            }
         },
         SawmillBoss = {
             Name = "Глава лесопилки",
@@ -59,7 +92,6 @@ return {
             BloodType = nil,
             BloodQuality = nil,
             CanCapture = false,
-
             Loot = {{
                 ItemId = "wood",
                 Amount = {
@@ -68,14 +100,33 @@ return {
                 },
                 Chance = 1.0
             }},
-
             Unlocks = {{
                 Type = "Recipes",
                 Icon = "rbxassetid://120841469219855", -- иконка досок
                 Name = "Обработка древесины",
                 Description = "Открывает рецепт обработки древесины в доски.",
                 Recipes = {"wooden_plank"}
-            }}
+            }},
+            Abilities = {
+                HeavyChop = {
+                    Name = "Тяжёлый удар",
+                    Type = "DirectDamage",
+                    Damage = 25,
+                    Range = 7,
+                    Cooldown = 5,
+                    Priority = 1,
+                    MinHP = 0
+                },
+                TimberFall = {
+                    Name = "Падение брёвен",
+                    Type = "AoEDamage",
+                    Damage = 15,
+                    Radius = 10,
+                    Cooldown = 15,
+                    Priority = 2,
+                    MinHP = 0
+                }
+            }
         }
     },
 
