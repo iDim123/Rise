@@ -25,62 +25,65 @@ local isRightMouseDown = false
 
 -- Zoom
 UserInputService.InputChanged:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType == Enum.UserInputType.MouseWheel then
-		CAMERA_DISTANCE = math.clamp(
-			CAMERA_DISTANCE - input.Position.Z * ZOOM_STEP,
-			MIN_DISTANCE,
-			MAX_DISTANCE
-		)
-	end
+    if gameProcessed then
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.MouseWheel then
+        CAMERA_DISTANCE = math.clamp(CAMERA_DISTANCE - input.Position.Z * ZOOM_STEP, MIN_DISTANCE, MAX_DISTANCE)
+    end
 end)
 
 -- ПКМ зажатие
 UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		isRightMouseDown = true
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-	end
+    if processed then
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = true
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		isRightMouseDown = false
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = false
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    end
 end)
 
 -- Вращение камеры по yaw при зажатом ПКМ
 UserInputService.InputChanged:Connect(function(input)
-	if not isRightMouseDown then return end
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		CAMERA_ROTATION = CAMERA_ROTATION - input.Delta.X * YAW_SENSITIVITY
-	end
+    if not isRightMouseDown then
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        CAMERA_ROTATION = CAMERA_ROTATION - input.Delta.X * YAW_SENSITIVITY
+    end
 end)
 
 -- Камера
 RunService.RenderStepped:Connect(function()
-	local character = player.Character
-	if not character then return end
+    local character = player.Character
+    if not character then
+        return
+    end
 
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        return
+    end
 
-	camera.CameraType = Enum.CameraType.Scriptable
+    camera.CameraType = Enum.CameraType.Scriptable
 
-	local targetPos = rootPart.Position + FOCUS_OFFSET
-	currentPosition = currentPosition:Lerp(targetPos, SMOOTHNESS)
+    local targetPos = rootPart.Position + FOCUS_OFFSET
+    currentPosition = currentPosition:Lerp(targetPos, SMOOTHNESS)
 
-	local angleRad = math.rad(CAMERA_ANGLE)
-	local rotationRad = math.rad(CAMERA_ROTATION)
+    local angleRad = math.rad(CAMERA_ANGLE)
+    local rotationRad = math.rad(CAMERA_ROTATION)
 
-	local offset = Vector3.new(
-		math.sin(rotationRad) * math.cos(angleRad) * CAMERA_DISTANCE,
-		math.sin(angleRad) * CAMERA_DISTANCE,
-		math.cos(rotationRad) * math.cos(angleRad) * CAMERA_DISTANCE
-	)
+    local offset = Vector3.new(math.sin(rotationRad) * math.cos(angleRad) * CAMERA_DISTANCE,
+        math.sin(angleRad) * CAMERA_DISTANCE, math.cos(rotationRad) * math.cos(angleRad) * CAMERA_DISTANCE)
 
-	local cameraPos = currentPosition + offset
-	camera.CFrame = CFrame.lookAt(cameraPos, currentPosition)
+    local cameraPos = currentPosition + offset
+    camera.CFrame = CFrame.lookAt(cameraPos, currentPosition)
 end)
