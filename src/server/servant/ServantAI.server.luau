@@ -6,6 +6,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
+local StatsManager = require(modules:WaitForChild("StatsManager"))
 
 local TICK_RATE = 0.2
 local lastAttackTimes = {} -- [servantEntity] = tick
@@ -106,8 +107,17 @@ local function updateServant(servant)
                 local now = tick()
                 local lastAttack = lastAttackTimes[servant] or 0
                 if now - lastAttack >= Config.Servants.AttackCooldown then
-                    lastAttackTimes[servant] = now
-                    HealthManager.takeDamage(target, atk, servant)
+                   lastAttackTimes[servant] = now
+
+                    -- FamiliarDamage modifier from owner
+                    local owner = getOwner(servant)
+                    local familiarMod = 1
+                    if owner then
+                        familiarMod = StatsManager.get(owner, "FamiliarDamage")
+                    end
+                    local finalDamage = math.max(1, math.floor(atk * familiarMod))
+
+                    HealthManager.takeDamage(target, finalDamage, servant)
                 end
                 return
             else

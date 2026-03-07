@@ -9,6 +9,8 @@ local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local ResourceManager = require(modules:WaitForChild("ResourceManager"))
+local StatsManager = require(modules:WaitForChild("StatsManager"))
+local LevelManager = require(modules:WaitForChild("LevelManager"))
 
 local AbilityManager = {}
 local abilityCooldowns = {} -- [userId] = { [abilityId] = lastUseTime }
@@ -32,41 +34,88 @@ function AbilityManager.useAbility(player, key, mousePosition)
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
 
-    -- Get weapon and ability config
     local weaponConfig = AbilityManager.getWeaponConfig(player)
     if not weaponConfig then return end
     local ability = weaponConfig.Abilities and weaponConfig.Abilities[key]
     if not ability then return end
 
-    -- Check cooldown
+    -- ═══ Cooldown with CD speed stat ═══
     local userId = player.UserId
     if not abilityCooldowns[userId] then abilityCooldowns[userId] = {} end
     local lastUse = abilityCooldowns[userId][ability.Id] or 0
     local now = tick()
-    if now - lastUse < ability.Cooldown then return end
+
+    local cdSpeed
+    if ability.DamageType == "Magic" then
+        cdSpeed = StatsManager.get(player, "MagicCDSpeed")
+    else
+        cdSpeed = StatsManager.get(player, "WeaponCDSpeed")
+    end
+    local actualCooldown = ability.Cooldown / math.max(cdSpeed, 0.1)
+    if now - lastUse < actualCooldown then return end
 
     -- Apply effects
     for _, effect in ability.Effects do
         if effect.Type == "DirectDamage" then
-            AbilityManager._directDamage(character, rootPart, mousePosition, effect, weaponConfig)
+            AbilityManager._directDamage(player, character, rootPart, mousePosition, effect, weaponConfig)
             AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
         elseif effect.Type == "AoEDamage" then
-            AbilityManager._aoeDamage(character, rootPart, effect)
+            AbilityManager._aoeDamage(player, character, rootPart, effect)
             AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
         elseif effect.Type == "ApplyBuff" then
             BuffManager.applyBuff(character, effect.BuffId, effect.Duration, ability.Id)
-
         elseif effect.Type == "ApplyDebuff" then
             AbilityManager._applyDebuffToTargets(character, rootPart, mousePosition, effect, weaponConfig)
         end
     end
 
-    -- Start cooldown
     abilityCooldowns[userId][ability.Id] = now
-    Remotes.AbilityCooldown:FireClient(player, key, ability.Cooldown)
+    Remotes.AbilityCooldown:FireClient(player, key, actualCooldown)
 
     print("[Ability] " .. player.Name .. " used " .. ability.Name .. " (" .. key .. ")")
 end
+
+-- ═══ Расчёт урона способности ═══
+local function calcAbilityDamage(player, character, target, baseDamage, damageType)
+    damageType = damageType or "Physical"
+
+    local damage = baseDamage
+
+    if damageType == "Magic" then
+        local magPower = StatsManager.get(player, "MagicalPower")
+        damage = baseDamage * (magPower / 10)
+
+        local critChance = StatsManager.get(player, "MagicCritChance")
+        local critDamage = StatsManager.get(player, "MagicCritDamage")
+        if math.random() < critChance then
+            damage = damage * critDamage
+        end
+
+        local targetResist = target:GetAttribute("MagicResistance") or 0
+        damage = damage * (1 - targetResist / 100)
+    else
+        local physPower = StatsManager.get(player, "PhysicalPower")
+        damage = baseDamage * (physPower / 10)
+
+        local critChance = StatsManager.get(player, "PhysCritChance")
+        local critDamage = StatsManager.get(player, "PhysCritDamage")
+        if math.random() < critChance then
+            damage = damage * critDamage
+        end
+
+        local targetResist = target:GetAttribute("PhysResistance") or 0
+        damage = damage * (1 - targetResist / 100)
+    end
+
+    -- Level modifier
+    local playerLevel = LevelManager.getPlayerLevel(player)
+    local targetLevel = target:GetAttribute("Level") or target:GetAttribute("EnemyLevel") or playerLevel
+    local dmgMod = LevelManager.getDamageModifier(playerLevel, targetLevel)
+    damage = damage * (1 + dmgMod)
+
+    return math.max(1, math.floor(damage))
+end
+
 
 function AbilityManager._getEnemiesInRadius(position, radius)
     local targets = {}
@@ -101,12 +150,11 @@ function AbilityManager._getPlayersInRadius(attacker, position, radius)
     return targets
 end
 
-function AbilityManager._directDamage(character, rootPart, mousePosition, effect, weaponConfig)
+function AbilityManager._directDamage(player, character, rootPart, mousePosition, effect, weaponConfig)
     local range = weaponConfig.Range or 6
     local direction = (mousePosition - rootPart.Position).Unit
     local targets = {}
 
-    -- Collect enemies
     for _, enemy in AbilityManager._getEnemiesInRadius(rootPart.Position, range) do
         local eRoot = enemy:FindFirstChild("HumanoidRootPart")
         if eRoot then
@@ -117,7 +165,6 @@ function AbilityManager._directDamage(character, rootPart, mousePosition, effect
         end
     end
 
-    -- Collect players
     for _, target in AbilityManager._getPlayersInRadius(character, rootPart.Position, range) do
         local tRoot = target:FindFirstChild("HumanoidRootPart")
         if tRoot then
@@ -128,7 +175,6 @@ function AbilityManager._directDamage(character, rootPart, mousePosition, effect
         end
     end
 
-    -- Apply damage to first target (single target)
     if #targets > 0 then
         local closest = nil
         local closestDist = math.huge
@@ -143,12 +189,13 @@ function AbilityManager._directDamage(character, rootPart, mousePosition, effect
             end
         end
         if closest then
-            HealthManager.takeDamage(closest, effect.Damage, character)
+            local finalDamage = calcAbilityDamage(player, character, closest, effect.Damage, effect.DamageType)
+            HealthManager.takeDamage(closest, finalDamage, character)
         end
     end
 end
 
-function AbilityManager._aoeDamage(character, rootPart, effect)
+function AbilityManager._aoeDamage(player, character, rootPart, effect)
     local radius = effect.Radius or 8
     local targets = AbilityManager._getEnemiesInRadius(rootPart.Position, radius)
     for _, target in AbilityManager._getPlayersInRadius(character, rootPart.Position, radius) do
@@ -156,7 +203,8 @@ function AbilityManager._aoeDamage(character, rootPart, effect)
     end
 
     for _, target in targets do
-        HealthManager.takeDamage(target, effect.Damage, character)
+        local finalDamage = calcAbilityDamage(player, character, target, effect.Damage, effect.DamageType)
+        HealthManager.takeDamage(target, finalDamage, character)
     end
 end
 

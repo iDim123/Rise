@@ -51,45 +51,61 @@ function BloodManager.getBuffs(player)
 end
 
 function BloodManager.getStatBonuses(character)
-	local bonuses = {}
-	local bloodType = character:GetAttribute("BloodType")
-	local quality = character:GetAttribute("BloodQuality") or 0
+    local bonuses = {}
+    local bloodType = character:GetAttribute("BloodType")
+    local quality = character:GetAttribute("BloodQuality") or 0
 
-	if not bloodType or quality <= 0 then return bonuses end
+    if not bloodType or quality <= 0 then return bonuses end
 
-	local typeConfig = Config.Blood.Types[bloodType]
-	if not typeConfig or not typeConfig.Tiers then return bonuses end
+    local typeConfig = Config.Blood.Types[bloodType]
+    if not typeConfig or not typeConfig.Tiers then return bonuses end
 
-	local thresholds = Config.Blood.TierThresholds
-	if not thresholds then return bonuses end
+    local thresholds = Config.Blood.TierThresholds
+    if not thresholds then return bonuses end
 
-	local hasMAX = (quality >= thresholds.MAX)
+    local hasMAX = (quality >= thresholds.MAX)
 
-	for tierKey, tierData in typeConfig.Tiers do
-		if tierKey == "MAX" then continue end
+    -- Collect BloodBonusPower from equipment only (avoid recursion)
+    local bloodBonusPower = 1.0
+    local Players = game:GetService("Players")
+    local player = Players:GetPlayerFromCharacter(character)
+    if player then
+        local InventoryManager = require(game:GetService("ServerScriptService")
+            :WaitForChild("modules"):WaitForChild("InventoryManager"))
+        local equipment = InventoryManager.getEquipment(player)
+        for _, item in equipment do
+            if item and item ~= false and item.Stats and item.Stats.BloodBonusPower then
+                bloodBonusPower = bloodBonusPower + item.Stats.BloodBonusPower
+            end
+        end
+    end
 
-		local threshold = thresholds[tierKey]
-		if quality >= threshold and tierData.Stat then
-			local qMin = tierData.QualityRange[1]
-			local qMax = tierData.QualityRange[2]
-			local t = math.clamp((quality - qMin) / math.max(qMax - qMin, 1), 0, 1)
-			local bonus = tierData.Min + (tierData.Max - tierData.Min) * t
+    for tierKey, tierData in typeConfig.Tiers do
+        if tierKey == "MAX" then continue end
 
-			if hasMAX then
-				local maxTier = typeConfig.Tiers.MAX
-				if maxTier and maxTier.Type == "BoostAll" then
-					bonus = bonus * maxTier.Multiplier
-				end
-			end
+        local threshold = thresholds[tierKey]
+        if quality >= threshold and tierData.Stat then
+            local qMin = tierData.QualityRange[1]
+            local qMax = tierData.QualityRange[2]
+            local t = math.clamp((quality - qMin) / math.max(qMax - qMin, 1), 0, 1)
+            local bonus = tierData.Min + (tierData.Max - tierData.Min) * t
 
-			-- Apply BloodBonusPower (from other sources, not blood itself to avoid recursion)
-			bonuses[tierData.Stat] = (bonuses[tierData.Stat] or 0) + bonus
-		end
-	end
+            if hasMAX then
+                local maxTier = typeConfig.Tiers.MAX
+                if maxTier and maxTier.Type == "BoostAll" then
+                    bonus = bonus * maxTier.Multiplier
+                end
+            end
 
-	return bonuses
+            -- Apply BloodBonusPower
+            bonus = bonus * bloodBonusPower
+
+            bonuses[tierData.Stat] = (bonuses[tierData.Stat] or 0) + bonus
+        end
+    end
+
+    return bonuses
 end
-
 function BloodManager.drinkBlood(player, enemyEntity)
     local data = playerBlood[player.UserId]
     if not data then return false end
@@ -154,11 +170,14 @@ function BloodManager.tick(player, deltaTime)
     local userId = player.UserId
     drainAccumulator[userId] = (drainAccumulator[userId] or 0) + deltaTime
 
-    -- Каждую секунду тратим кровь
     if drainAccumulator[userId] < Config.Blood.DrainTickSeconds then return end
     drainAccumulator[userId] = 0
 
-    local drainPerSecond = Config.Blood.DrainRate / 60 -- 2%/мин = 0.0333%/сек
+    -- BloodDrainRate modifier
+    local StatsManager = require(game:GetService("ServerScriptService"):WaitForChild("modules"):WaitForChild("StatsManager"))
+    local drainMod = StatsManager.get(player, "BloodDrainRate")
+
+    local drainPerSecond = (Config.Blood.DrainRate / 60) * drainMod
     data.Amount = data.Amount - drainPerSecond
 
     if data.Amount <= 0 then

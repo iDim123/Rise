@@ -34,6 +34,7 @@ return {
                     Icon = "rbxassetid://109099176664820",
                     AnimationId = "rbxassetid://110637980313006",
                     Cooldown = 8,
+                    DamageType = "Physical",
                     Effects = {{
                         Type = "AoEDamage",
                         Damage = 40,
@@ -48,6 +49,7 @@ return {
                     Icon = "rbxassetid://107340020831744",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 12,
+                    DamageType = "Physical",
                     Effects = {{
                         Type = "DirectDamage",
                         Damage = 60
@@ -93,6 +95,7 @@ return {
                     Icon = "rbxassetid://110176616320571",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 10,
+                    DamageType = "Physical",
                     Effects = {{
                         Type = "ApplyBuff",
                         BuffId = "damage_boost",
@@ -106,6 +109,7 @@ return {
                     Icon = "rbxassetid://107340020831744",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 14,
+                    DamageType = "Physical",
                     Effects = {{
                         Type = "AoEDamage",
                         Damage = 35,
