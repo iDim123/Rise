@@ -5,7 +5,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local ServantManager = require(modules:WaitForChild("ServantManager"))
+local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 
 local captureCooldowns = {}

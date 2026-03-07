@@ -43,7 +43,7 @@ function HealthManager.takeDamage(entity, damage, attacker)
     if data.CurrentHP <= 0 then
         local bossId = entity:GetAttribute("BossId")
         if bossId then
-            local BossManager = require(modules:WaitForChild("BossManager"))
+            local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
             if BossManager.getBossState(bossId) == BossManager.BOSS_STATE.ALIVE then
                 -- Don't kill, just down
                 data.CurrentHP = 1

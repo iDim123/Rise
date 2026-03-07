@@ -1,41 +1,13 @@
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local EventBus = require(script.Parent:WaitForChild("EventBus"))
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local EventBus = require(script.Parent.Parent:WaitForChild("EventBus"))
+local ServantEquipment = require(script.Parent:WaitForChild("ServantEquipment"))
 
 local ServantManager = {}
 local playerServants = {}
-
--- === Формулы ===
-
-local function calcItemLevelSum(equipment)
-    local sum = 0
-    for _, item in equipment do
-        if item and item ~= false then
-            local itemDef = Config.Items[item.Id]
-            sum = sum + (itemDef and itemDef.ItemLevel or item.ItemLevel or 0)
-        end
-    end
-    return sum
-end
-
-local function calcPower(expertise, equipment)
-    local base = Config.Servants.PowerBase
-    local sum = calcItemLevelSum(equipment)
-    return math.floor(base + base * expertise / 100 + sum)
-end
-
-local function recalcStats(servant)
-    local power = calcPower(servant.expertise, servant.equipment)
-    servant.power = power
-    servant.atk = math.floor(servant.baseATK + power / 10)
-    servant.maxHP = math.floor(servant.baseHP + power)
-    if servant.hp > servant.maxHP then
-        servant.hp = servant.maxHP
-    end
-end
 
 -- === Init ===
 
@@ -110,11 +82,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
     local baseATK = enemyConfig and enemyConfig.Damage or 10
     local baseHP = enemyConfig and enemyConfig.MaxHP or 80
 
-    -- Инициализируем пустую экипировку
-    local equipment = {}
-    for _, slotConfig in Config.Servants.EquipmentSlots do
-        equipment[slotConfig.Id] = false
-    end
+    local equipment = ServantEquipment.initSlots()
 
     local servantId = tostring(tick()) .. "_" .. math.random(1000, 9999)
     local servant = {
@@ -135,7 +103,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
         mode = Config.Servants.Modes.Aggressive
     }
 
-    recalcStats(servant)
+    ServantEquipment.recalcStats(servant)
     servant.hp = servant.maxHP
 
     table.insert(data.captured, servant)
@@ -174,10 +142,7 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
     local baseATK = enemyConfig.Damage or 10
     local baseHP = enemyConfig.MaxHP or 100
 
-    local equipment = {}
-    for _, slotConfig in Config.Servants.EquipmentSlots do
-        equipment[slotConfig.Id] = false
-    end
+    local equipment = ServantEquipment.initSlots()
 
     local servantId = tostring(tick()) .. "_" .. math.random(1000, 9999)
     local servant = {
@@ -198,7 +163,7 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
         mode = Config.Servants.Modes.Passive
     }
 
-    recalcStats(servant)
+    ServantEquipment.recalcStats(servant)
     servant.hp = servant.maxHP
 
     table.insert(data.captured, servant)
@@ -208,6 +173,7 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
 
     return true, servantId
 end
+
 -- === Lookup ===
 
 function ServantManager.getServantById(player, servantId)
@@ -223,7 +189,7 @@ function ServantManager.getServantById(player, servantId)
     return nil
 end
 
--- === Equipment ===
+-- === Equipment (delegates to ServantEquipment) ===
 
 function ServantManager.equipItem(player, servantId, slotId, itemData)
     local servant = ServantManager.getServantById(player, servantId)
@@ -231,37 +197,15 @@ function ServantManager.equipItem(player, servantId, slotId, itemData)
         return false, nil
     end
 
-    -- Проверяем что слот существует
-    local validSlot = false
-    for _, slotConfig in Config.Servants.EquipmentSlots do
-        if slotConfig.Id == slotId then
-            validSlot = true
-            break
-        end
-    end
-    if not validSlot then
+    local success, previousItem = ServantEquipment.equip(servant, slotId, itemData)
+    if not success then
         return false, nil
     end
 
-    local previousItem = servant.equipment[slotId]
-    if previousItem == false then
-        previousItem = nil
-    end
-
-    servant.equipment[slotId] = itemData
-    recalcStats(servant)
-
-    -- Обновляем активного слугу если он заспавнен
+    -- Sync active entity
     local data = playerServants[player.UserId]
     if data and data.activeEntity and data.activeId == servantId then
-        data.activeEntity:SetAttribute("ServantATK", servant.atk)
-        data.activeEntity:SetAttribute("MaxHP", servant.maxHP)
-        data.activeEntity:SetAttribute("CurrentHP", servant.hp)
-        local humanoid = data.activeEntity:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = servant.maxHP
-            humanoid.Health = servant.hp
-        end
+        ServantEquipment.syncEntity(servant, data.activeEntity)
     end
 
     return true, previousItem
@@ -273,24 +217,14 @@ function ServantManager.unequipItem(player, servantId, slotId)
         return false, nil
     end
 
-    local item = servant.equipment[slotId]
-    if not item or item == false then
+    local success, item = ServantEquipment.unequip(servant, slotId)
+    if not success then
         return false, nil
     end
 
-    servant.equipment[slotId] = false
-    recalcStats(servant)
-
     local data = playerServants[player.UserId]
     if data and data.activeEntity and data.activeId == servantId then
-        data.activeEntity:SetAttribute("ServantATK", servant.atk)
-        data.activeEntity:SetAttribute("MaxHP", servant.maxHP)
-        data.activeEntity:SetAttribute("CurrentHP", servant.hp)
-        local humanoid = data.activeEntity:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = servant.maxHP
-            humanoid.Health = servant.hp
-        end
+        ServantEquipment.syncEntity(servant, data.activeEntity)
     end
 
     return true, item

@@ -5,7 +5,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local BossManager = require(modules:WaitForChild("BossManager"))
+local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
 
 -- ═══ Spawn bosses from SpawnPoints ═══
 local function initBossSpawnPoints()
