@@ -12,7 +12,7 @@ function EnemyTargeting.findNearestPlayer(position, range)
     for _, player in Players:GetPlayers() do
         local character = player.Character
         if not character then continue end
-        if character:GetAttribute("IsDead") then continue end  -- ← ДОБАВИТЬ
+        if character:GetAttribute("IsDead") then continue end  -- главная проверка
 
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not rootPart then continue end

@@ -120,21 +120,24 @@ function HealthManager.getData(entity)
     return healthData[entity]
 end
 
--- Подписки
 EventBus.on("PlayerDied", function(player, entity, attacker)
     local humanoid = entity:FindFirstChild("Humanoid")
     if humanoid then
         humanoid.WalkSpeed = 0
         humanoid.JumpPower = 0
         humanoid.JumpHeight = 0
-        humanoid.Health = 0
+        humanoid.Health = 1
+        humanoid.MaxHealth = math.huge -- запрещаем естественную смерть
     end
 
     Remotes.EntityDied:FireAllClients(entity)
-    Remotes.PlayerDied:FireClient(player, Config.Player.RespawnTime)
 
-    task.delay(Config.Player.RespawnTime + 2, function()
-        if player.Parent and entity and entity:GetAttribute("IsDead") then
+    local respawnTime = Config.Player.RespawnTime or 10
+    Remotes.PlayerDied:FireClient(player, respawnTime)
+
+    -- Страховка
+    task.delay(respawnTime + 2, function()
+        if player.Parent and entity and entity.Parent and entity:GetAttribute("IsDead") then
             player:LoadCharacter()
         end
     end)

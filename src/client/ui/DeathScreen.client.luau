@@ -103,22 +103,15 @@ end
 respawnBtn.MouseButton1Click:Connect(requestRespawn)
 
 Remotes.PlayerDied.OnClientEvent:Connect(function(respawnTime)
+    print("[DeathUI] Received PlayerDied, respawnTime:", respawnTime)
     show(respawnTime or 10)
 end)
 
 player.CharacterAdded:Connect(function()
     hide()
 end)
--- Button click
 respawnBtn.MouseButton1Click:Connect(requestRespawn)
 
--- Listen for death event from server
-Remotes.PlayerDied.OnClientEvent:Connect(function(respawnTime)
-    show(respawnTime or 10)
-end)
-
--- Reset when character respawns (ResetOnSpawn handles destroying old ScreenGui,
--- but we also reset state if the character loads before UI is cleaned up)
 player.CharacterAdded:Connect(function()
     hide()
 end)
