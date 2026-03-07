@@ -68,7 +68,8 @@ function EnemyBehaviors.update(enemy)
         if state.AggroTarget then
             local aggroRoot = state.AggroTarget:FindFirstChild("HumanoidRootPart")
             local aggroHumanoid = state.AggroTarget:FindFirstChild("Humanoid")
-            if aggroRoot and aggroHumanoid and aggroHumanoid.Health > 0 then
+            if aggroRoot and aggroHumanoid and aggroHumanoid.Health > 0 and state.AggroTarget.Parent and
+                not state.AggroTarget:GetAttribute("IsDead") then
                 target = state.AggroTarget
                 distToTarget = (aggroRoot.Position - position).Magnitude
             else

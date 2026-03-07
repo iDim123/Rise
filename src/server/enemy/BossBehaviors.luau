@@ -78,11 +78,19 @@ function BossBehaviors.update(enemy)
             if not aggroRoot or not aggroHum or aggroHum.Health <= 0 or not aggroChar.Parent or
                 aggroChar:GetAttribute("IsDead") then
                 state.AggroTarget = nil
+            else
+                target = aggroChar
+                distToTarget = (aggroRoot.Position - position).Magnitude
             end
         end
 
         if not target then
             target, distToTarget = EnemyTargeting.findNearestPlayer(position, bossConfig.AggroRange)
+        end
+
+        if not target and state.State ~= STATE.IDLE then
+            state.State = STATE.RETURN
+            state.AggroTarget = nil
         end
     end
 
