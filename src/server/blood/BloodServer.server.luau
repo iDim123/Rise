@@ -49,16 +49,6 @@ Remotes.DrinkBloodRequest.OnServerEvent:Connect(function(player)
     end
 end)
 
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        BloodManager.init(player)
-    end)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    BloodManager.remove(player)
-end)
-
 local lastTick = tick()
 RunService.Heartbeat:Connect(function()
     local now = tick()

@@ -132,28 +132,6 @@ EventBus.on("EntityDying", function(entity, attacker)
     Remotes.EntityDied:FireAllClients(entity)
 end)
 
--- Инициализация игроков
-Players.PlayerAdded:Connect(function(player)
-    local LevelManager = require(script.Parent:WaitForChild("LevelManager"))
-    LevelManager.initPlayer(player)
-
-    player.CharacterAdded:Connect(function(character)
-        character:WaitForChild("Humanoid")
-        local maxHP = LevelManager.getPlayerMaxHP(player)
-        HealthManager.init(character, maxHP)
-
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = maxHP
-            humanoid.Health = maxHP
-        end
-
-        -- Recalculate stats after character is ready
-        local StatsManager = require(modules:WaitForChild("StatsManager"))
-        StatsManager.recalculate(player)
-    end)
-end)
-
 function HealthManager.setMaxHP(entity, newMaxHP)
     local data = healthData[entity]
     if not data or data.IsDead then

@@ -7,15 +7,24 @@ return {
             ComboWindow = 1.2,
             ResourceDamage = 15,
             Combo = {
-                [1] = { Damage = 25, AnimationId = "rbxassetid://70662356098178" },
-                [2] = { Damage = 20, AnimationId = "rbxassetid://70662356098178" },
-                [3] = { Damage = 30, AnimationId = "rbxassetid://70662356098178" },
+                [1] = {
+                    Damage = 25,
+                    AnimationId = "rbxassetid://70662356098178"
+                },
+                [2] = {
+                    Damage = 20,
+                    AnimationId = "rbxassetid://70662356098178"
+                },
+                [3] = {
+                    Damage = 30,
+                    AnimationId = "rbxassetid://110637980313006"
+                }
             },
             ComboAbility = {
                 Id = "sword_combo",
                 Name = "Sword Combo",
                 Description = "3-hit combo: slash, thrust, heavy strike.",
-                Icon = "rbxassetid://119544363190700",
+                Icon = "rbxassetid://119544363190700"
             },
             Abilities = {
                 Q = {
@@ -23,11 +32,14 @@ return {
                     Name = "Широкий замах",
                     Description = "Наносит урон всем врагам перед собой.",
                     Icon = "rbxassetid://109099176664820",
-                    AnimationId = "rbxassetid://0",
+                    AnimationId = "rbxassetid://110637980313006",
                     Cooldown = 8,
-                    Effects = {
-                        { Type = "AoEDamage", Damage = 40, Radius = 8, Angle = 180 },
-                    },
+                    Effects = {{
+                        Type = "AoEDamage",
+                        Damage = 40,
+                        Radius = 8,
+                        Angle = 180
+                    }}
                 },
                 E = {
                     Id = "sword_thrust",
@@ -36,12 +48,16 @@ return {
                     Icon = "rbxassetid://107340020831744",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 12,
-                    Effects = {
-                        { Type = "DirectDamage", Damage = 60 },
-                        { Type = "ApplyDebuff", BuffId = "slow", Duration = 3 },
-                    },
-                },
-            },
+                    Effects = {{
+                        Type = "DirectDamage",
+                        Damage = 60
+                    }, {
+                        Type = "ApplyDebuff",
+                        BuffId = "slow",
+                        Duration = 3
+                    }}
+                }
+            }
         },
         Axe = {
             Damage = 20,
@@ -50,15 +66,24 @@ return {
             ComboWindow = 1.0,
             ResourceDamage = 12,
             Combo = {
-                [1] = { Damage = 30, AnimationId = "rbxassetid://131735837276755" },
-                [2] = { Damage = 25, AnimationId = "rbxassetid://131735837276755" },
-                [3] = { Damage = 40, AnimationId = "rbxassetid://131735837276755" },
+                [1] = {
+                    Damage = 30,
+                    AnimationId = "rbxassetid://131735837276755"
+                },
+                [2] = {
+                    Damage = 25,
+                    AnimationId = "rbxassetid://131735837276755"
+                },
+                [3] = {
+                    Damage = 40,
+                    AnimationId = "rbxassetid://131735837276755"
+                }
             },
             ComboAbility = {
                 Id = "axe_combo",
                 Name = "Axe Combo",
                 Description = "3-hit combo: chop, swing, overhead slam.",
-                Icon = "rbxassetid://127853105217094",
+                Icon = "rbxassetid://127853105217094"
             },
             Abilities = {
                 Q = {
@@ -68,9 +93,11 @@ return {
                     Icon = "rbxassetid://110176616320571",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 10,
-                    Effects = {
-                        { Type = "ApplyBuff", BuffId = "damage_boost", Duration = 5 },
-                    },
+                    Effects = {{
+                        Type = "ApplyBuff",
+                        BuffId = "damage_boost",
+                        Duration = 5
+                    }}
                 },
                 E = {
                     Id = "axe_whirlwind",
@@ -79,12 +106,18 @@ return {
                     Icon = "rbxassetid://107340020831744",
                     AnimationId = "rbxassetid://0",
                     Cooldown = 14,
-                    Effects = {
-                        { Type = "AoEDamage", Damage = 35, Radius = 10, Angle = 360 },
-                        { Type = "ApplyDebuff", BuffId = "slow", Duration = 3 },
-                    },
-                },
-            },
-        },
-    },
+                    Effects = {{
+                        Type = "AoEDamage",
+                        Damage = 35,
+                        Radius = 10,
+                        Angle = 360
+                    }, {
+                        Type = "ApplyDebuff",
+                        BuffId = "slow",
+                        Duration = 3
+                    }}
+                }
+            }
+        }
+    }
 }

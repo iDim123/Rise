@@ -26,7 +26,9 @@ local BASE_XP = Config.Player.BaseXP or 100
 -- ══════════════════════════════════
 
 function LevelManager.getXPToNext(level)
-    if level >= MAX_LEVEL then return 0 end
+    if level >= MAX_LEVEL then
+        return 0
+    end
     return BASE_XP * level
 end
 
@@ -57,7 +59,7 @@ function LevelManager.initPlayer(player)
     playerData[userId] = {
         Level = 1,
         XP = 0,
-        MaxHP = LevelManager.getMaxHP(1),
+        MaxHP = LevelManager.getMaxHP(1)
     }
     LevelManager._sendUpdate(player)
     print("[LevelManager] Initialized player " .. player.Name .. " at Level 1")
@@ -80,8 +82,12 @@ end
 
 function LevelManager.addPlayerXP(player, amount)
     local data = playerData[player.UserId]
-    if not data then return end
-    if data.Level >= MAX_LEVEL then return end
+    if not data then
+        return
+    end
+    if data.Level >= MAX_LEVEL then
+        return
+    end
 
     data.XP = data.XP + amount
 
@@ -130,7 +136,7 @@ function LevelManager.initServant(servantId, ownerId, baseHP)
         XP = 0,
         BaseHP = baseHP,
         MaxHP = LevelManager.getMaxHP(1, baseHP),
-        OwnerId = ownerId,
+        OwnerId = ownerId
     }
     print("[LevelManager] Initialized servant " .. servantId .. " at Level 1, BaseHP=" .. baseHP)
 end
@@ -156,8 +162,12 @@ end
 
 function LevelManager.addServantXP(servantId, amount)
     local data = servantLevels[servantId]
-    if not data then return end
-    if data.Level >= MAX_LEVEL then return end
+    if not data then
+        return
+    end
+    if data.Level >= MAX_LEVEL then
+        return
+    end
 
     data.XP = data.XP + amount
 
@@ -196,24 +206,41 @@ end
 
 function LevelManager._sendUpdate(player)
     local data = playerData[player.UserId]
-    if not data then return end
+    if not data then
+        return
+    end
     Remotes.UpdateLevel:FireClient(player, {
         Level = data.Level,
         XP = data.XP,
         MaxHP = data.MaxHP,
-        XPToNext = LevelManager.getXPToNext(data.Level),
+        XPToNext = LevelManager.getXPToNext(data.Level)
     })
 end
 
 function LevelManager._sendServantUpdate(player, servantId)
     local data = servantLevels[servantId]
-    if not data then return end
+    if not data then
+        return
+    end
     Remotes.UpdateServantLevel:FireClient(player, servantId, {
         Level = data.Level,
         XP = data.XP,
         MaxHP = data.MaxHP,
-        XPToNext = LevelManager.getXPToNext(data.Level),
+        XPToNext = LevelManager.getXPToNext(data.Level)
     })
+end
+
+function LevelManager._setPlayerData(player, level, xp)
+    local data = playerData[player.UserId]
+    if not data then
+        LevelManager.initPlayer(player)
+        data = playerData[player.UserId]
+    end
+    data.Level = level
+    data.XP = xp
+    data.MaxHP = LevelManager.getMaxHP(level)
+    LevelManager._sendUpdate(player)
+    print("[LevelManager] Restored player " .. player.Name .. " to Level " .. level .. " (" .. xp .. " XP)")
 end
 
 -- ══════════════════════════════════
@@ -221,21 +248,31 @@ end
 -- ══════════════════════════════════
 
 EventBus.on("EntityDying", function(entity, attacker)
-    if not attacker then return end
+    if not attacker then
+        return
+    end
 
     -- Определяем игрока-атакующего
     local player = Players:GetPlayerFromCharacter(attacker)
-    if not player then return end
+    if not player then
+        return
+    end
 
     -- Определяем тип врага
     local enemyType = entity:GetAttribute("EnemyType")
-    if not enemyType then return end
+    if not enemyType then
+        return
+    end
 
     local enemyConfig = Config.Enemies[enemyType]
-    if not enemyConfig then return end
+    if not enemyConfig then
+        return
+    end
 
     local xpReward = enemyConfig.XPReward or 0
-    if xpReward <= 0 then return end
+    if xpReward <= 0 then
+        return
+    end
 
     -- XP игроку
     LevelManager.addPlayerXP(player, xpReward)

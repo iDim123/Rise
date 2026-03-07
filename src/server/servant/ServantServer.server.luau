@@ -230,15 +230,3 @@ Remotes.ToggleServantFavorite.OnServerEvent:Connect(function(player, servantId)
     if type(servantId) ~= "string" then return end
     ServantManager.toggleFavorite(player, servantId)
 end)
-
-
-Players.PlayerAdded:Connect(function(player)
-    ServantManager.init(player)
-    player.CharacterAdded:Connect(function()
-        ServantManager.dismiss(player)
-    end)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    ServantManager.remove(player)
-end)

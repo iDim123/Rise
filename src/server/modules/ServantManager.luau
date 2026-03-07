@@ -40,11 +40,13 @@ end
 -- === Init ===
 
 function ServantManager.init(player)
-    if playerServants[player.UserId] then return end
+    if playerServants[player.UserId] then
+        return
+    end
     playerServants[player.UserId] = {
         captured = {},
         activeId = nil,
-        activeEntity = nil,
+        activeEntity = nil
     }
     print("[Servants] Initialized for " .. player.Name)
 end
@@ -55,7 +57,9 @@ end
 
 function ServantManager.getCapturedList(player)
     local data = playerServants[player.UserId]
-    if not data then return {} end
+    if not data then
+        return {}
+    end
     return data.captured
 end
 
@@ -63,7 +67,9 @@ end
 
 function ServantManager.captureEnemy(player, enemyEntity)
     local data = playerServants[player.UserId]
-    if not data then return false, "No data" end
+    if not data then
+        return false, "No data"
+    end
 
     if #data.captured >= Config.Servants.MaxCaptured then
         return false, "Max servants reached"
@@ -71,19 +77,27 @@ function ServantManager.captureEnemy(player, enemyEntity)
 
     local currentHP = enemyEntity:GetAttribute("CurrentHP")
     local maxHP = enemyEntity:GetAttribute("MaxHP")
-    if not currentHP or not maxHP or maxHP == 0 then return false, "No HP data" end
+    if not currentHP or not maxHP or maxHP == 0 then
+        return false, "No HP data"
+    end
     if currentHP / maxHP > Config.Servants.CaptureThreshold then
         return false, "Enemy HP too high"
     end
 
     local character = player.Character
-    if not character then return false, "No character" end
+    if not character then
+        return false, "No character"
+    end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     local enemyRoot = enemyEntity:FindFirstChild("HumanoidRootPart")
-    if not rootPart or not enemyRoot then return false, "No root parts" end
+    if not rootPart or not enemyRoot then
+        return false, "No root parts"
+    end
 
     local distance = (enemyRoot.Position - rootPart.Position).Magnitude
-    if distance > Config.Servants.CaptureRange then return false, "Too far" end
+    if distance > Config.Servants.CaptureRange then
+        return false, "Too far"
+    end
 
     local enemyType = enemyEntity:GetAttribute("EnemyType") or "Unknown"
     local bloodQuality = enemyEntity:GetAttribute("BloodQuality") or 0
@@ -118,7 +132,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
         power = 0,
         equipment = equipment,
         favorite = false,
-        mode = Config.Servants.Modes.Aggressive,
+        mode = Config.Servants.Modes.Aggressive
     }
 
     recalcStats(servant)
@@ -135,24 +149,27 @@ function ServantManager.captureEnemy(player, enemyEntity)
         EventBus.fire("EntityRemoved", respawnType, spawnPos)
     end
 
-    print("[Servants] " .. player.Name .. " captured " .. enemyType
-        .. " (Expertise: " .. bloodQuality .. "%, Power: " .. servant.power
-        .. ", ATK: " .. servant.atk .. ", HP: " .. servant.maxHP .. ")")
+    print(
+        "[Servants] " .. player.Name .. " captured " .. enemyType .. " (Expertise: " .. bloodQuality .. "%, Power: " ..
+            servant.power .. ", ATK: " .. servant.atk .. ", HP: " .. servant.maxHP .. ")")
 
     return true, servantId
 end
 
-
 function ServantManager.createFromEgg(player, enemyType, bloodQuality)
     local data = playerServants[player.UserId]
-    if not data then return false, "No data" end
+    if not data then
+        return false, "No data"
+    end
 
     if #data.captured >= Config.Servants.MaxCaptured then
         return false, "Max servants reached"
     end
 
     local enemyConfig = Config.Enemies[enemyType]
-    if not enemyConfig then return false, "Unknown enemy type" end
+    if not enemyConfig then
+        return false, "Unknown enemy type"
+    end
 
     local baseATK = enemyConfig.Damage or 10
     local baseHP = enemyConfig.MaxHP or 100
@@ -178,7 +195,7 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
         power = 0,
         equipment = equipment,
         favorite = false,
-        mode = Config.Servants.Modes.Passive,
+        mode = Config.Servants.Modes.Passive
     }
 
     recalcStats(servant)
@@ -186,10 +203,8 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
 
     table.insert(data.captured, servant)
 
-    print("[Servants] Egg created " .. servant.name
-        .. " for " .. player.Name
-        .. " (Expertise: " .. bloodQuality .. "%, Power: " .. servant.power
-        .. ", ATK: " .. servant.atk .. ", HP: " .. servant.maxHP .. ")")
+    print("[Servants] Egg created " .. servant.name .. " for " .. player.Name .. " (Expertise: " .. bloodQuality ..
+              "%, Power: " .. servant.power .. ", ATK: " .. servant.atk .. ", HP: " .. servant.maxHP .. ")")
 
     return true, servantId
 end
@@ -197,7 +212,9 @@ end
 
 function ServantManager.getServantById(player, servantId)
     local data = playerServants[player.UserId]
-    if not data then return nil end
+    if not data then
+        return nil
+    end
     for _, servant in data.captured do
         if servant.id == servantId then
             return servant
@@ -210,7 +227,9 @@ end
 
 function ServantManager.equipItem(player, servantId, slotId, itemData)
     local servant = ServantManager.getServantById(player, servantId)
-    if not servant then return false, nil end
+    if not servant then
+        return false, nil
+    end
 
     -- Проверяем что слот существует
     local validSlot = false
@@ -220,10 +239,14 @@ function ServantManager.equipItem(player, servantId, slotId, itemData)
             break
         end
     end
-    if not validSlot then return false, nil end
+    if not validSlot then
+        return false, nil
+    end
 
     local previousItem = servant.equipment[slotId]
-    if previousItem == false then previousItem = nil end
+    if previousItem == false then
+        previousItem = nil
+    end
 
     servant.equipment[slotId] = itemData
     recalcStats(servant)
@@ -246,10 +269,14 @@ end
 
 function ServantManager.unequipItem(player, servantId, slotId)
     local servant = ServantManager.getServantById(player, servantId)
-    if not servant then return false, nil end
+    if not servant then
+        return false, nil
+    end
 
     local item = servant.equipment[slotId]
-    if not item or item == false then return false, nil end
+    if not item or item == false then
+        return false, nil
+    end
 
     servant.equipment[slotId] = false
     recalcStats(servant)
@@ -273,7 +300,9 @@ end
 
 function ServantManager.toggleFavorite(player, servantId)
     local servant = ServantManager.getServantById(player, servantId)
-    if not servant then return false end
+    if not servant then
+        return false
+    end
     servant.favorite = not servant.favorite
     return true
 end
@@ -282,24 +311,36 @@ end
 
 function ServantManager.summon(player, servantId)
     local data = playerServants[player.UserId]
-    if not data then return false end
+    if not data then
+        return false
+    end
 
     local servant = ServantManager.getServantById(player, servantId)
-    if not servant then return false end
+    if not servant then
+        return false
+    end
 
     if data.activeEntity then
         ServantManager.dismiss(player)
     end
 
     local character = player.Character
-    if not character then return false end
+    if not character then
+        return false
+    end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return false end
+    if not rootPart then
+        return false
+    end
 
     local enemiesFolder = ServerStorage:FindFirstChild("enemies")
-    if not enemiesFolder then return false end
+    if not enemiesFolder then
+        return false
+    end
     local template = enemiesFolder:FindFirstChild(servant.enemyType)
-    if not template then return false end
+    if not template then
+        return false
+    end
 
     local entity = template:Clone()
     entity.Name = servant.name
@@ -344,13 +385,17 @@ end
 
 function ServantManager.dismiss(player)
     local data = playerServants[player.UserId]
-    if not data then return false end
+    if not data then
+        return false
+    end
 
     if data.activeEntity then
         local servant = ServantManager.getServantById(player, data.activeId)
         if servant then
             local hp = data.activeEntity:GetAttribute("CurrentHP")
-            if hp then servant.hp = hp end
+            if hp then
+                servant.hp = hp
+            end
         end
         data.activeEntity:Destroy()
         data.activeEntity = nil
@@ -361,13 +406,26 @@ function ServantManager.dismiss(player)
     return true
 end
 
+function ServantManager._setPlayerServants(player, captured)
+    local data = playerServants[player.UserId]
+    if not data then
+        ServantManager.init(player)
+        data = playerServants[player.UserId]
+    end
+    data.captured = captured or {}
+end
+
 -- === Mode / Command ===
 
 function ServantManager.setMode(player, mode)
     local data = playerServants[player.UserId]
-    if not data or not data.activeId then return false end
+    if not data or not data.activeId then
+        return false
+    end
     local servant = ServantManager.getServantById(player, data.activeId)
-    if not servant then return false end
+    if not servant then
+        return false
+    end
     servant.mode = mode
     if data.activeEntity then
         data.activeEntity:SetAttribute("ServantMode", mode)
@@ -377,7 +435,9 @@ end
 
 function ServantManager.setCommand(player, command, targetEntity)
     local data = playerServants[player.UserId]
-    if not data or not data.activeEntity then return false end
+    if not data or not data.activeEntity then
+        return false
+    end
     data.activeEntity:SetAttribute("ServantCommand", command)
     if command == Config.Servants.Commands.AttackTarget and targetEntity then
         data.activeEntity:SetAttribute("ServantTargetName", targetEntity.Name)
@@ -389,7 +449,9 @@ end
 
 function ServantManager.renameServant(player, servantId, newName)
     local servant = ServantManager.getServantById(player, servantId)
-    if not servant then return false end
+    if not servant then
+        return false
+    end
     newName = string.sub(newName, 1, 20)
     servant.name = newName
     local data = playerServants[player.UserId]

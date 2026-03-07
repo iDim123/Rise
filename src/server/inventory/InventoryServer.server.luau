@@ -91,27 +91,3 @@ end)
 Remotes.UseItem.OnServerEvent:Connect(function(player, slotIndex)
     UseItemHandler.onUseItem(player, slotIndex)
 end)
-
--- PlayerAdded
-Players.PlayerAdded:Connect(function(player)
-    InventoryManager.create(player)
-
-    -- Тестовые предметы
-    InventoryManager.addItemFromConfig(player, "blood_essence", 150)
-    InventoryManager.addItemFromConfig(player, "Sword", 1)
-    InventoryManager.addItemFromConfig(player, "iron_helmet", 1)
-    InventoryManager.addItemFromConfig(player, "debug_servant_egg", 10)
-    InventoryManager.addItemFromConfig(player, "Axe", 1)
-    InventoryManager.addItemFromConfig(player, "debug_buff_potion", 10)
-    InventoryManager.addItemFromConfig(player, "rugged_hide", 900)
-    InventoryManager.addItemFromConfig(player, "small_bag", 1)
-    InventoryManager.addItemFromConfig(player, "blood_vial_warrior", 5)
-    InventoryManager.addItemFromConfig(player, "blood_vial_creature", 5)
-end)
-
--- PlayerRemoving
-Players.PlayerRemoving:Connect(function(player)
-    CraftHandler.cleanup(player)
-    UseItemHandler.cleanup(player)
-    InventoryManager.remove(player)
-end)

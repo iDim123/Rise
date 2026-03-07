@@ -7,15 +7,6 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local BossManager = require(modules:WaitForChild("BossManager"))
 
--- ═══ Init players ═══
-Players.PlayerAdded:Connect(function(player)
-    BossManager.initPlayer(player)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    BossManager.removePlayer(player)
-end)
-
 -- ═══ Spawn bosses from SpawnPoints ═══
 local function initBossSpawnPoints()
     local spawnPoints = workspace:FindFirstChild("SpawnPoints")

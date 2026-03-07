@@ -17,13 +17,6 @@ local weaponsFolder = ServerStorage:WaitForChild("weapons")
 
 local attackCooldowns = {}
 
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
-		character:WaitForChild("Humanoid")
-		attackCooldowns[player.UserId] = 0
-	end)
-end)
-
 local function getWeaponConfig(player)
 	local inv = InventoryManager.getInventory(player)
 	if not inv or not inv.activeWeaponSlot then return nil, nil end
@@ -62,29 +55,28 @@ local function getTargets(attacker)
 end
 
 Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comboIndex)
-	local character = player.Character
-	if not character then return end
+    local character = player.Character
+    if not character then return end
 
-	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then return end
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return end
 
-	local tool = character:FindFirstChildOfClass("Tool")
-	if not tool then return end
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then return end
 
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
 
-	-- Определяем оружие динамически
-	local weaponConfig, weaponItem = getWeaponConfig(player)
-	if not weaponConfig then return end
+    local weaponConfig, weaponItem = getWeaponConfig(player)
+    if not weaponConfig then return end
 
-	-- ═══ Кулдаун с учётом AttackSpeed ═══
-	local now = tick()
-	local lastAttack = attackCooldowns[player.UserId] or 0
-	local attackSpeed = StatsManager.get(player, "AttackSpeed")
-	local actualCooldown = weaponConfig.Cooldown / math.max(attackSpeed, 0.1)
-	if now - lastAttack < actualCooldown then return end
-	attackCooldowns[player.UserId] = now
+    -- Single cooldown check
+    local now = tick()
+    local lastAttack = attackCooldowns[player.UserId] or 0
+    local attackSpeed = StatsManager.get(player, "AttackSpeed")
+    local actualCooldown = weaponConfig.Cooldown / math.max(attackSpeed, 0.1)
+    if now - lastAttack < actualCooldown then return end
+    attackCooldowns[player.UserId] = now
 
 	-- ═══ Комбо и базовый урон ═══
 	local comboConfig = weaponConfig.Combo
@@ -188,10 +180,6 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePosition, comb
 			end
 		end
 	end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	attackCooldowns[player.UserId] = nil
 end)
 
 Remotes.UseAbility.OnServerEvent:Connect(function(player, key, mousePosition)

@@ -422,6 +422,22 @@ function BossManager.getPlayerBossData(player)
     return result
 end
 
+function BossManager._setPlayerEssence(player, saved)
+    essenceData[player.UserId] = saved or {}
+end
+
+function BossManager._getPlayerEssence(player)
+    return essenceData[player.UserId] or {}
+end
+
+function BossManager._setPlayerTechs(player, saved)
+    unlockedTechs[player.UserId] = saved or {}
+end
+
+function BossManager._getPlayerTechs(player)
+    return unlockedTechs[player.UserId] or {}
+end
+
 -- ═══ Override HealthManager.die for bosses ═══
 -- Hook into EntityDying to intercept boss death
 EventBus.on("EntityDying", function(entity, attacker)
