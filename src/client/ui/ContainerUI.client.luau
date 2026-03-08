@@ -400,11 +400,15 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == Enum.KeyCode.F then
-        if window.Visible then return end
+        -- NEW: если окно уже открыто — взять всё
+        if window.Visible and currentContainerId then
+            Remotes.ContainerTakeAll:FireServer(currentContainerId)
+            return
+        end
+
         if isCasting then return end
 
         if nearbyContainer and nearbyContainer.containerId then
-            -- NEW: не открывать пустой сундук
             if nearbyContainer.model and nearbyContainer.model:GetAttribute("ContainerEmpty") then
                 return
             end
