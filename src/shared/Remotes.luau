@@ -11,6 +11,8 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "ToggleServantFavorite", "UpdateServantData", "UpdateBuffs", "UseAbility", "AbilityCooldown",
                 "ResourceGathered", "UpdateLevel", "UpdateServantLevel", "UpdateStats", "BossFinish", "BossCapture",
                 "BossFinishResult", "BossCaptureResult", "UnlockTech", "Notify", "DebugCommand", "PlayerDied",
+                "ContainerOpen", "ContainerClose", "ContainerTakeItem", "ContainerTakeAll", "ContainerSort",
+                "ContainerOpened", "ContainerUpdate", "ContainerClosed", "CastStart", "CastCancel", "CastCancelRequest",
                 "PlayerRespawn"}
 
 -- RemoteFunctions

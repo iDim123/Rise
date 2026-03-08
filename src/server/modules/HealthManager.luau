@@ -33,6 +33,8 @@ function HealthManager.takeDamage(entity, damage, attacker)
     data.CurrentHP = math.floor(math.max(0, data.CurrentHP - damage))
     entity:SetAttribute("CurrentHP", data.CurrentHP)
 
+    EventBus.fire("EntityTookDamage", entity, damage, attacker)
+
     local attackerName = attacker and attacker.Name or "Unknown"
     Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
 
