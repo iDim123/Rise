@@ -91,6 +91,18 @@ local function serializeSlots(slots)
     return result
 end
 
+local function updateEmptyAttribute(data)
+    if not data.model then return end
+    local isEmpty = true
+    for _, slot in data.slots do
+        if slot and slot ~= false then
+            isEmpty = false
+            break
+        end
+    end
+    data.model:SetAttribute("ContainerEmpty", isEmpty)
+end
+
 -- ──────────────────────────────────────────────
 -- Публичное API
 -- ──────────────────────────────────────────────
@@ -162,6 +174,7 @@ function ContainerManager._trySpawn(containerId)
     end
 
     data.slots = slots
+    updateEmptyAttribute(data)
     data.state = STATE.ACTIVE
     data.openedBy = {}
 
@@ -292,6 +305,7 @@ function ContainerManager._finishOpen(player, data)
 
     data.state = STATE.OPENED
     data.openedBy[player.UserId] = true
+    updateEmptyAttribute(data)
 
     local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
     Remotes.ContainerOpened:FireClient(player, data.id, serializeSlots(data.slots), data.config.Name)
@@ -325,6 +339,7 @@ function ContainerManager.takeItem(player, containerId, slotIndex)
     end
 
     data.slots[slotIndex] = false
+    updateEmptyAttribute(data)
     InventorySync.sendFullUpdate(player)
     ContainerManager._broadcastUpdate(data)
     return true
@@ -333,20 +348,10 @@ end
 -- Игрок берёт всё
 function ContainerManager.takeAll(player, containerId)
     local data = containers[containerId]
-    if not data then
-        print("[ContainerManager] takeAll FAIL: no data for", containerId)
-        return
-    end
-    if data.state ~= STATE.OPENED then
-        print("[ContainerManager] takeAll FAIL: state =", data.state, containerId)
-        return
-    end
-    if not data.openedBy[player.UserId] then
-        print("[ContainerManager] takeAll FAIL: not in openedBy", player.Name, containerId)
-        return
-    end
-    print("[ContainerManager] takeAll OK:", player.Name, containerId)
-    
+    if not data then return end
+    if data.state ~= STATE.OPENED then return end
+    if not data.openedBy[player.UserId] then return end
+
     local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
     local InventorySync    = require(script.Parent:WaitForChild("InventorySync"))
 
@@ -361,10 +366,38 @@ function ContainerManager.takeAll(player, containerId)
         end
     end
 
+    updateEmptyAttribute(data)
+
     if anyAdded then
         InventorySync.sendFullUpdate(player)
+    end
+
+    -- NEW: проверяем пуст ли сундук после забора
+    local isEmpty = true
+    for _, slot in data.slots do
+        if slot and slot ~= false then
+            isEmpty = false
+            break
+        end
+    end
+
+    if isEmpty then
+        -- Закрываем UI у этого игрока
+        ContainerManager.close(player, containerId)
+    else
         ContainerManager._broadcastUpdate(data)
     end
+end
+
+function ContainerManager.isEmpty(containerId)
+    local data = containers[containerId]
+    if not data then return true end
+    for _, slot in data.slots do
+        if slot and slot ~= false then
+            return false
+        end
+    end
+    return true
 end
 
 -- Сортировка: сдвигаем все непустые слоты в начало

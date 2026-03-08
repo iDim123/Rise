@@ -332,6 +332,11 @@ RunService.Heartbeat:Connect(function(dt)
     for _, obj in containersFolder:GetDescendants() do
         local cfgId = obj:GetAttribute("ContainerType")
         if obj:IsA("BasePart") and cfgId then
+            -- NEW: не показывать подсказку для пустых сундуков
+            if obj:GetAttribute("ContainerEmpty") then
+                continue
+            end
+
             local cfg = Config.Containers[cfgId]
             if cfg then
                 local dist = (hrp.Position - obj.Position).Magnitude
@@ -383,10 +388,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     if input.KeyCode == Enum.KeyCode.F then
         if window.Visible then return end
-        if isCasting then return end   -- NEW: каст уже идёт
+        if isCasting then return end
 
         if nearbyContainer and nearbyContainer.containerId then
-            isCasting = true           -- NEW
+            -- NEW: не открывать пустой сундук
+            if nearbyContainer.model and nearbyContainer.model:GetAttribute("ContainerEmpty") then
+                return
+            end
+            isCasting = true
             Remotes.ContainerOpen:FireServer(nearbyContainer.containerId, false)
         end
     end
