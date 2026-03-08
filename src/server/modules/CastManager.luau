@@ -231,41 +231,71 @@ function CastManager.getCast(player)
     return activeCasts[player]
 end
 
+
+local _StatsManager
+local function getStatsManager()
+    if not _StatsManager then
+        _StatsManager = require(
+            game:GetService("ServerScriptService"):WaitForChild("modules"):WaitForChild("StatsManager")
+        )
+    end
+    return _StatsManager
+end
+
+local function getBaseSpeed(player)
+    local ok, sm = pcall(getStatsManager)
+    if ok and sm then
+        local moveSpeed = sm.get(player, "MoveSpeed")
+        return 16 * (moveSpeed or 1)
+    end
+    return 16
+end
+
+local function restoreMovement(player, baseSpeed)
+    local humanoid = getHumanoid(player)
+    if not humanoid then return end
+    local ok, sm = pcall(getStatsManager)
+    if ok and sm then
+        sm.recalculate(player)
+    else
+        humanoid.WalkSpeed = baseSpeed or 16
+    end
+end
+
 -- ─────────────────────────────────────────────────────────
 -- Heartbeat: логика CancelOnMove + Stun/Knockdown
 -- ─────────────────────────────────────────────────────────
 local MOVE_THRESHOLD = 1.5  -- studs — минимальное смещение для отмены
 
 RunService.Heartbeat:Connect(function()
+    -- Собираем отмены отдельно, чтобы не мутировать таблицу во время итерации
+    local toCancel = {}
+
     for player, castData in activeCasts do
-        -- Проверяем что игрок ещё в игре
         if not player.Parent then
-            CastManager.cancel(player, "disconnect")
+            table.insert(toCancel, { player = player, reason = "disconnect" })
             continue
         end
 
         local character = player.Character
         if not character then
-            CastManager.cancel(player, "server")
+            table.insert(toCancel, { player = player, reason = "server" })
             continue
         end
 
         local mode = castData.params.MovementMode or MOVEMENT_MODE.FREE
 
-        -- ── CancelOnMove: проверяем смещение ──
         if mode == MOVEMENT_MODE.CANCEL_ON_MOVE then
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp and castData.startPosition then
                 local moved = (hrp.Position - castData.startPosition).Magnitude
                 if moved > MOVE_THRESHOLD then
-                    CastManager.cancel(player, "move")
+                    table.insert(toCancel, { player = player, reason = "move" })
                     continue
                 end
             end
         end
 
-        -- ── Locked: принудительно удерживаем WalkSpeed = 0 ──
-        -- (страховка от клиентских попыток сдвинуться)
         if mode == MOVEMENT_MODE.LOCKED then
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid and humanoid.WalkSpeed ~= 0 then
@@ -273,15 +303,19 @@ RunService.Heartbeat:Connect(function()
             end
         end
 
-        -- ── Stun / Knockdown прерывание ──
         if castData.params.CancelOnStun ~= false then
             local isStunned = character:GetAttribute("Stunned")
                 or character:GetAttribute("Knockdown")
             if isStunned then
-                CastManager.cancel(player, "stun")
+                table.insert(toCancel, { player = player, reason = "stun" })
                 continue
             end
         end
+    end
+
+    -- Применяем отмены после итерации
+    for _, entry in toCancel do
+        CastManager.cancel(entry.player, entry.reason)
     end
 end)
 

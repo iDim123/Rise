@@ -110,6 +110,7 @@ local castData = {
 }
 
 local humanoid = nil -- обновляется при CharacterAdded
+local isCancelledByServer = false
 
 local function getHumanoid()
     if character then
@@ -265,8 +266,10 @@ function cancelCast()
     castFrame.Visible = false
     barFill.Size = UDim2.new(0, 0, 1, 0)
 
-    -- Уведомляем сервер что игрок сам отменил каст (нажал CancelKey)
-    Remotes.CastCancelRequest:FireServer()
+    -- Отправляем на сервер только если игрок отменил сам (не по команде сервера)
+    if not isCancelledByServer then
+        Remotes.CastCancelRequest:FireServer()
+    end
 end
 
 -- ────────────────────────────────────────────────────────────
@@ -277,7 +280,9 @@ Remotes.CastStart.OnClientEvent:Connect(function(params)
 end)
 
 Remotes.CastCancel.OnClientEvent:Connect(function()
+    isCancelledByServer = true
     cancelCast()
+    isCancelledByServer = false
 end)
 
 -- ────────────────────────────────────────────────────────────

@@ -27,30 +27,14 @@ initSpawnPoints()
 -- ────────────────────────────────────────────────────────────
 -- 2. Remote: ContainerOpen — запрос открытия
 -- ────────────────────────────────────────────────────────────
--- После каста (CastTime > 0) клиент присылает ContainerOpen ещё раз
--- с флагом castDone = true. При первом запросе сервер запускает каст.
-Remotes.ContainerOpen.OnServerEvent:Connect(function(player, containerId, castDone)
-    local data = ContainerManager.getData(containerId)
-    if not data then
+Remotes.ContainerOpen.OnServerEvent:Connect(function(player, containerId)
+    -- Простая защита от спама
+    local CastManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("CastManager"))
+    if CastManager.isActive(player) then
         return
-    end
+    end -- уже кастует
 
-    -- Проверка: кастовали ли мы для этого игрока?
-    if data.config.CastTime and data.config.CastTime > 0 then
-        if not castDone then
-            -- Первый запрос → запускаем каст (сервер не даст открыть без завершения)
-            ContainerManager.requestOpen(player, containerId)
-            return
-        else
-            -- Каст завершён — проверяем что игрок действительно был в касте
-            if data._casting and data._casting[player.UserId] then
-                data._casting[player.UserId] = nil
-                ContainerManager._finishOpen(player, data)
-            end
-        end
-    else
-        ContainerManager.requestOpen(player, containerId)
-    end
+    ContainerManager.requestOpen(player, containerId)
 end)
 
 -- ────────────────────────────────────────────────────────────
