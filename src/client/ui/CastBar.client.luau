@@ -327,7 +327,13 @@ local function startCast(params)
     applyMovementMode(castState.movementMode, castState.speedMult)
 
     -- Heartbeat: обновляем таймер + CancelOnMove
-    local startPos = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
+    local startPos = nil
+    if castState.movementMode == "CancelOnMove" then
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            startPos = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+        end
+    end
 
     castState.heartbeatConn = RunService.Heartbeat:Connect(function()
         if not castState.active then
@@ -339,11 +345,14 @@ local function startCast(params)
         local remaining = math.max(0, duration - elapsed)
         timeLabel.Text = string.format("%.1f", remaining) .. " / " .. string.format("%.1f", castState.duration)
 
-        -- CancelOnMove
+        -- CancelOnMove: сравниваем с начальной позицией
         if castState.movementMode == "CancelOnMove" and startPos then
             local hrp = character and character:FindFirstChild("HumanoidRootPart")
-            if hrp and (hrp.Position - startPos).Magnitude > 1.5 then
-                cancelCast()
+            if hrp then
+                local currentXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+                if (currentXZ - startPos).Magnitude > 2 then
+                    cancelCast()
+                end
             end
         end
     end)

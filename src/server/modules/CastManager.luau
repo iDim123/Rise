@@ -1,6 +1,3 @@
--- Централизованный серверный модуль управления состоянием каста.
--- Используется в: Фаза 2 (контейнеры), Фаза 4 (лук), Фаза 5 (заклинания).
---
 -- API:
 --   CastManager.start(player, params) → castId | nil
 --   CastManager.cancel(player, reason?)
@@ -141,7 +138,8 @@ function CastManager.start(player, params)
     local castId   = makeCastId()
     local mode     = params.MovementMode or MOVEMENT_MODE.FREE
     local baseSpeed = getBaseSpeed(player)
-    local startPos = getRootPosition(player)
+    local rawPos   = getRootPosition(player)
+    local startPos = rawPos and Vector3.new(rawPos.X, 0, rawPos.Z) or nil
 
     local castData = {
         castId        = castId,
@@ -245,7 +243,7 @@ end
 -- ─────────────────────────────────────────────────────────
 -- Heartbeat: логика CancelOnMove + Stun/Knockdown
 -- ─────────────────────────────────────────────────────────
-local MOVE_THRESHOLD = 1.5  -- studs — минимальное смещение для отмены
+local MOVE_THRESHOLD = 2  -- studs — минимальное смещение для отмены
 
 RunService.Heartbeat:Connect(function()
     -- Собираем отмены отдельно, чтобы не мутировать таблицу во время итерации
@@ -268,7 +266,8 @@ RunService.Heartbeat:Connect(function()
         if mode == MOVEMENT_MODE.CANCEL_ON_MOVE then
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp and castData.startPosition then
-                local moved = (hrp.Position - castData.startPosition).Magnitude
+                local currentXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+                local moved = (currentXZ - castData.startPosition).Magnitude
                 if moved > MOVE_THRESHOLD then
                     table.insert(toCancel, { player = player, reason = "move" })
                     continue
