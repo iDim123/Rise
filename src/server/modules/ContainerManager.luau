@@ -194,21 +194,25 @@ end
 function ContainerManager.requestOpen(player, containerId)
     local data = containers[containerId]
     if not data then
+        print("[ContainerManager] requestOpen FAIL: контейнер не найден", containerId)
         return false, "Контейнер не найден"
     end
     if data.state ~= STATE.ACTIVE and data.state ~= STATE.OPENED then
+        print("[ContainerManager] requestOpen FAIL: state =", data.state, containerId)
         return false, "Контейнер недоступен"
     end
 
- -- NEW: если этот игрок уже кастует открытие — игнорируем
     if data._casting and data._casting[player.UserId] then
+        print("[ContainerManager] requestOpen FAIL: _casting =", data._casting[player.UserId], containerId)
         return false, "Уже открывается"
     end
 
-    -- NEW: если у игрока вообще активен любой каст — игнорируем
     if getCastManager().isActive(player) then
+        print("[ContainerManager] requestOpen FAIL: CastManager.isActive", containerId)
         return false, "Занят"
     end
+
+    print("[ContainerManager] requestOpen OK:", player.Name, containerId, "state =", data.state)
 
     -- Проверка дальности
     local character = player.Character
@@ -281,6 +285,11 @@ end
 
 -- Завершить открытие — сменить состояние, отправить слоты
 function ContainerManager._finishOpen(player, data)
+    -- NEW: очищаем флаг каста
+    if data._casting then
+        data._casting[player.UserId] = nil
+    end
+
     data.state = STATE.OPENED
     data.openedBy[player.UserId] = true
 
@@ -324,10 +333,20 @@ end
 -- Игрок берёт всё
 function ContainerManager.takeAll(player, containerId)
     local data = containers[containerId]
-    if not data then return end
-    if data.state ~= STATE.OPENED then return end
-    if not data.openedBy[player.UserId] then return end
-
+    if not data then
+        print("[ContainerManager] takeAll FAIL: no data for", containerId)
+        return
+    end
+    if data.state ~= STATE.OPENED then
+        print("[ContainerManager] takeAll FAIL: state =", data.state, containerId)
+        return
+    end
+    if not data.openedBy[player.UserId] then
+        print("[ContainerManager] takeAll FAIL: not in openedBy", player.Name, containerId)
+        return
+    end
+    print("[ContainerManager] takeAll OK:", player.Name, containerId)
+    
     local InventoryManager = require(script.Parent:WaitForChild("InventoryManager"))
     local InventorySync    = require(script.Parent:WaitForChild("InventorySync"))
 
@@ -378,7 +397,10 @@ function ContainerManager.close(player, containerId)
 
     data.openedBy[player.UserId] = nil
 
-    -- Если больше никто не смотрит — закрываем крышку у всех
+    if data._casting then
+        data._casting[player.UserId] = nil
+    end
+
     local anyoneWatching = false
     for _ in data.openedBy do
         anyoneWatching = true

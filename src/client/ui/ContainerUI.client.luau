@@ -1,9 +1,3 @@
--- ContainerUI.client.luau
--- • Показывает подсказку "Открыть [F]" рядом с сундуком
--- • Открывает окно инвентаря контейнера при взаимодействии
--- • Auto-close при выходе за InteractRange
--- • Кнопки "Take All" и "Sort"
-
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService        = game:GetService("RunService")
@@ -425,8 +419,12 @@ end)
 closeBtn.MouseButton1Click:Connect(closeWindow)
 
 btnTakeAll.MouseButton1Click:Connect(function()
+    print("[ContainerUI] TakeAll clicked, currentContainerId =", currentContainerId)
     if currentContainerId then
+        print("[ContainerUI] Firing ContainerTakeAll:", currentContainerId)
         Remotes.ContainerTakeAll:FireServer(currentContainerId)
+    else
+        print("[ContainerUI] TakeAll SKIP: no currentContainerId")
     end
 end)
 
