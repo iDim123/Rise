@@ -94,6 +94,19 @@ lunarLabel.Text = ""
 lunarLabel.TextXAlignment = Enum.TextXAlignment.Left
 lunarLabel.Parent = frame
 
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Name = "TimeLabel"
+timeLabel.Size = UDim2.new(0, 40, 0, 16)
+timeLabel.Position = UDim2.new(1, -44, 0, 4) -- правый верхний угол фрейма
+timeLabel.AnchorPoint = Vector2.new(0, 0)
+timeLabel.BackgroundTransparency = 1
+timeLabel.Font = Enum.Font.GothamBold
+timeLabel.TextSize = 14
+timeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+timeLabel.TextXAlignment = Enum.TextXAlignment.Right
+timeLabel.Text = "0"
+timeLabel.Parent = frame
+
 -- Прогресс-бар цикла
 local barBg = Instance.new("Frame")
 barBg.Size = UDim2.new(1, -8, 0, BAR_HEIGHT)
@@ -122,7 +135,9 @@ local syncData = {
     TotalCycle = DNC.DayDuration + DNC.NightDuration,
     IsDay = false,
     Phase = "night",
-    LunarPhase = "new_moon"
+    LunarPhase = "new_moon",
+    LunarTimer = 0,
+    ClockTime = 0
 }
 
 local LUNAR_NAMES = {
@@ -155,7 +170,13 @@ local function updateUI()
         phaseLabel.Text = "Ночь"
     end
 
+    local clock = syncData.ClockTime or 0
+    local hour = math.floor(clock) % 24
+    local minutes = math.floor((clock % 1) * 60)
+    timeLabel.Text = string.format("%02d:%02d", hour, minutes)
     lunarLabel.Text = LUNAR_NAMES[syncData.LunarPhase] or ""
+    print(string.format("[DayNightHUD] Синхронизация: %s, %s, %s, Clock: %s",
+        syncData.IsDay and "День" or "Ночь", syncData.Phase, syncData.LunarPhase, timeLabel.Text))
 end
 
 -- ════════════════════════════════════════════════════════════
