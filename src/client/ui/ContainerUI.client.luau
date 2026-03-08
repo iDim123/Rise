@@ -369,11 +369,9 @@ end)
 -- Remote: ContainerClosed — сундук исчез / закрыт сервером
 -- ────────────────────────────────────────────────────────────
 Remotes.ContainerClosed.OnClientEvent:Connect(function(containerId)
-    local myId = chestModel:GetAttribute("ContainerId")
-    if myId ~= containerId then return end   -- ← теперь правильно фильтруем
-    if isOpen then
-        isOpen = false
-        task.spawn(animateLid, 0)
+    if currentContainerId == containerId then
+        currentContainerId = nil
+        window.Visible = false
     end
 end)
 
