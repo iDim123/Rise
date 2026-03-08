@@ -16,14 +16,14 @@ Config.Containers = {
         Persistent = true,
         LootTable = {{
             ItemId = "health_potion",
-            Chance = 0.7,
+            Chance = 1,
             Amount = {
                 Min = 1,
                 Max = 3
             }
         }, {
             ItemId = "rugged_hide",
-            Chance = 0.5,
+            Chance = 0.2,
             Amount = {
                 Min = 5,
                 Max = 20

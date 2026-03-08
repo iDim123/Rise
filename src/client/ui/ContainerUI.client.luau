@@ -331,15 +331,28 @@ RunService.Heartbeat:Connect(function(dt)
 
     for _, obj in containersFolder:GetDescendants() do
         local cfgId = obj:GetAttribute("ContainerType")
-        if obj:IsA("BasePart") and cfgId then
-            -- NEW: не показывать подсказку для пустых сундуков
-            if obj:GetAttribute("ContainerEmpty") then
+        if cfgId then
+            -- Проверяем пустоту на этом объекте или его предке
+            local isEmpty = obj:GetAttribute("ContainerEmpty")
+            if not isEmpty and obj.Parent then
+                isEmpty = obj.Parent:GetAttribute("ContainerEmpty")
+            end
+            if isEmpty then
                 continue
             end
 
+            -- Находим позицию для расчёта дальности
+            local pos = nil
+            if obj:IsA("BasePart") then
+                pos = obj.Position
+            elseif obj:IsA("Model") and obj.PrimaryPart then
+                pos = obj.PrimaryPart.Position
+            end
+            if not pos then continue end
+
             local cfg = Config.Containers[cfgId]
             if cfg then
-                local dist = (hrp.Position - obj.Position).Magnitude
+                local dist = (hrp.Position - pos).Magnitude
                 local range = cfg.InteractRange or 5
                 if dist <= range and dist < closestDist then
                     closestDist = dist

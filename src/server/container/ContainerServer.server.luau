@@ -2,8 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-local ContainerManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("ContainerManager"))
-
+local ContainerManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("container"):WaitForChild(
+    "ContainerManager"))
 -- ────────────────────────────────────────────────────────────
 -- 1. Регистрируем все SpawnPoint-ы из workspace/Containers
 -- ────────────────────────────────────────────────────────────
