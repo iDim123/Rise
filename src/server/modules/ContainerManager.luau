@@ -354,7 +354,21 @@ function ContainerManager.close(player, containerId)
     if not data then return end
 
     data.openedBy[player.UserId] = nil
-    -- Если никто больше не смотрит — можно оставить despawnTimer идти
+
+    -- Если больше никто не смотрит — закрываем крышку у всех
+    local anyoneWatching = false
+    for _ in data.openedBy do
+        anyoneWatching = true
+        break
+    end
+
+    if not anyoneWatching then
+        -- Шлём всем кто был рядом что контейнер визуально закрыт
+        local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+        for _, p in game:GetService("Players"):GetPlayers() do
+            Remotes.ContainerClosed:FireClient(p, containerId)
+        end
+    end
 end
 
 -- Отправить обновлённые слоты всем кто открыл этот контейнер
@@ -381,7 +395,7 @@ function ContainerManager._despawn(containerId)
     for userId, _ in data.openedBy do
         local player = game:GetService("Players"):GetPlayerByUserId(userId)
         if player then
-            Remotes.ContainerClosed:FireClient(player)
+            Remotes.ContainerClosed:FireClient(player, data.id) 
         end
     end
     data.openedBy = {}
