@@ -2,6 +2,8 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
 local modules = ServerScriptService:WaitForChild("modules")
 local StatsManager = require(modules:WaitForChild("StatsManager"))
+local ServerScriptService = game:GetService("ServerScriptService")
+local DayNightManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("DayNightManager"))
 
 require(modules:WaitForChild("HealthManager"))
 require(modules:WaitForChild("LootManager"))
@@ -19,6 +21,8 @@ RunService.Heartbeat:Connect(function(dt)
         BuffManager.tick()
     end
 end)
+
+DayNightManager.init()
 
 -- HealthRegen: tick every 10 seconds
 task.spawn(function()

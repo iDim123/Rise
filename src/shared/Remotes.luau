@@ -13,7 +13,7 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "BossFinishResult", "BossCaptureResult", "UnlockTech", "Notify", "DebugCommand", "PlayerDied",
                 "ContainerOpen", "ContainerClose", "ContainerTakeItem", "ContainerTakeAll", "ContainerSort",
                 "ContainerOpened", "ContainerUpdate", "ContainerClosed", "CastStart", "CastCancel", "CastCancelRequest",
-                "PlayerRespawn"}
+                "DayNightSync", "PlayerRespawn"}
 
 -- RemoteFunctions
 local functions = {"GetInventory", "GetServants", "GetPlayerStats", "GetBossData"}
