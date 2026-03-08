@@ -188,6 +188,7 @@ local currentSlots       = {}
 local slotButtons        = {}
 local nearbyContainer    = nil
 local interactRange      = 5
+local isCasting          = false
 
 -- ════════════════════════════════════════════════════════════
 -- Построение сетки слотов
@@ -388,7 +389,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     if input.KeyCode == Enum.KeyCode.F then
         if window.Visible then return end
+        if isCasting then return end   -- NEW: каст уже идёт
+
         if nearbyContainer and nearbyContainer.containerId then
+            isCasting = true           -- NEW
             Remotes.ContainerOpen:FireServer(nearbyContainer.containerId, false)
         end
     end
@@ -398,20 +402,21 @@ end)
 -- Remotes
 -- ════════════════════════════════════════════════════════════
 Remotes.ContainerOpened.OnClientEvent:Connect(function(containerId, slots, name)
+    isCasting = false
     openWindow(containerId, slots, name)
 end)
 
-Remotes.ContainerUpdate.OnClientEvent:Connect(function(containerId, slots)
-    if currentContainerId == containerId then
-        updateSlots(slots)
-    end
-end)
 
 Remotes.ContainerClosed.OnClientEvent:Connect(function(containerId)
+    isCasting = false
     if currentContainerId == containerId then
         currentContainerId = nil
         window.Visible = false
     end
+end)
+
+Remotes.CastCancel.OnClientEvent:Connect(function()
+    isCasting = false   -- NEW
 end)
 
 -- ════════════════════════════════════════════════════════════

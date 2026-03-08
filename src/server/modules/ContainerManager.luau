@@ -200,6 +200,16 @@ function ContainerManager.requestOpen(player, containerId)
         return false, "Контейнер недоступен"
     end
 
+ -- NEW: если этот игрок уже кастует открытие — игнорируем
+    if data._casting and data._casting[player.UserId] then
+        return false, "Уже открывается"
+    end
+
+    -- NEW: если у игрока вообще активен любой каст — игнорируем
+    if getCastManager().isActive(player) then
+        return false, "Занят"
+    end
+
     -- Проверка дальности
     local character = player.Character
     if character then

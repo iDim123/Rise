@@ -1,11 +1,14 @@
--- Универсальная полоска каста для:
---   • Контейнеров (вскрытие замка)
---   • Дальнобойного оружия (фаза 4)
---   • Способностей (фаза 4+)
+-- CastBar.client.luau
+-- Универсальная полоска каста (контейнеры, оружие, способности)
 --
--- API (через ModuleScript-обёртку не нужна — управление через Remotes)
--- CastStart  → { Duration, Label, MovementMode, SpeedMult, CancelKey, CancelOnStun, CancelOnDamage }
--- CastCancel → отмена
+-- Новый дизайн:
+--   [Иконка] [====== Название ========== 2.4с ======]
+--   Иконка слева (если передана), название внутри бара, время справа
+--
+-- API через Remotes:
+--   CastStart → { Duration, Label, Icon, MovementMode, SpeedMult,
+--                  CancelKey, CancelOnStun, CancelOnDamage }
+--   CastCancel → отмена
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -22,9 +25,26 @@ player.CharacterAdded:Connect(function(char)
     character = char
 end)
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Константы стиля
+-- ════════════════════════════════════════════════════════════
+local BAR_WIDTH = 320
+local BAR_HEIGHT = 32
+local ICON_SIZE = BAR_HEIGHT + 4 -- чуть больше бара
+local ICON_PAD = 6
+local CORNER = UDim.new(0, 4)
+
+local COLOR_BG = Color3.fromRGB(18, 18, 28)
+local COLOR_BAR_BG = Color3.fromRGB(35, 35, 55)
+local COLOR_FILL = Color3.fromRGB(90, 75, 170) -- фиолетовый, как на референсе
+local COLOR_TEXT = Color3.fromRGB(255, 255, 255)
+local COLOR_TIME = Color3.fromRGB(220, 220, 220)
+local COLOR_STROKE = Color3.fromRGB(60, 60, 80)
+local COLOR_ICON_BG = Color3.fromRGB(30, 30, 45)
+
+-- ════════════════════════════════════════════════════════════
 -- Создание UI
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CastBarUI"
 screenGui.ResetOnSpawn = false
@@ -32,71 +52,115 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 20
 screenGui.Parent = playerGui
 
+-- Контейнер (иконка + бар в одну строку)
 local castFrame = Instance.new("Frame")
 castFrame.Name = "CastFrame"
-castFrame.Size = UDim2.new(0, 320, 0, 44)
-castFrame.Position = UDim2.new(0.5, -160, 0.72, 0)
-castFrame.BackgroundColor3 = Color3.fromRGB(20, 18, 14)
-castFrame.BorderSizePixel = 0
+castFrame.Size = UDim2.new(0, ICON_SIZE + ICON_PAD + BAR_WIDTH, 0, ICON_SIZE)
+castFrame.AnchorPoint = Vector2.new(0.5, 0)
+castFrame.Position = UDim2.new(0.5, 0, 0.72, 0)
+castFrame.BackgroundTransparency = 1
 castFrame.Visible = false
 castFrame.Parent = screenGui
 
-local castCorner = Instance.new("UICorner")
-castCorner.CornerRadius = UDim.new(0, 8)
-castCorner.Parent = castFrame
+-- ── Иконка (квадрат слева) ────────────────────────────────
+local iconFrame = Instance.new("Frame")
+iconFrame.Name = "IconFrame"
+iconFrame.Size = UDim2.new(0, ICON_SIZE, 0, ICON_SIZE)
+iconFrame.Position = UDim2.new(0, 0, 0.5, 0)
+iconFrame.AnchorPoint = Vector2.new(0, 0.5)
+iconFrame.BackgroundColor3 = COLOR_ICON_BG
+iconFrame.BorderSizePixel = 0
+iconFrame.Visible = false
+iconFrame.Parent = castFrame
 
--- Фон прогресс-бара
-local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(1, -12, 0, 14)
-barBg.Position = UDim2.new(0, 6, 1, -22)
-barBg.BackgroundColor3 = Color3.fromRGB(40, 35, 28)
-barBg.BorderSizePixel = 0
-barBg.Parent = castFrame
+Instance.new("UICorner", iconFrame).CornerRadius = CORNER
 
-local barBgCorner = Instance.new("UICorner")
-barBgCorner.CornerRadius = UDim.new(0, 4)
-barBgCorner.Parent = barBg
+local iconStroke = Instance.new("UIStroke")
+iconStroke.Color = COLOR_STROKE
+iconStroke.Thickness = 1.5
+iconStroke.Parent = iconFrame
 
--- Заполняемая часть
+local iconImage = Instance.new("ImageLabel")
+iconImage.Name = "Icon"
+iconImage.Size = UDim2.new(1, -6, 1, -6)
+iconImage.Position = UDim2.new(0, 3, 0, 3)
+iconImage.BackgroundTransparency = 1
+iconImage.ScaleType = Enum.ScaleType.Fit
+iconImage.Image = ""
+iconImage.Parent = iconFrame
+
+-- ── Бар (справа от иконки) ────────────────────────────────
+local barFrame = Instance.new("Frame")
+barFrame.Name = "BarFrame"
+barFrame.Size = UDim2.new(0, BAR_WIDTH, 0, BAR_HEIGHT)
+barFrame.Position = UDim2.new(0, ICON_SIZE + ICON_PAD, 0.5, 0)
+barFrame.AnchorPoint = Vector2.new(0, 0.5)
+barFrame.BackgroundColor3 = COLOR_BAR_BG
+barFrame.BorderSizePixel = 0
+barFrame.ClipsDescendants = true
+barFrame.Parent = castFrame
+
+Instance.new("UICorner", barFrame).CornerRadius = CORNER
+
+local barStroke = Instance.new("UIStroke")
+barStroke.Color = COLOR_STROKE
+barStroke.Thickness = 1.5
+barStroke.Parent = barFrame
+
+-- Заполняющаяся полоса
 local barFill = Instance.new("Frame")
 barFill.Name = "Fill"
 barFill.Size = UDim2.new(0, 0, 1, 0)
-barFill.BackgroundColor3 = Color3.fromRGB(220, 160, 40)
+barFill.BackgroundColor3 = COLOR_FILL
 barFill.BorderSizePixel = 0
-barFill.Parent = barBg
+barFill.Parent = barFrame
 
-local barFillCorner = Instance.new("UICorner")
-barFillCorner.CornerRadius = UDim.new(0, 4)
-barFillCorner.Parent = barFill
+Instance.new("UICorner", barFill).CornerRadius = CORNER
 
--- Текст-заголовок
+-- Свечение на конце полосы (тонкая белая полоска)
+local barGlow = Instance.new("Frame")
+barGlow.Name = "Glow"
+barGlow.Size = UDim2.new(0, 3, 1, 0)
+barGlow.Position = UDim2.new(1, -3, 0, 0)
+barGlow.BackgroundColor3 = Color3.fromRGB(200, 200, 255)
+barGlow.BackgroundTransparency = 0.4
+barGlow.BorderSizePixel = 0
+barGlow.Parent = barFill
+
+-- Название каста (внутри бара, по центру-лево)
 local castLabel = Instance.new("TextLabel")
-castLabel.Size = UDim2.new(1, -12, 0, 22)
-castLabel.Position = UDim2.new(0, 6, 0, 4)
+castLabel.Name = "CastLabel"
+castLabel.Size = UDim2.new(1, -60, 1, 0)
+castLabel.Position = UDim2.new(0, 10, 0, 0)
 castLabel.BackgroundTransparency = 1
-castLabel.TextColor3 = Color3.fromRGB(230, 210, 160)
+castLabel.TextColor3 = COLOR_TEXT
 castLabel.Font = Enum.Font.GothamBold
-castLabel.TextScaled = true
+castLabel.TextSize = 14
 castLabel.Text = "Каст..."
 castLabel.TextXAlignment = Enum.TextXAlignment.Left
-castLabel.Parent = castFrame
+castLabel.TextYAlignment = Enum.TextYAlignment.Center
+castLabel.ZIndex = 5
+castLabel.Parent = barFrame
 
--- Подсказка отмены
-local cancelHint = Instance.new("TextLabel")
-cancelHint.Size = UDim2.new(1, -12, 0, 14)
-cancelHint.Position = UDim2.new(0, 6, 0, 26)
-cancelHint.BackgroundTransparency = 1
-cancelHint.TextColor3 = Color3.fromRGB(150, 140, 120)
-cancelHint.Font = Enum.Font.Gotham
-cancelHint.TextScaled = true
-cancelHint.Text = "MMB — отмена"
-cancelHint.TextXAlignment = Enum.TextXAlignment.Left
-cancelHint.Parent = castFrame
+-- Время (внутри бара, справа)
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Name = "TimeLabel"
+timeLabel.Size = UDim2.new(0, 50, 1, 0)
+timeLabel.Position = UDim2.new(1, -55, 0, 0)
+timeLabel.BackgroundTransparency = 1
+timeLabel.TextColor3 = COLOR_TIME
+timeLabel.Font = Enum.Font.GothamBold
+timeLabel.TextSize = 14
+timeLabel.Text = "0.0"
+timeLabel.TextXAlignment = Enum.TextXAlignment.Right
+timeLabel.TextYAlignment = Enum.TextYAlignment.Center
+timeLabel.ZIndex = 5
+timeLabel.Parent = barFrame
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Состояние
--- ────────────────────────────────────────────────────────────
-local castData = {
+-- ════════════════════════════════════════════════════════════
+local castState = {
     active = false,
     duration = 0,
     startTime = 0,
@@ -106,10 +170,10 @@ local castData = {
     cancelOnStun = true,
     cancelOnDamage = false,
     fillTween = nil,
-    heartbeatConn = nil
+    heartbeatConn = nil,
+    timerConn = nil
 }
 
-local humanoid = nil -- обновляется при CharacterAdded
 local isCancelledByServer = false
 
 local function getHumanoid()
@@ -119,9 +183,9 @@ local function getHumanoid()
     return nil
 end
 
--- ────────────────────────────────────────────────────────────
--- Применить движение по MovementMode
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Движение
+-- ════════════════════════════════════════════════════════════
 local function applyMovementMode(mode, speedMult)
     local hum = getHumanoid()
     if not hum then
@@ -131,150 +195,170 @@ local function applyMovementMode(mode, speedMult)
     if mode == "Locked" then
         hum.WalkSpeed = 0
     elseif mode == "Slowed" then
-        -- базовая скорость берётся из StatsManager — клиент использует текущую
         local baseSpeed = 16
         hum.WalkSpeed = math.max(0, baseSpeed * (speedMult or 0.5))
-    elseif mode == "Free" or mode == "CancelOnMove" then
-        -- не меняем скорость
     end
+    -- Free / CancelOnMove — не трогаем
 end
 
--- Восстановить скорость после каста
 local function restoreMovement()
     local hum = getHumanoid()
     if not hum then
         return
     end
-    -- Нормальная скорость — пусть сервер пересчитает через StatsManager
-    -- На клиенте просто сбрасываем до 16 (default)
     hum.WalkSpeed = 16
 end
 
--- ────────────────────────────────────────────────────────────
--- Запустить CastBar
--- ────────────────────────────────────────────────────────────
-local function startCast(params)
-    -- params: { Duration, Label, MovementMode, SpeedMult, CancelKey, CancelOnStun, CancelOnDamage }
-    if castData.active then
-        -- Отменяем предыдущий
-        if castData.fillTween then
-            castData.fillTween:Cancel()
-        end
-        if castData.heartbeatConn then
-            castData.heartbeatConn:Disconnect()
-        end
+-- ════════════════════════════════════════════════════════════
+-- Обновление позиции бара (с иконкой / без)
+-- ════════════════════════════════════════════════════════════
+local function updateLayout(hasIcon)
+    if hasIcon then
+        iconFrame.Visible = true
+        barFrame.Position = UDim2.new(0, ICON_SIZE + ICON_PAD, 0.5, 0)
+        castFrame.Size = UDim2.new(0, ICON_SIZE + ICON_PAD + BAR_WIDTH, 0, ICON_SIZE)
+    else
+        iconFrame.Visible = false
+        barFrame.Position = UDim2.new(0, 0, 0.5, 0)
+        castFrame.Size = UDim2.new(0, BAR_WIDTH, 0, ICON_SIZE)
     end
-
-    castData.active = true
-    castData.duration = params.Duration or 1
-    castData.startTime = tick()
-    castData.movementMode = params.MovementMode or "Free"
-    castData.speedMult = params.SpeedMult or 1
-    castData.cancelKey = params.CancelKey or "MMB"
-    castData.cancelOnStun = params.CancelOnStun ~= false
-    castData.cancelOnDamage = params.CancelOnDamage or false
-
-    castLabel.Text = params.Label or "Каст..."
-    cancelHint.Text = (castData.cancelKey or "MMB") .. " — отмена"
-    castFrame.Visible = true
-
-    -- Сброс полосы
-    barFill.Size = UDim2.new(0, 0, 1, 0)
-
-    -- Анимация заполнения
-    castData.fillTween = TweenService:Create(barFill, TweenInfo.new(castData.duration, Enum.EasingStyle.Linear), {
-        Size = UDim2.new(1, 0, 1, 0)
-    })
-    castData.fillTween:Play()
-
-    -- Применяем ограничение движения
-    applyMovementMode(castData.movementMode, castData.speedMult)
-
-    -- Heartbeat: CancelOnMove
-    local startPos = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
-
-    castData.heartbeatConn = RunService.Heartbeat:Connect(function()
-        if not castData.active then
-            return
-        end
-
-        -- CancelOnMove: проверяем смещение
-        if castData.movementMode == "CancelOnMove" and startPos then
-            local hrp = character and character:FindFirstChild("HumanoidRootPart")
-            if hrp and (hrp.Position - startPos).Magnitude > 1.5 then
-                cancelCast()
-                return
-            end
-        end
-    end)
-
-    -- Авто-завершение по таймеру
-    task.delay(castData.duration, function()
-        if castData.active then
-            completeCast()
-        end
-    end)
 end
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Cleanup helpers
+-- ════════════════════════════════════════════════════════════
+local function cleanupConnections()
+    if castState.fillTween then
+        castState.fillTween:Cancel()
+        castState.fillTween = nil
+    end
+    if castState.heartbeatConn then
+        castState.heartbeatConn:Disconnect()
+        castState.heartbeatConn = nil
+    end
+    if castState.timerConn then
+        castState.timerConn:Disconnect()
+        castState.timerConn = nil
+    end
+end
+
+-- ════════════════════════════════════════════════════════════
 -- Завершить каст успешно
--- ────────────────────────────────────────────────────────────
-function completeCast()
-    if not castData.active then
+-- ════════════════════════════════════════════════════════════
+local function completeCast()
+    if not castState.active then
         return
     end
-    castData.active = false
+    castState.active = false
 
-    if castData.fillTween then
-        castData.fillTween:Cancel()
-    end
-    if castData.heartbeatConn then
-        castData.heartbeatConn:Disconnect()
-    end
-
+    cleanupConnections()
     barFill.Size = UDim2.new(1, 0, 1, 0)
+    timeLabel.Text = "0.0"
     restoreMovement()
 
-    -- Небольшая задержка перед скрытием
-    task.delay(0.15, function()
+    task.delay(0.2, function()
         castFrame.Visible = false
         barFill.Size = UDim2.new(0, 0, 1, 0)
     end)
-
-    -- Для контейнеров: отправить ContainerOpen ещё раз с castDone=true
-    -- (это делает ContainerUI, не CastBar — здесь просто уведомление через Binding)
-    -- Фаза 4+: RangedCastComplete и т.д. будут добавлены позже
 end
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Отменить каст
--- ────────────────────────────────────────────────────────────
-function cancelCast()
-    if not castData.active then
+-- ════════════════════════════════════════════════════════════
+local function cancelCast()
+    if not castState.active then
         return
     end
-    castData.active = false
+    castState.active = false
 
-    if castData.fillTween then
-        castData.fillTween:Cancel()
-    end
-    if castData.heartbeatConn then
-        castData.heartbeatConn:Disconnect()
-    end
-
+    cleanupConnections()
     restoreMovement()
     castFrame.Visible = false
     barFill.Size = UDim2.new(0, 0, 1, 0)
 
-    -- Отправляем на сервер только если игрок отменил сам (не по команде сервера)
     if not isCancelledByServer then
         Remotes.CastCancelRequest:FireServer()
     end
 end
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Запустить CastBar
+-- ════════════════════════════════════════════════════════════
+local function startCast(params)
+    -- params: { Duration, Label, Icon, MovementMode, SpeedMult,
+    --           CancelKey, CancelOnStun, CancelOnDamage }
+    if castState.active then
+        cleanupConnections()
+    end
+
+    local duration = params.Duration or 1
+
+    castState.active = true
+    castState.duration = duration
+    castState.startTime = tick()
+    castState.movementMode = params.MovementMode or "Free"
+    castState.speedMult = params.SpeedMult or 1
+    castState.cancelKey = params.CancelKey or "MMB"
+    castState.cancelOnStun = params.CancelOnStun ~= false
+    castState.cancelOnDamage = params.CancelOnDamage or false
+
+    -- Иконка
+    local hasIcon = params.Icon and params.Icon ~= ""
+    if hasIcon then
+        iconImage.Image = params.Icon
+    end
+    updateLayout(hasIcon)
+
+    -- Текст
+    castLabel.Text = params.Label or "Каст..."
+    timeLabel.Text = string.format("%.1f", duration) .. " / " .. string.format("%.1f", castState.duration)
+
+    -- Сброс и показ
+    barFill.Size = UDim2.new(0, 0, 1, 0)
+    castFrame.Visible = true
+
+    -- Tween заполнения
+    castState.fillTween = TweenService:Create(barFill, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        Size = UDim2.new(1, 0, 1, 0)
+    })
+    castState.fillTween:Play()
+
+    -- Применяем движение
+    applyMovementMode(castState.movementMode, castState.speedMult)
+
+    -- Heartbeat: обновляем таймер + CancelOnMove
+    local startPos = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
+
+    castState.heartbeatConn = RunService.Heartbeat:Connect(function()
+        if not castState.active then
+            return
+        end
+
+        -- Обновляем отображение оставшегося времени
+        local elapsed = tick() - castState.startTime
+        local remaining = math.max(0, duration - elapsed)
+        timeLabel.Text = string.format("%.1f", remaining) .. " / " .. string.format("%.1f", castState.duration)
+
+        -- CancelOnMove
+        if castState.movementMode == "CancelOnMove" and startPos then
+            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+            if hrp and (hrp.Position - startPos).Magnitude > 1.5 then
+                cancelCast()
+            end
+        end
+    end)
+
+    -- Авто-завершение
+    task.delay(duration, function()
+        if castState.active then
+            completeCast()
+        end
+    end)
+end
+
+-- ════════════════════════════════════════════════════════════
 -- Remotes
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 Remotes.CastStart.OnClientEvent:Connect(function(params)
     startCast(params)
 end)
@@ -285,23 +369,28 @@ Remotes.CastCancel.OnClientEvent:Connect(function()
     isCancelledByServer = false
 end)
 
--- ────────────────────────────────────────────────────────────
--- Отмена по CancelKey (MMB по умолчанию)
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Отмена по CancelKey
+-- ════════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not castData.active then
+    if not castState.active then
         return
     end
 
-    local cancelKey = castData.cancelKey
+    local cancelKey = castState.cancelKey
     local pressed = false
 
-    if cancelKey == "MMB" and input.UserInputType == Enum.UserInputType.MouseButton3 then
-        pressed = true
-    elseif cancelKey == "RMB" and input.UserInputType == Enum.UserInputType.MouseButton2 then
-        pressed = true
-    elseif input.KeyCode == Enum.KeyCode[cancelKey] then
-        pressed = true
+    if cancelKey == "MMB" then
+        pressed = (input.UserInputType == Enum.UserInputType.MouseButton3)
+    elseif cancelKey == "RMB" then
+        pressed = (input.UserInputType == Enum.UserInputType.MouseButton2)
+    else
+        local ok, keyEnum = pcall(function()
+            return Enum.KeyCode[cancelKey]
+        end)
+        if ok and keyEnum and input.KeyCode == keyEnum then
+            pressed = true
+        end
     end
 
     if pressed then
@@ -309,12 +398,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Stun/Knockdown отмена — через атрибут (сервер ставит "Stunned" = true)
+-- Stun / Knockdown
 RunService.Heartbeat:Connect(function()
-    if not castData.active then
+    if not castState.active then
         return
     end
-    if not castData.cancelOnStun then
+    if not castState.cancelOnStun then
         return
     end
     if not character then
@@ -327,33 +416,28 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Отмена при получении урона (если CancelOnDamage = true)
+-- Урон → отмена
 Remotes.DamageEvent.OnClientEvent:Connect(function(entity, hp, maxHP, damage, attackerName)
-    if not castData.active then
+    if not castState.active then
         return
     end
-    if not castData.cancelOnDamage then
+    if not castState.cancelOnDamage then
         return
     end
-
-    -- Проверяем что урон получил именно наш персонаж
     if entity == character then
         cancelCast()
     end
 end)
 
--- ────────────────────────────────────────────────────────────
--- Интеграция ContainerUI: после успешного каста открываем сундук
--- ────────────────────────────────────────────────────────────
--- ContainerUI слушает completeCast через BindableEvent
--- Создаём BindableEvent для связи между скриптами
+-- ════════════════════════════════════════════════════════════
+-- BindableEvent для интеграции с ContainerUI
+-- ════════════════════════════════════════════════════════════
 local castCompleteEvent = Instance.new("BindableEvent")
 castCompleteEvent.Name = "CastComplete"
 castCompleteEvent.Parent = screenGui
 
--- Переопределяем completeCast чтобы файрить event
-local _originalComplete = completeCast
-function completeCast()
-    _originalComplete()
+local _origComplete = completeCast
+completeCast = function()
+    _origComplete()
     castCompleteEvent:Fire()
 end
