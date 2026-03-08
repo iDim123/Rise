@@ -403,27 +403,28 @@ function ContainerManager._despawn(containerId)
     data.state = STATE.DESPAWNED
     data.despawnTimer = nil
 
-    -- Закрываем UI у всех игроков
     local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
     for userId, _ in data.openedBy do
         local player = game:GetService("Players"):GetPlayerByUserId(userId)
         if player then
-            Remotes.ContainerClosed:FireClient(player, data.id) 
+            Remotes.ContainerClosed:FireClient(player, data.id)
         end
     end
     data.openedBy = {}
 
-    -- Убираем модель из workspace
-    if data.model and data.model ~= data.spawnPoint then
-        data.model:Destroy()
-        data.model = nil
-    elseif data.model == data.spawnPoint then
-        data.spawnPoint.Transparency = 1
-    end
+    -- Задержка перед уничтожением чтобы клиент успел обработать анимацию закрытия
+    task.delay(0.5, function()
+        if data.model and data.model ~= data.spawnPoint then
+            data.model:Destroy()
+            data.model = nil
+        elseif data.model == data.spawnPoint then
+            data.spawnPoint.Transparency = 1
+        end
+    end)
 
     print(string.format("[ContainerManager] Исчез '%s' (%s)", data.config.Name, containerId))
 
-    -- Запускаем таймер respawn с джиттером
+    -- Respawn таймер
     local cfg = data.config
     local jitter = cfg.RespawnJitter or 0
     local baseTime = cfg.RespawnTime or 300

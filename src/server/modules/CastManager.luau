@@ -242,26 +242,6 @@ local function getStatsManager()
     return _StatsManager
 end
 
-local function getBaseSpeed(player)
-    local ok, sm = pcall(getStatsManager)
-    if ok and sm then
-        local moveSpeed = sm.get(player, "MoveSpeed")
-        return 16 * (moveSpeed or 1)
-    end
-    return 16
-end
-
-local function restoreMovement(player, baseSpeed)
-    local humanoid = getHumanoid(player)
-    if not humanoid then return end
-    local ok, sm = pcall(getStatsManager)
-    if ok and sm then
-        sm.recalculate(player)
-    else
-        humanoid.WalkSpeed = baseSpeed or 16
-    end
-end
-
 -- ─────────────────────────────────────────────────────────
 -- Heartbeat: логика CancelOnMove + Stun/Knockdown
 -- ─────────────────────────────────────────────────────────

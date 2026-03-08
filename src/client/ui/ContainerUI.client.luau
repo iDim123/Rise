@@ -1,12 +1,13 @@
+-- ContainerUI.client.luau
 -- • Показывает подсказку "Открыть [F]" рядом с сундуком
 -- • Открывает окно инвентаря контейнера при взаимодействии
 -- • Auto-close при выходе за InteractRange
 -- • Кнопки "Take All" и "Sort"
 
-local Players          = game:GetService("Players")
+local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService       = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local Config  = require(ReplicatedStorage:WaitForChild("Config"))
@@ -21,145 +22,190 @@ player.CharacterAdded:Connect(function(char)
     hrp = char:WaitForChild("HumanoidRootPart")
 end)
 
--- ────────────────────────────────────────────────────────────
--- Создание ScreenGui
--- ────────────────────────────────────────────────────────────
+-- ═══ Стиль из UIConstants (как CharacterWindow / ServantWindow) ═══
+local BG_COLOR     = Color3.fromRGB(25, 25, 35)
+local PANEL_BG     = Color3.fromRGB(35, 35, 50)
+local SLOT_BG      = Color3.fromRGB(50, 50, 65)
+local SLOT_EMPTY   = Color3.fromRGB(40, 40, 55)
+local TEXT_COLOR   = Color3.fromRGB(220, 220, 220)
+local GOLD_COLOR   = Color3.fromRGB(220, 190, 80)
+local GREEN_BTN    = Color3.fromRGB(50, 130, 50)
+local BLUE_BTN     = Color3.fromRGB(50, 50, 70)
+local STROKE_COLOR = Color3.fromRGB(60, 60, 80)
+
+local SLOT_SIZE = 50
+local PADDING   = 4
+local COLS      = 6
+local PAD       = 8
+local HEADER_H  = 36
+local BUTTON_H  = 30
+local CORNER_R  = UDim.new(0, 8)
+local SMALL_R   = UDim.new(0, 4)
+
+local MINIMAP_LEFT_OFFSET = -256   -- из Minimap.client.luau
+local GAP_TO_MINIMAP      = 12
+local TOP_OFFSET          = 40     -- как CharacterWindow
+
+-- ════════════════════════════════════════════════════════════
+-- ScreenGui
+-- ════════════════════════════════════════════════════════════
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name           = "ContainerUI"
 screenGui.ResetOnSpawn   = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.DisplayOrder   = 15
 screenGui.Parent         = playerGui
 
--- ── Подсказка "Открыть [F]" (BillboardGui крепится к модели) ──
+-- ═══ Подсказка "Открыть [F]" ═══
 local billboardGui = Instance.new("BillboardGui")
-billboardGui.Name       = "ContainerHint"
-billboardGui.Size       = UDim2.new(0, 200, 0, 40)
-billboardGui.StudsOffset = Vector3.new(0, 4, 0) 
+billboardGui.Name        = "ContainerHint"
+billboardGui.Size        = UDim2.new(0, 200, 0, 40)
+billboardGui.StudsOffset = Vector3.new(0, 4, 0)
 billboardGui.AlwaysOnTop = true
-billboardGui.Enabled    = false
-billboardGui.Parent     = screenGui  -- пока без parent модели
+billboardGui.Enabled     = false
+billboardGui.Parent      = screenGui
 
 local hintLabel = Instance.new("TextLabel")
-hintLabel.Size            = UDim2.new(1, 0, 1, 0)
+hintLabel.Size                 = UDim2.new(1, 0, 1, 0)
 hintLabel.BackgroundTransparency = 1
-hintLabel.TextColor3      = Color3.fromRGB(255, 220, 80)
-hintLabel.TextScaled      = true
-hintLabel.Font            = Enum.Font.GothamBold
-hintLabel.Text            = "Открыть [F]"
-hintLabel.Parent          = billboardGui
+hintLabel.TextColor3           = GOLD_COLOR
+hintLabel.TextSize             = 16
+hintLabel.Font                 = Enum.Font.GothamBold
+hintLabel.Text                 = "Открыть [F]"
+hintLabel.Parent               = billboardGui
 
--- ── Окно контейнера ──────────────────────────────────────────
-local SLOT_SIZE   = 60
-local PADDING     = 8
-local COLS        = 3
+-- ═══ Окно контейнера ═══
+-- Размер динамический, зависит от кол-ва слотов (рассчитываем при открытии)
+local MAX_SLOTS = 12
+local function calcWindowSize(slotCount)
+    local rows = math.ceil(slotCount / COLS)
+    local gridH = rows * (SLOT_SIZE + PADDING) + PADDING
+    local totalH = HEADER_H + PAD + gridH + PAD + BUTTON_H + PAD
+    local totalW = PAD * 2 + COLS * (SLOT_SIZE + PADDING) + PADDING
+    return totalW, totalH
+end
+
+local defaultW, defaultH = calcWindowSize(6)
 
 local window = Instance.new("Frame")
-window.Name              = "ContainerWindow"
-window.Size              = UDim2.new(0, 220, 0, 320)
-window.Position          = UDim2.new(0.5, 10, 0.5, -160)
-window.BackgroundColor3  = Color3.fromRGB(30, 25, 20)
-window.BorderSizePixel   = 0
-window.Visible           = false
-window.Parent            = screenGui
+window.Name             = "ContainerWindow"
+window.Size             = UDim2.new(0, defaultW, 0, defaultH)
+window.Position         = UDim2.new(1, MINIMAP_LEFT_OFFSET - GAP_TO_MINIMAP, 0, TOP_OFFSET)
+window.AnchorPoint      = Vector2.new(1, 0)
+window.BackgroundColor3 = BG_COLOR
+window.BorderSizePixel  = 0
+window.Visible          = false
+window.ClipsDescendants = true
+window.Parent           = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = window
+local winCorner = Instance.new("UICorner")
+winCorner.CornerRadius = CORNER_R
+winCorner.Parent = window
 
--- Заголовок
-local titleBar = Instance.new("Frame")
-titleBar.Size            = UDim2.new(1, 0, 0, 36)
-titleBar.BackgroundColor3 = Color3.fromRGB(55, 40, 25)
-titleBar.BorderSizePixel = 0
-titleBar.Parent          = window
+local winStroke = Instance.new("UIStroke")
+winStroke.Color     = STROKE_COLOR
+winStroke.Thickness = 1
+winStroke.Parent    = window
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
-titleCorner.Parent = titleBar
-
+-- Заголовок (прозрачный фон, как в CharacterWindow)
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size              = UDim2.new(1, -40, 1, 0)
-titleLabel.Position          = UDim2.new(0, 10, 0, 0)
+titleLabel.Size                 = UDim2.new(1, -40, 0, HEADER_H)
+titleLabel.Position             = UDim2.new(0, PAD, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.TextColor3        = Color3.fromRGB(255, 220, 100)
-titleLabel.TextScaled        = true
-titleLabel.Font              = Enum.Font.GothamBold
-titleLabel.Text              = "Сундук"
-titleLabel.TextXAlignment     = Enum.TextXAlignment.Left
-titleLabel.Parent            = titleBar
+titleLabel.TextColor3           = TEXT_COLOR
+titleLabel.TextSize             = 20
+titleLabel.Font                 = Enum.Font.GothamBold
+titleLabel.Text                 = "Сундук"
+titleLabel.TextXAlignment       = Enum.TextXAlignment.Left
+titleLabel.Parent               = window
 
+-- Кнопка закрытия (стиль ServantWindow)
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size                = UDim2.new(0, 28, 0, 28)
-closeBtn.Position            = UDim2.new(1, -34, 0, 4)
-closeBtn.BackgroundColor3    = Color3.fromRGB(160, 40, 40)
-closeBtn.Text                = "✕"
-closeBtn.TextColor3          = Color3.fromRGB(255, 255, 255)
-closeBtn.Font                = Enum.Font.GothamBold
-closeBtn.TextScaled          = true
-closeBtn.BorderSizePixel     = 0
-closeBtn.Parent              = titleBar
+closeBtn.Size             = UDim2.new(0, 28, 0, 28)
+closeBtn.Position         = UDim2.new(1, -34, 0, 4)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+closeBtn.Text             = "X"
+closeBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+closeBtn.Font             = Enum.Font.GothamBold
+closeBtn.TextSize         = 16
+closeBtn.BorderSizePixel  = 0
+closeBtn.Parent           = window
 
 local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(0, 4)
+closeBtnCorner.CornerRadius = SMALL_R
 closeBtnCorner.Parent = closeBtn
 
 -- Сетка слотов
 local slotsFrame = Instance.new("Frame")
-slotsFrame.Name             = "SlotsFrame"
-slotsFrame.Size             = UDim2.new(1, -16, 0, 200)
-slotsFrame.Position         = UDim2.new(0, 8, 0, 44)
+slotsFrame.Name                  = "SlotsFrame"
+slotsFrame.Size                  = UDim2.new(1, -PAD * 2, 0, 200)
+slotsFrame.Position              = UDim2.new(0, PAD, 0, HEADER_H + PAD)
 slotsFrame.BackgroundTransparency = 1
-slotsFrame.Parent           = window
+slotsFrame.Parent                = window
 
 -- Кнопки внизу
-local btnTakeAll = Instance.new("TextButton")
-btnTakeAll.Size              = UDim2.new(0.48, 0, 0, 30)
-btnTakeAll.Position          = UDim2.new(0, 8, 1, -46)
-btnTakeAll.BackgroundColor3  = Color3.fromRGB(60, 120, 60)
-btnTakeAll.Text              = "Взять всё"
-btnTakeAll.TextColor3        = Color3.fromRGB(255, 255, 255)
-btnTakeAll.Font              = Enum.Font.Gotham
-btnTakeAll.TextScaled        = true
-btnTakeAll.BorderSizePixel   = 0
-btnTakeAll.Parent            = window
+local btnFrame = Instance.new("Frame")
+btnFrame.Name                  = "ButtonFrame"
+btnFrame.Size                  = UDim2.new(1, -PAD * 2, 0, BUTTON_H)
+btnFrame.BackgroundTransparency = 1
+btnFrame.Parent                = window
 
-local btnTakeAllCorner = Instance.new("UICorner")
-btnTakeAllCorner.CornerRadius = UDim.new(0, 6)
-btnTakeAllCorner.Parent = btnTakeAll
+local btnTakeAll = Instance.new("TextButton")
+btnTakeAll.Size             = UDim2.new(0.48, 0, 1, 0)
+btnTakeAll.Position         = UDim2.new(0, 0, 0, 0)
+btnTakeAll.BackgroundColor3 = GREEN_BTN
+btnTakeAll.Text             = "Взять всё"
+btnTakeAll.TextColor3       = Color3.fromRGB(255, 255, 255)
+btnTakeAll.Font             = Enum.Font.GothamBold
+btnTakeAll.TextSize         = 14
+btnTakeAll.BorderSizePixel  = 0
+btnTakeAll.Parent           = btnFrame
+
+local takeAllCorner = Instance.new("UICorner")
+takeAllCorner.CornerRadius = SMALL_R
+takeAllCorner.Parent = btnTakeAll
 
 local btnSort = Instance.new("TextButton")
-btnSort.Size                 = UDim2.new(0.48, 0, 0, 30)
-btnSort.Position             = UDim2.new(0.52, 0, 1, -46)
-btnSort.BackgroundColor3     = Color3.fromRGB(60, 80, 140)
-btnSort.Text                 = "Сорт."
-btnSort.TextColor3           = Color3.fromRGB(255, 255, 255)
-btnSort.Font                 = Enum.Font.Gotham
-btnSort.TextScaled           = true
-btnSort.BorderSizePixel      = 0
-btnSort.Parent               = window
+btnSort.Size             = UDim2.new(0.48, 0, 1, 0)
+btnSort.Position         = UDim2.new(0.52, 0, 0, 0)
+btnSort.BackgroundColor3 = BLUE_BTN
+btnSort.Text             = "Сорт."
+btnSort.TextColor3       = TEXT_COLOR
+btnSort.Font             = Enum.Font.GothamBold
+btnSort.TextSize         = 14
+btnSort.BorderSizePixel  = 0
+btnSort.Parent           = btnFrame
 
-local btnSortCorner = Instance.new("UICorner")
-btnSortCorner.CornerRadius = UDim.new(0, 6)
-btnSortCorner.Parent = btnSort
+local sortCorner = Instance.new("UICorner")
+sortCorner.CornerRadius = SMALL_R
+sortCorner.Parent = btnSort
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Состояние
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 local currentContainerId = nil
 local currentSlots       = {}
 local slotButtons        = {}
-local nearbyContainer    = nil   -- { containerId, model, interactRange }
+local nearbyContainer    = nil
 local interactRange      = 5
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Построение сетки слотов
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 local function buildSlotGrid(slots)
-    -- Очищаем старые
     for _, btn in slotButtons do
         btn:Destroy()
     end
     slotButtons = {}
+
+    local rows = math.ceil(#slots / COLS)
+    local gridH = rows * (SLOT_SIZE + PADDING) + PADDING
+    slotsFrame.Size = UDim2.new(1, -PAD * 2, 0, gridH)
+
+    -- Пересчитываем размер окна и позицию кнопок
+    local totalH = HEADER_H + PAD + gridH + PAD + BUTTON_H + PAD
+    window.Size = UDim2.new(0, window.Size.X.Offset, 0, totalH)
+    btnFrame.Position = UDim2.new(0, PAD, 0, HEADER_H + PAD + gridH + PAD)
 
     for i, slot in slots do
         local col = (i - 1) % COLS
@@ -168,36 +214,45 @@ local function buildSlotGrid(slots)
         local btn = Instance.new("TextButton")
         btn.Size             = UDim2.new(0, SLOT_SIZE, 0, SLOT_SIZE)
         btn.Position         = UDim2.new(0, col * (SLOT_SIZE + PADDING), 0, row * (SLOT_SIZE + PADDING))
-        btn.BackgroundColor3 = Color3.fromRGB(50, 45, 38)
+        btn.BackgroundColor3 = slot and SLOT_BG or SLOT_EMPTY
         btn.BorderSizePixel  = 0
         btn.Text             = ""
+        btn.AutoButtonColor  = slot and true or false
         btn.Parent           = slotsFrame
 
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.CornerRadius = SMALL_R
         btnCorner.Parent = btn
 
+        -- Обводка слота
+        local slotStroke = Instance.new("UIStroke")
+        slotStroke.Color     = STROKE_COLOR
+        slotStroke.Thickness = 1
+        slotStroke.Parent    = btn
+
         if slot and slot ~= false then
-            -- Иконка предмета
+            local itemDef = Config.Items[slot.ItemId]
+
+            -- Иконка
             local img = Instance.new("ImageLabel")
-            img.Size                = UDim2.new(0.75, 0, 0.75, 0)
-            img.Position            = UDim2.new(0.125, 0, 0.05, 0)
+            img.Size                 = UDim2.new(0, 36, 0, 36)
+            img.Position             = UDim2.new(0.5, -18, 0, 2)
             img.BackgroundTransparency = 1
-            img.Image               = Config.Items[slot.ItemId] and Config.Items[slot.ItemId].Icon or ""
-            img.Parent              = btn
+            img.Image                = itemDef and itemDef.Icon or ""
+            img.Parent               = btn
 
             -- Количество
             if slot.Amount and slot.Amount > 1 then
                 local amtLabel = Instance.new("TextLabel")
-                amtLabel.Size        = UDim2.new(1, -4, 0, 16)
-                amtLabel.Position    = UDim2.new(0, 2, 1, -18)
+                amtLabel.Size                 = UDim2.new(1, -4, 0, 14)
+                amtLabel.Position             = UDim2.new(0, 2, 1, -16)
                 amtLabel.BackgroundTransparency = 1
-                amtLabel.Text        = tostring(slot.Amount)
-                amtLabel.TextColor3  = Color3.fromRGB(220, 220, 150)
-                amtLabel.Font        = Enum.Font.GothamBold
-                amtLabel.TextScaled  = true
-                amtLabel.TextXAlignment = Enum.TextXAlignment.Right
-                amtLabel.Parent      = btn
+                amtLabel.Text                 = tostring(slot.Amount)
+                amtLabel.TextColor3           = TEXT_COLOR
+                amtLabel.Font                 = Enum.Font.GothamBold
+                amtLabel.TextSize             = 12
+                amtLabel.TextXAlignment       = Enum.TextXAlignment.Right
+                amtLabel.Parent               = btn
             end
 
             -- Клик → TakeItem
@@ -207,24 +262,20 @@ local function buildSlotGrid(slots)
                     Remotes.ContainerTakeItem:FireServer(currentContainerId, slotIndex)
                 end
             end)
-        else
-            -- Пустой слот — серый
-            btn.BackgroundColor3 = Color3.fromRGB(35, 32, 28)
         end
 
         slotButtons[i] = btn
     end
 end
 
--- Обновить UI слотов без перестройки всей сетки
 local function updateSlots(slots)
     currentSlots = slots
     buildSlotGrid(slots)
 end
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Открыть / Закрыть окно
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 local function openWindow(containerId, slots, name)
     currentContainerId = containerId
     currentSlots       = slots
@@ -241,19 +292,19 @@ local function closeWindow()
     window.Visible     = false
 end
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Сканирование ближайших контейнеров (Heartbeat)
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 local SCAN_INTERVAL = 0.2
 local scanTimer     = 0
 
 RunService.Heartbeat:Connect(function(dt)
-    -- Auto-close: игрок отошёл от открытого контейнера
+    -- Auto-close
     if currentContainerId and window.Visible then
-        local containerFolder = workspace:FindFirstChild("Containers")
-        if containerFolder then
+        local containersFolder = workspace:FindFirstChild("Containers")
+        if containersFolder then
             local model = nil
-            for _, obj in containerFolder:GetDescendants() do
+            for _, obj in containersFolder:GetDescendants() do
                 if obj:GetAttribute("ContainerId") == currentContainerId then
                     model = obj
                     break
@@ -272,7 +323,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- Поиск ближайшего контейнера для подсказки
+    -- Подсказка
     scanTimer += dt
     if scanTimer < SCAN_INTERVAL then return end
     scanTimer = 0
@@ -288,15 +339,14 @@ RunService.Heartbeat:Connect(function(dt)
         if obj:IsA("BasePart") and cfgId then
             local cfg = Config.Containers[cfgId]
             if cfg then
-                local pos = obj.Position
-                local dist = (hrp.Position - pos).Magnitude
+                local dist = (hrp.Position - obj.Position).Magnitude
                 local range = cfg.InteractRange or 5
                 if dist <= range and dist < closestDist then
                     closestDist = dist
                     closest = {
-                        model          = obj,
-                        containerId    = obj:GetAttribute("ContainerId"),
-                        interactRange  = range,
+                        model         = obj,
+                        containerId   = obj:GetAttribute("ContainerId"),
+                        interactRange = range,
                     }
                 end
             end
@@ -307,28 +357,22 @@ RunService.Heartbeat:Connect(function(dt)
         nearbyContainer = closest
         interactRange   = closest.interactRange
 
-        -- Прикрепляем BillboardGui к якорю или к модели
         if billboardGui.Parent ~= closest.model then
             local anchor = closest.model:FindFirstChild("HintAnchor")
-
             if anchor then
-                -- Модель сама знает где показывать подсказку
                 billboardGui.Parent      = anchor
                 billboardGui.Adornee     = anchor
                 billboardGui.StudsOffset = Vector3.new(0, 0, 0)
             else
-                -- Fallback: вычисляем автоматически по размеру модели
-                billboardGui.Parent  = closest.model
-                billboardGui.Adornee = closest.model
+                billboardGui.Parent      = closest.model
+                billboardGui.Adornee     = closest.model
                 local size = closest.model:IsA("BasePart")
                     and closest.model.Size
                     or closest.model:GetExtentsSize()
                 billboardGui.StudsOffset = Vector3.new(0, size.Y / 2 + 1.5, 0)
             end
-
             billboardGui.AlwaysOnTop = true
         end
-
         billboardGui.Enabled = true
     else
         nearbyContainer      = nil
@@ -336,38 +380,33 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- ────────────────────────────────────────────────────────────
--- Ввод: F → открыть ближайший контейнер
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Ввод: F → открыть, Escape → закрыть
+-- ════════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode ~= Enum.KeyCode.F then return end
-    if window.Visible then return end  -- уже открыт
 
-    if nearbyContainer and nearbyContainer.containerId then
-        Remotes.ContainerOpen:FireServer(nearbyContainer.containerId, false)
+    if input.KeyCode == Enum.KeyCode.F then
+        if window.Visible then return end
+        if nearbyContainer and nearbyContainer.containerId then
+            Remotes.ContainerOpen:FireServer(nearbyContainer.containerId, false)
+        end
     end
 end)
 
--- ────────────────────────────────────────────────────────────
--- Remote: ContainerOpened — сервер дал добро на открытие
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- Remotes
+-- ════════════════════════════════════════════════════════════
 Remotes.ContainerOpened.OnClientEvent:Connect(function(containerId, slots, name)
     openWindow(containerId, slots, name)
 end)
 
--- ────────────────────────────────────────────────────────────
--- Remote: ContainerUpdate — кто-то взял предмет, обновляем UI
--- ────────────────────────────────────────────────────────────
 Remotes.ContainerUpdate.OnClientEvent:Connect(function(containerId, slots)
     if currentContainerId == containerId then
         updateSlots(slots)
     end
 end)
 
--- ────────────────────────────────────────────────────────────
--- Remote: ContainerClosed — сундук исчез / закрыт сервером
--- ────────────────────────────────────────────────────────────
 Remotes.ContainerClosed.OnClientEvent:Connect(function(containerId)
     if currentContainerId == containerId then
         currentContainerId = nil
@@ -375,9 +414,9 @@ Remotes.ContainerClosed.OnClientEvent:Connect(function(containerId)
     end
 end)
 
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 -- Кнопки
--- ────────────────────────────────────────────────────────────
+-- ════════════════════════════════════════════════════════════
 closeBtn.MouseButton1Click:Connect(closeWindow)
 
 btnTakeAll.MouseButton1Click:Connect(function()
