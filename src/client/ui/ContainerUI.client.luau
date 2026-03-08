@@ -34,8 +34,8 @@ screenGui.Parent         = playerGui
 local billboardGui = Instance.new("BillboardGui")
 billboardGui.Name       = "ContainerHint"
 billboardGui.Size       = UDim2.new(0, 200, 0, 40)
-billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-billboardGui.AlwaysOnTop = false
+billboardGui.StudsOffset = Vector3.new(0, 4, 0) 
+billboardGui.AlwaysOnTop = true
 billboardGui.Enabled    = false
 billboardGui.Parent     = screenGui  -- пока без parent модели
 
@@ -307,14 +307,31 @@ RunService.Heartbeat:Connect(function(dt)
         nearbyContainer = closest
         interactRange   = closest.interactRange
 
-        -- Прикрепляем BillboardGui к модели
+        -- Прикрепляем BillboardGui к якорю или к модели
         if billboardGui.Parent ~= closest.model then
-            billboardGui.Parent  = closest.model
-            billboardGui.Adornee = closest.model
+            local anchor = closest.model:FindFirstChild("HintAnchor")
+
+            if anchor then
+                -- Модель сама знает где показывать подсказку
+                billboardGui.Parent      = anchor
+                billboardGui.Adornee     = anchor
+                billboardGui.StudsOffset = Vector3.new(0, 0, 0)
+            else
+                -- Fallback: вычисляем автоматически по размеру модели
+                billboardGui.Parent  = closest.model
+                billboardGui.Adornee = closest.model
+                local size = closest.model:IsA("BasePart")
+                    and closest.model.Size
+                    or closest.model:GetExtentsSize()
+                billboardGui.StudsOffset = Vector3.new(0, size.Y / 2 + 1.5, 0)
+            end
+
+            billboardGui.AlwaysOnTop = true
         end
+
         billboardGui.Enabled = true
     else
-        nearbyContainer     = nil
+        nearbyContainer      = nil
         billboardGui.Enabled = false
     end
 end)

@@ -136,31 +136,44 @@ function ContainerManager._trySpawn(containerId)
     if not data then return end
     local cfg = data.config
 
-    -- Если Persistent — проверяем сохранённые данные (заглушка, DataService интеграция позже)
-    local slots, hasItem = rollLoot(cfg)
+    local slots, hasItem
 
-    if not hasItem and cfg.RetryInterval and cfg.RetryInterval > 0 then
-        -- Лут не выпал — повторим через RetryInterval
-        data.state = STATE.INACTIVE
-        data.respawnTimer = task.delay(cfg.RetryInterval, function()
-            ContainerManager._trySpawn(containerId)
-        end)
-        return
+    if cfg.Persistent then
+        -- Persistent = true: всегда спавним, SpawnChance игнорируем
+        -- Лут гарантированно генерируется (SpawnChance = 1)
+        local persistCfg = table.clone(cfg)
+        persistCfg.SpawnChance = 1
+        slots, hasItem = rollLoot(persistCfg)
+    else
+        -- Обычный контейнер: SpawnChance и RetryInterval работают
+        slots, hasItem = rollLoot(cfg)
+
+        if not hasItem then
+            if cfg.RetryInterval and cfg.RetryInterval > 0 then
+                -- Шанс не сработал — повтор через RetryInterval
+                data.state = STATE.INACTIVE
+                data.respawnTimer = task.delay(cfg.RetryInterval, function()
+                    ContainerManager._trySpawn(containerId)
+                end)
+            end
+            -- Если RetryInterval = 0 — просто не спавним до следующего respawn
+            return
+        end
     end
 
     data.slots = slots
     data.state = STATE.ACTIVE
     data.openedBy = {}
 
-    -- Создаём визуальную модель из ServerStorage/containers/<cfgId>
+    -- Создаём модель из ServerStorage/containers/<cfgId>
     local template = ServerStorage:FindFirstChild("containers")
         and ServerStorage.containers:FindFirstChild(data.cfgId)
     if template then
         local model = template:Clone()
         model:SetAttribute("ContainerId", containerId)
+        model:SetAttribute("ContainerType", data.cfgId)
         model.Parent = workspace
 
-        -- Ставим на позицию SpawnPoint
         local sp = data.spawnPoint
         if model:IsA("BasePart") then
             model.CFrame = sp.CFrame
@@ -169,12 +182,12 @@ function ContainerManager._trySpawn(containerId)
         end
         data.model = model
     else
-        -- Fallback: используем сам SpawnPoint как визуал
         data.model = data.spawnPoint
         data.spawnPoint.Transparency = 0
     end
 
-    print(string.format("[ContainerManager] Заспавнен '%s' (%s)", cfg.Name, containerId))
+    print(string.format("[ContainerManager] Заспавнен '%s' (%s) [%s]",
+        cfg.Name, containerId, cfg.Persistent and "Persistent" or "Random"))
 end
 
 -- Игрок запрашивает открыть контейнер
