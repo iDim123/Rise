@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -23,6 +24,7 @@ local castCompleteConn = nil
 local castCancelConn = nil
 local stuckTimeoutTask = nil
 local isHolding = false -- LMB зажат
+local lastWeaponCooldown = 0.3
 
 local STUCK_TIMEOUT = 3.0
 local REFIRE_DELAY = 0.05 -- задержка перед повторным выстрелом
@@ -91,8 +93,12 @@ sendReleaseAndRefire = function(mousePos)
         Remotes.RangedRelease:FireServer(mousePos)
     end
     if isHolding then
-        print("[RangedInput] scheduling refire")
-        task.delay(REFIRE_DELAY, function()
+        -- Ждём cooldown оружия перед следующим кастом
+        -- CastTime уже прошёл, нужно выждать только Cooldown
+        local cooldown = lastWeaponCooldown or 0.3
+        local delay = math.max(cooldown + 0.05, 0.1) -- +50ms запас на сеть
+        print("[RangedInput] scheduling refire in", delay)
+        task.delay(delay, function()
             print("[RangedInput] refire tick: isHolding =", isHolding, "state =", state)
             if isHolding then
                 beginCast()
@@ -108,6 +114,15 @@ beginCast = function()
     if state ~= STATE_IDLE then
         print("[RangedInput] beginCast BLOCKED — not IDLE")
         return
+    end
+
+    -- Получаем конфиг оружия для cooldown
+    local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+    if tool and Config.Weapons then
+        local weaponConfig = Config.Weapons[tool.Name]
+        if weaponConfig then
+            lastWeaponCooldown = weaponConfig.Cooldown or 0.3
+        end
     end
 
     local mousePos = getMouseWorldPosition()

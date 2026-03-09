@@ -112,28 +112,30 @@ end
 
 function RangedHandler.attack(player, mousePosition, weaponConfig)
     print("[RangedHandler] attack() called for", player.Name)
-    -- ── Валидация ─────────────────────────────────────────
+
     local character, rootPart = validateCharacter(player)
     if not character then
+        print("[RangedHandler] BLOCKED: no character")
         return
     end
 
-    -- ── Cooldown (проверка, не применение) ─────────────────
     if isOnCooldown(player, weaponConfig) then
+        print("[RangedHandler] BLOCKED: on cooldown")
         return
     end
 
-    -- ── Уже кастуется? ────────────────────────────────────
     local CM = getCastManager()
     if CM.isActive(player) then
+        print("[RangedHandler] BLOCKED: CastManager.isActive = true")
         return
     end
 
-    -- ── Уже есть pending? (защита от дублей) ──────────────
     if pendingCasts[player] then
+        print("[RangedHandler] BLOCKED: pendingCasts exists")
         return
     end
 
+    print("[RangedHandler] → starting cast...")
     -- ── Запуск каста ──────────────────────────────────────
     local castId = CM.start(player, {
         Duration = weaponConfig.CastTime or 0.8,
@@ -173,7 +175,9 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         end
     })
 
+    print("[RangedHandler] CastManager.start returned:", castId)
     if not castId then
+        print("[RangedHandler] BLOCKED: CastManager returned nil")
         return
     end
 
