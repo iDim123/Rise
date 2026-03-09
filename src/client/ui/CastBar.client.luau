@@ -171,7 +171,8 @@ local castState = {
     cancelOnDamage = false,
     fillTween = nil,
     heartbeatConn = nil,
-    timerConn = nil
+    timerConn = nil,
+    delayTask = nil
 }
 
 local isCancelledByServer = false
@@ -238,6 +239,10 @@ local function cleanupConnections()
     if castState.timerConn then
         castState.timerConn:Disconnect()
         castState.timerConn = nil
+    end
+    if castState.delayTask then
+        pcall(task.cancel, castState.delayTask)
+        castState.delayTask = nil
     end
 end
 
@@ -358,7 +363,8 @@ local function startCast(params)
     end)
 
     -- Авто-завершение
-    task.delay(duration, function()
+    castState.delayTask = task.delay(duration, function()
+        castState.delayTask = nil
         if castState.active then
             completeCast()
         end

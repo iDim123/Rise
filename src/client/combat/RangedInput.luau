@@ -85,23 +85,28 @@ local beginCast
 local sendReleaseAndRefire
 
 sendReleaseAndRefire = function(mousePos)
+    print("[RangedInput] sendReleaseAndRefire called, isHolding =", isHolding)
     cleanup()
     if mousePos then
         Remotes.RangedRelease:FireServer(mousePos)
     end
-
-    -- Если LMB ещё зажат → начать новый каст
     if isHolding then
+        print("[RangedInput] scheduling refire in", REFIRE_DELAY)
         task.delay(REFIRE_DELAY, function()
+            print("[RangedInput] refire timer fired, isHolding =", isHolding, "state =", state)
             if isHolding then
                 beginCast()
             end
         end)
+    else
+        print("[RangedInput] NOT refiring — isHolding is false")
     end
 end
 
 beginCast = function()
+    print("[RangedInput] beginCast called, state =", state, "isHolding =", isHolding)
     if state ~= STATE_IDLE then
+        print("[RangedInput] beginCast BLOCKED — state is not IDLE")
         return
     end
 
@@ -122,6 +127,8 @@ beginCast = function()
         local completeEvent = castBarUI:FindFirstChild("CastComplete")
         if completeEvent then
             castCompleteConn = completeEvent.Event:Connect(function()
+                print("[RangedInput] CastComplete received, state =", state, "isHolding =", isHolding, "earlyRelease =",
+                    earlyReleasePos)
                 if castCompleteConn then
                     castCompleteConn:Disconnect()
                     castCompleteConn = nil
@@ -176,6 +183,7 @@ function RangedInput.start()
 end
 
 function RangedInput.stop()
+    print("[RangedInput] stop() called, state =", state, "isHolding =", isHolding)
     isHolding = false
 
     if state == STATE_CASTING then
