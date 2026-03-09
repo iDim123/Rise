@@ -23,7 +23,12 @@ local menuItems = {{
     Id = "BossJournal",
     Name = "Журнал боссов",
     Description = "Список поверженных боссов",
-    Icon = "rbxassetid://0" -- placeholder
+    Icon = "rbxassetid://0"
+}, {
+    Id = "Spellbook",
+    Name = "Книга заклинаний",
+    Description = "Магические школы и заклинания",
+    Icon = "rbxassetid://0"
 }}
 
 -- ═══ ScreenGui ═══

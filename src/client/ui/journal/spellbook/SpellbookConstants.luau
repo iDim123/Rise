@@ -1,0 +1,45 @@
+local C = {}
+
+-- Layout
+C.SCHOOL_TAB_H = 36
+C.SCHOOL_TAB_W = 120
+C.SCHOOL_INFO_W = 220
+C.TIER_BAR_H = 40
+C.SPELL_ICON_SIZE = 64
+C.SPELL_ICON_GAP = 12
+C.TIER_LABEL_W = 40
+C.DETAIL_W = 260
+C.SLOT_BAR_H = 80
+C.SLOT_SIZE = 50
+C.SLOT_GAP = 20
+C.CONTENT_PAD = 16
+
+-- Colors (visual style match)
+C.PANEL_BG = Color3.fromRGB(25, 25, 35)
+C.PANEL_BG_ALT = Color3.fromRGB(30, 30, 42)
+C.CARD_BG = Color3.fromRGB(35, 35, 50)
+C.CARD_BG_HOVER = Color3.fromRGB(50, 50, 70)
+C.CARD_BG_SELECTED = Color3.fromRGB(55, 40, 55)
+C.CARD_BG_LOCKED = Color3.fromRGB(20, 20, 28)
+C.STROKE_COLOR = Color3.fromRGB(80, 80, 100)
+C.TEXT_COLOR = Color3.fromRGB(220, 220, 220)
+C.TEXT_DIM = Color3.fromRGB(140, 140, 160)
+C.TEXT_BRIGHT = Color3.fromRGB(255, 255, 200)
+C.ACCENT_BLOOD = Color3.fromRGB(160, 30, 30)
+C.ACCENT_CHAOS = Color3.fromRGB(120, 40, 180)
+C.TAB_ACTIVE = Color3.fromRGB(45, 45, 60)
+C.TAB_INACTIVE = Color3.fromRGB(30, 30, 42)
+C.SLOT_BG = Color3.fromRGB(35, 35, 50)
+C.SLOT_BG_FILLED = Color3.fromRGB(50, 45, 60)
+C.SLOT_BORDER = Color3.fromRGB(80, 80, 100)
+C.TIER_MARKER = Color3.fromRGB(80, 130, 200)
+C.TIER_MARKER_DIM = Color3.fromRGB(50, 50, 65)
+C.SEPARATOR = Color3.fromRGB(80, 80, 100)
+C.ULT_COLOR = Color3.fromRGB(200, 60, 200)
+
+C.SCHOOL_ACCENTS = {
+    Blood = C.ACCENT_BLOOD,
+    Chaos = C.ACCENT_CHAOS
+}
+
+return C
