@@ -5,12 +5,12 @@ local modules = ServerScriptService:WaitForChild("modules")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local LevelManager = require(modules:WaitForChild("LevelManager"))
+local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
 
 local BossPlayerData = require(script.Parent:WaitForChild("BossPlayerData"))
 
 local BossInteraction = {}
 
--- BossManager reference (set via init to avoid circular require)
 local BossManager
 
 function BossInteraction.init(bossManager)
@@ -28,7 +28,6 @@ function BossInteraction.finishBoss(player, bossId)
         return false, "No entity"
     end
 
-    -- Range check
     local character = player.Character
     if not character then
         return false, "No character"
@@ -47,6 +46,20 @@ function BossInteraction.finishBoss(player, bossId)
 
     -- Unlock tech on first kill
     local firstKill = BossPlayerData.unlockTech(player, bossId)
+
+    -- ═══ Award Spell Points on first kill ═══
+    if firstKill then
+        local bossConfig = Config.Bosses[bossId]
+        if bossConfig and bossConfig.SpellPointReward then
+            local reward = bossConfig.SpellPointReward
+            SpellProgressManager.addSpellPoints(player, reward.School, tostring(reward.Tier), reward.Amount)
+            Remotes.Notify:FireClient(player,
+                "Получено: " .. reward.Amount .. " Spell Point (" .. reward.School .. " Tier " .. reward.Tier ..
+                    ")", "success")
+            print("[BossInteraction] Awarded " .. reward.Amount .. " " .. reward.School .. " T" .. reward.Tier ..
+                      " spell point(s) to " .. player.Name)
+        end
+    end
 
     -- Award XP
     local bossConfig = Config.Bosses[bossId]
@@ -78,7 +91,7 @@ function BossInteraction.finishBoss(player, bossId)
             bossConfig.EssenceRequired .. ")", "success")
     if firstKill then
         Remotes.Notify:FireClient(player, "Технология разблокирована: " ..
-            (bossConfig.Unlocks.TooltipTitle or ""), "success")
+            (bossConfig.Unlocks and bossConfig.Unlocks.TooltipTitle or ""), "success")
     end
 
     return true
@@ -103,7 +116,6 @@ function BossInteraction.captureBoss(player, bossId)
         return false, "No entity"
     end
 
-    -- Range check
     local character = player.Character
     if not character then
         return false, "No character"
@@ -117,10 +129,8 @@ function BossInteraction.captureBoss(player, bossId)
         return false, "Too far"
     end
 
-    -- Mark captured
     BossPlayerData.markCaptured(player, bossId)
 
-    -- Create servant from boss
     local bossConfig = Config.Bosses[bossId]
     local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
     local success, servantId = ServantManager.createFromEgg(player, "Warrior", 100)
@@ -131,12 +141,10 @@ function BossInteraction.captureBoss(player, bossId)
         end
     end
 
-    -- Award XP
     if bossConfig and bossConfig.XPReward and bossConfig.XPReward > 0 then
         LevelManager.addPlayerXP(player, bossConfig.XPReward)
     end
 
-    -- Kill boss
     BossManager.killBoss(bossId)
 
     print("[BossInteraction] " .. player.Name .. " CAPTURED " .. bossId)

@@ -18,8 +18,8 @@ JC.CLOSE_TEXT = Color3.fromRGB(200, 100, 100)
 -- Background images per context
 JC.DEFAULT_BG = "rbxassetid://130567382079214"
 JC.SCHOOL_BACKGROUNDS = {
-    Blood = "rbxassetid://76367891618899",
-    Chaos = "rbxassetid://91208608367576"
+    Blood = "rbxassetid://130567382079214", -- "rbxassetid://76367891618899",
+    Chaos = "rbxassetid://130567382079214" -- "rbxassetid://91208608367576"
 }
 
 return JC

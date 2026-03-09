@@ -4,7 +4,7 @@ return {
             Name = "Кровавый Воин",
             Level = 6,
             Act = 1,
-            MaxHP = 100,
+            MaxHP = 10,
             Damage = 15,
             AttackRange = 6,
             AggroRange = 30,
@@ -45,7 +45,7 @@ return {
                 Description = "Содержит различные ресурсы."
             }, {
                 Type = "Spell",
-                Icon = "rbxassetid://0",
+                Icon = "rbxassetid://123772032226199",
                 Name = "Blood Rage",
                 Description = "Открывает Blood Rage (Tier I Blood)."
             }},
@@ -116,7 +116,7 @@ return {
                 Chance = 1.0
             }, {
                 Type = "Spell",
-                Icon = "rbxassetid://0",
+                Icon = "rbxassetid://136139846768097",
                 Name = "Chaos Volley",
                 Description = "Открывает Chaos Volley (Tier I Chaos)."
             }},

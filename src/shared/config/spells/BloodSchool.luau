@@ -116,7 +116,7 @@ return {
             Id = "blood_rite",
             Name = "Blood Rite",
             Description = "Блокирует атаки 1.5с. При блоке — кровавая нова: отталкивает врагов, 60% маг. урона, Leech. Неуязвимость 1.2с.",
-            Icon = "rbxassetid://91999475639938",
+            Icon = "rbxassetid://127320493562909",
             School = "Blood",
             Class = "Basic",
             Tier = 3,
