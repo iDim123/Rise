@@ -24,11 +24,16 @@ return {
         -- Lighting: Ночь
         Night = {
             ClockTime = 0,
-            Brightness = 0.5,
-            Ambient = Color3.fromRGB(130, 130, 150),
-            OutdoorAmbient = Color3.fromRGB(60, 60, 60),
-            FogEnd = 600,
-            FogColor = Color3.fromRGB(60, 60, 120)
+            Brightness = 2,
+            Ambient = Color3.fromRGB(180, 180, 180),
+            OutdoorAmbient = Color3.fromRGB(150, 150, 150),
+            FogEnd = 1000,
+            FogColor = Color3.fromRGB(180, 190, 210)
+            -- Brightness = 0.5,
+            -- Ambient = Color3.fromRGB(130, 130, 150),
+            -- OutdoorAmbient = Color3.fromRGB(100, 100, 100),
+            -- FogEnd = 600,
+            -- FogColor = Color3.fromRGB(60, 60, 120)
         },
 
         -- Lighting: Кровавая луна (переопределяет ночь)
@@ -52,7 +57,7 @@ return {
     },
 
     LunarCycle = {
-        FullCycleDuration = 18000, -- 5 реальных часов (секунды)
+        FullCycleDuration = 1800, -- 5 реальных часов (секунды)
         Phases = {{
             Id = "new_moon",
             Name = "Новолуние",

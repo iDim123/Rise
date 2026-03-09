@@ -132,12 +132,12 @@ Instance.new("UICorner", barFill).CornerRadius = UDim.new(0, 3)
 -- ════════════════════════════════════════════════════════════
 local syncData = {
     CycleTimer = 0,
-    TotalCycle = DNC.DayDuration + DNC.NightDuration,
+    TotalCycle = DNC.CycleDuration, -- было: DNC.DayDuration + DNC.NightDuration
     IsDay = false,
     Phase = "night",
     LunarPhase = "new_moon",
     LunarTimer = 0,
-    ClockTime = 0
+    ClockTime = DNC.StartHour or 0
 }
 
 local LUNAR_NAMES = {
@@ -175,8 +175,6 @@ local function updateUI()
     local minutes = math.floor((clock % 1) * 60)
     timeLabel.Text = string.format("%02d:%02d", hour, minutes)
     lunarLabel.Text = LUNAR_NAMES[syncData.LunarPhase] or ""
-    print(string.format("[DayNightHUD] Синхронизация: %s, %s, %s, Clock: %s",
-        syncData.IsDay and "День" or "Ночь", syncData.Phase, syncData.LunarPhase, timeLabel.Text))
 end
 
 -- ════════════════════════════════════════════════════════════
@@ -189,7 +187,19 @@ end)
 
 -- Клиентский тик — интерполируем между синхронизациями
 RunService.Heartbeat:Connect(function(dt)
+    if not syncData.CycleTimer or not syncData.TotalCycle then
+        return
+    end
+
     syncData.CycleTimer = (syncData.CycleTimer + dt) % syncData.TotalCycle
+    syncData.ClockTime = (syncData.CycleTimer / syncData.TotalCycle) * 24
+
     local progress = syncData.CycleTimer / syncData.TotalCycle
     barFill.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
+
+    -- Обновляем часы между синками
+    local clock = syncData.ClockTime
+    local hour = math.floor(clock) % 24
+    local minutes = math.floor((clock % 1) * 60)
+    timeLabel.Text = string.format("%02d:%02d", hour, minutes)
 end)

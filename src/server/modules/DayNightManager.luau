@@ -25,7 +25,7 @@ local currentPhase  = "night"
 local currentLunar  = "new_moon"
 
 local shelterData   = {}
-
+local timeScale = 1
 -- ════════════════════════════════════════════════════════════
 -- Вспомогательные
 -- ════════════════════════════════════════════════════════════
@@ -65,6 +65,16 @@ local function getNightPreset()
     end
     return DNC.Night
 end
+
+function DayNightManager.setTime(hour)
+    cycleTimer = math.clamp(hour, 0, 24) * secsPerHour
+    broadcastSync()
+end
+
+function DayNightManager.setTimeScale(scale)
+    timeScale = scale
+end
+
 
 -- ════════════════════════════════════════════════════════════
 -- Время → часы / фаза
@@ -240,6 +250,7 @@ end
 -- Главный тик
 -- ════════════════════════════════════════════════════════════
 function DayNightManager.update(dt)
+    dt = dt * timeScale
     cycleTimer = (cycleTimer + dt) % cycleDuration
     lunarTimer = (lunarTimer + dt) % LC.FullCycleDuration
 
