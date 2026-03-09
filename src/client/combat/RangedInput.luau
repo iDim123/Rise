@@ -137,7 +137,6 @@ beginCast = function()
         local completeEvent = castBarUI:FindFirstChild("CastComplete")
         if completeEvent then
             castCompleteConn = completeEvent.Event:Connect(function()
-                    earlyReleasePos)
                 if castCompleteConn then
                     castCompleteConn:Disconnect()
                     castCompleteConn = nil

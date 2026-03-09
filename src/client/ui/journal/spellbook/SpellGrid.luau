@@ -13,8 +13,8 @@ local onSelectCallback = nil
 function SpellGrid.build(parent)
     gridFrame = Instance.new("Frame")
     gridFrame.Name = "SpellGrid"
-    gridFrame.Size = UDim2.new(1, -(C.SCHOOL_INFO_W + C.DETAIL_W + C.CONTENT_PAD * 2), 1, 0)
-    gridFrame.Position = UDim2.new(0, C.SCHOOL_INFO_W + C.CONTENT_PAD, 0, 0)
+    gridFrame.Size = UDim2.new(1, 0, 1, 0)
+    gridFrame.Position = UDim2.new(0, 0, 0, 0)
     gridFrame.BackgroundTransparency = 1
     gridFrame.Parent = parent
 

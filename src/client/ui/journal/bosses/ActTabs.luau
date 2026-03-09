@@ -16,7 +16,7 @@ function ActTabs.init(parent, callback)
     tabsFrame.Name = "ActTabs"
     tabsFrame.Size = UDim2.new(0.5, 0, 0, 36)
     tabsFrame.AnchorPoint = Vector2.new(0.5, 0)
-    tabsFrame.Position = UDim2.new(0.5, 0, 0, C.HEADER_H + 6)
+    tabsFrame.Position = UDim2.new(0.5, 0, 0, 6)
     tabsFrame.BackgroundTransparency = 1
     tabsFrame.ZIndex = 2
     tabsFrame.Parent = parent

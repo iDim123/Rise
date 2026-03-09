@@ -38,7 +38,8 @@ function BossPage.build(contentParent, screenGui)
     contentContainer.Name = "ContentContainer"
     contentContainer.Size = UDim2.new(0.5, 0, 1, -52)
     contentContainer.AnchorPoint = Vector2.new(0.5, 0)
-    contentContainer.Position = UDim2.new(0.5, 0, 0, 46)
+    contentContainer.Size = UDim2.new(0.5, 0, 1, -48)
+    contentContainer.Position = UDim2.new(0.5, 0, 0, 44)
     contentContainer.BackgroundTransparency = 1
     contentContainer.Parent = pageFrame
 
