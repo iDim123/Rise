@@ -87,13 +87,18 @@ local function fireProjectile(player, rootPart, direction, weaponConfig)
     local dir = direction
     if dir.Magnitude < 0.001 then
         dir = rootPart.CFrame.LookVector
-    else
-        dir = dir.Unit
     end
+
+    dir = Vector3.new(dir.X, 0, dir.Z)
+    if dir.Magnitude < 0.001 then
+        dir = rootPart.CFrame.LookVector
+        dir = Vector3.new(dir.X, 0, dir.Z)
+    end
+    dir = dir.Unit
 
     ProjectileManager.fire({
         owner = player,
-        origin = rootPart.Position + dir * 2, -- чуть перед персонажем
+        origin = rootPart.Position + dir * 2,
         direction = dir,
         projectileId = weaponConfig.ProjectileId,
         baseDamage = weaponConfig.Damage,
@@ -138,13 +143,17 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         CancelOnDamage = true,
 
         OnComplete = function(completedPlayer)
+            print("[RangedHandler] OnComplete fired for", completedPlayer.Name)
             local pending = pendingCasts[completedPlayer]
             if not pending then
+                print("[RangedHandler] OnComplete — no pending cast!")
                 return
             end
 
             pending.waitTask = task.delay(FALLBACK_TIMEOUT, function()
+                print("[RangedHandler] Fallback timer fired")
                 if pendingCasts[completedPlayer] then
+                    print("[RangedHandler] pending exists, firing LookVector")
                     RangedHandler._fireWithLookVector(completedPlayer)
                 else
                     print("[RangedHandler] pending is NIL, skipped")
@@ -153,6 +162,7 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         end,
 
         OnCancel = function(cancelledPlayer, reason)
+            print("[RangedHandler] OnCancel fired, reason:", reason)
             local pending = pendingCasts[cancelledPlayer]
             if pending then
                 if pending.waitTask then
@@ -182,7 +192,6 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 function RangedHandler.onRelease(player, mousePosition)
-    print("[RangedHandler] onRelease() called for", player.Name)
     local pending = pendingCasts[player]
     if not pending then
         return
