@@ -105,6 +105,9 @@ end
 function SpellbookPage._onSchoolChanged(schoolId)
     SchoolInfoPanel.refresh(schoolId)
 
+    SpellGrid.clearSelection()
+    SpellDetailPanel.refresh(nil)
+
     local learned = spellData and spellData.LearnedSpells or {}
     SpellGrid.clearSelection()
     SpellGrid.rebuild(schoolId, learned)
@@ -139,21 +142,21 @@ function SpellbookPage.setVisible(visible)
 end
 
 function SpellbookPage.onActivate()
+    -- Всегда выбираем первую школу при открытии
+    if not SchoolTabs.getSelected() then
+        SchoolTabs.selectFirst()
+    end
+
     if not dataLoaded then
         task.spawn(function()
             local data = Remotes.GetSpellData:InvokeServer()
             if data then
                 spellData = data
                 dataLoaded = true
-                SchoolTabs.selectFirst()
-                SpellbookPage._refreshAll()
             end
+            SpellbookPage._refreshAll()
         end)
     else
-        -- Всегда выбираем первую вкладку если ни одна не выбрана
-        if not SchoolTabs.getSelected() then
-            SchoolTabs.selectFirst()
-        end
         SpellbookPage._refreshAll()
     end
 end

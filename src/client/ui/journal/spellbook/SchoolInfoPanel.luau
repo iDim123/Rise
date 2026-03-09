@@ -5,16 +5,22 @@ local C = require(script.Parent:WaitForChild("SpellbookConstants"))
 local SchoolInfoPanel = {}
 
 local panelFrame = nil
-local schoolNameLabel, schoolDescLabel, passiveNameLabel, passiveDescLabel
+local schoolNameLabel, schoolDescLabel
+local passiveNameLabel, passiveDescLabel
+local tierBonusHeaderLabel, tierBonusDescLabel
 
 function SchoolInfoPanel.build(parent)
-    panelFrame = Instance.new("Frame")
+    panelFrame = Instance.new("ScrollingFrame")
     panelFrame.Name = "SchoolInfoPanel"
     panelFrame.Size = UDim2.new(0, C.SCHOOL_INFO_W, 1, 0)
     panelFrame.Position = UDim2.new(0, 0, 0, 0)
     panelFrame.BackgroundColor3 = C.PANEL_BG
     panelFrame.BackgroundTransparency = 0.15
     panelFrame.BorderSizePixel = 0
+    panelFrame.ScrollBarThickness = 3
+    panelFrame.ScrollBarImageColor3 = C.STROKE_COLOR
+    panelFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    panelFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     panelFrame.Parent = parent
 
     Instance.new("UICorner", panelFrame).CornerRadius = UDim.new(0, 8)
@@ -36,7 +42,7 @@ function SchoolInfoPanel.build(parent)
     layout.Padding = UDim.new(0, 6)
     layout.Parent = panelFrame
 
-    -- School name
+    -- ═══ Section 1: School name + description ═══
     schoolNameLabel = Instance.new("TextLabel")
     schoolNameLabel.Name = "SchoolName"
     schoolNameLabel.Size = UDim2.new(1, 0, 0, 24)
@@ -48,30 +54,29 @@ function SchoolInfoPanel.build(parent)
     schoolNameLabel.LayoutOrder = 1
     schoolNameLabel.Parent = panelFrame
 
-    -- School description
     schoolDescLabel = Instance.new("TextLabel")
     schoolDescLabel.Name = "SchoolDesc"
     schoolDescLabel.Size = UDim2.new(1, 0, 0, 0)
     schoolDescLabel.AutomaticSize = Enum.AutomaticSize.Y
     schoolDescLabel.BackgroundTransparency = 1
     schoolDescLabel.Font = Enum.Font.Gotham
-    schoolDescLabel.TextSize = 15
+    schoolDescLabel.TextSize = 16
     schoolDescLabel.TextColor3 = C.TEXT_DIM
     schoolDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     schoolDescLabel.TextWrapped = true
     schoolDescLabel.LayoutOrder = 2
     schoolDescLabel.Parent = panelFrame
 
-    -- Separator
-    local sep = Instance.new("Frame")
-    sep.Size = UDim2.new(1, 0, 0, 1)
-    sep.BackgroundColor3 = C.SEPARATOR
-    sep.BackgroundTransparency = 0.5
-    sep.BorderSizePixel = 0
-    sep.LayoutOrder = 3
-    sep.Parent = panelFrame
+    -- ═══ Separator 1 ═══
+    local sep1 = Instance.new("Frame")
+    sep1.Size = UDim2.new(1, 0, 0, 1)
+    sep1.BackgroundColor3 = C.SEPARATOR
+    sep1.BackgroundTransparency = 0.5
+    sep1.BorderSizePixel = 0
+    sep1.LayoutOrder = 3
+    sep1.Parent = panelFrame
 
-    -- Passive name
+    -- ═══ Section 2: Passive ═══
     passiveNameLabel = Instance.new("TextLabel")
     passiveNameLabel.Name = "PassiveName"
     passiveNameLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -83,19 +88,54 @@ function SchoolInfoPanel.build(parent)
     passiveNameLabel.LayoutOrder = 4
     passiveNameLabel.Parent = panelFrame
 
-    -- Passive description
     passiveDescLabel = Instance.new("TextLabel")
     passiveDescLabel.Name = "PassiveDesc"
     passiveDescLabel.Size = UDim2.new(1, 0, 0, 0)
     passiveDescLabel.AutomaticSize = Enum.AutomaticSize.Y
     passiveDescLabel.BackgroundTransparency = 1
     passiveDescLabel.Font = Enum.Font.Gotham
-    passiveDescLabel.TextSize = 15
+    passiveDescLabel.TextSize = 16
     passiveDescLabel.TextColor3 = C.TEXT_DIM
     passiveDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     passiveDescLabel.TextWrapped = true
     passiveDescLabel.LayoutOrder = 5
     passiveDescLabel.Parent = panelFrame
+
+    -- ═══ Separator 2 ═══
+    local sep2 = Instance.new("Frame")
+    sep2.Name = "Sep2"
+    sep2.Size = UDim2.new(1, 0, 0, 1)
+    sep2.BackgroundColor3 = C.SEPARATOR
+    sep2.BackgroundTransparency = 0.5
+    sep2.BorderSizePixel = 0
+    sep2.LayoutOrder = 6
+    sep2.Parent = panelFrame
+
+    -- ═══ Section 3: Tier Bonuses ═══
+    tierBonusHeaderLabel = Instance.new("TextLabel")
+    tierBonusHeaderLabel.Name = "TierBonusHeader"
+    tierBonusHeaderLabel.Size = UDim2.new(1, 0, 0, 20)
+    tierBonusHeaderLabel.BackgroundTransparency = 1
+    tierBonusHeaderLabel.Font = Enum.Font.GothamBold
+    tierBonusHeaderLabel.TextSize = 18
+    tierBonusHeaderLabel.TextColor3 = C.TEXT_COLOR
+    tierBonusHeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
+    tierBonusHeaderLabel.Text = "Tier Bonuses"
+    tierBonusHeaderLabel.LayoutOrder = 7
+    tierBonusHeaderLabel.Parent = panelFrame
+
+    tierBonusDescLabel = Instance.new("TextLabel")
+    tierBonusDescLabel.Name = "TierBonusDesc"
+    tierBonusDescLabel.Size = UDim2.new(1, 0, 0, 0)
+    tierBonusDescLabel.AutomaticSize = Enum.AutomaticSize.Y
+    tierBonusDescLabel.BackgroundTransparency = 1
+    tierBonusDescLabel.Font = Enum.Font.Gotham
+    tierBonusDescLabel.TextSize = 16
+    tierBonusDescLabel.TextColor3 = C.TEXT_DIM
+    tierBonusDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    tierBonusDescLabel.TextWrapped = true
+    tierBonusDescLabel.LayoutOrder = 8
+    tierBonusDescLabel.Parent = panelFrame
 
     return panelFrame
 end
@@ -108,53 +148,46 @@ function SchoolInfoPanel.refresh(schoolId)
 
     local accent = C.SCHOOL_ACCENTS[schoolId] or C.STROKE_COLOR
 
-    schoolNameLabel.Text = school.Name
+    -- ═══ Section 1: Name + Description ═══
+    schoolNameLabel.Text = school.Name or schoolId
     schoolNameLabel.TextColor3 = accent
+    schoolDescLabel.Text = school.Description or ""
 
-    -- Build description from school data
-    local descParts = {}
-    if school.Description then
-        table.insert(descParts, school.Description)
-    end
-    -- Tier bonuses
+    -- ═══ Section 2: Passive ═══
+    local passiveName = school.PassiveName or (school.Passive and school.Passive.Name) or "Passive"
+    passiveNameLabel.Text = passiveName
+    passiveDescLabel.Text = school.PassiveDescription or ""
+
+    -- ═══ Section 3: Tier Bonuses ═══
+    local tierLines = {}
+
     if school.TierBonuses then
-        for tier, bonus in school.TierBonuses do
-            local bonusText = "Tier " .. tier .. ": "
-            local parts = {}
-            for k, v in bonus do
-                table.insert(parts, k .. " = " .. tostring(v))
-            end
-            bonusText = bonusText .. table.concat(parts, ", ")
-            table.insert(descParts, bonusText)
+        -- Sort tiers numerically
+        local sortedTiers = {}
+        for tier in school.TierBonuses do
+            table.insert(sortedTiers, tier)
+        end
+        table.sort(sortedTiers)
+
+        for _, tier in sortedTiers do
+            local bonus = school.TierBonuses[tier]
+            local desc = bonus.Description or ("Tier " .. tier .. " bonus")
+            table.insert(tierLines, "Tier " .. tier .. ": " .. desc)
         end
     end
-    schoolDescLabel.Text = table.concat(descParts, "\n")
 
-    -- Passive
-    local passive = school.Passive
-    if passive then
-        passiveNameLabel.Text = passive.Name or "Passive"
-        local passiveParts = {}
-        if passive.HealPercent then
-            table.insert(passiveParts, "Heals " .. (passive.HealPercent * 100) .. "% of damage dealt")
-        end
-        if passive.HealOnKillPercent then
-            table.insert(passiveParts, (passive.HealOnKillPercent * 100) .. "% heal on kill")
-        end
-        if passive.DotPercent then
-            table.insert(passiveParts,
-                (passive.DotPercent * 100) .. "% magic DoT for " .. (passive.DotDuration or 5) .. "s")
-        end
-        if passive.ExplosionPercent then
-            table.insert(passiveParts, (passive.ExplosionPercent * 100) .. "% explosion on death")
-        end
-        if passive.ChainIgniteChance then
-            table.insert(passiveParts, (passive.ChainIgniteChance * 100) .. "% chain ignite chance")
-        end
-        passiveDescLabel.Text = table.concat(passiveParts, "\n")
+    if school.UltTierBonus then
+        local ultDesc = school.UltTierBonus.Description or "Ultimate tier bonus"
+        table.insert(tierLines, "Ultimate: " .. ultDesc)
+    end
+
+    if #tierLines > 0 then
+        tierBonusHeaderLabel.Visible = true
+        tierBonusDescLabel.Visible = true
+        tierBonusDescLabel.Text = table.concat(tierLines, "\n\n")
     else
-        passiveNameLabel.Text = ""
-        passiveDescLabel.Text = ""
+        tierBonusHeaderLabel.Visible = false
+        tierBonusDescLabel.Visible = false
     end
 end
 
