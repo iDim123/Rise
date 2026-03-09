@@ -289,8 +289,7 @@ end
 -- Запустить CastBar
 -- ════════════════════════════════════════════════════════════
 local function startCast(params)
-    -- params: { Duration, Label, Icon, MovementMode, SpeedMult,
-    --           CancelKey, CancelOnStun, CancelOnDamage }
+    print("[CastBar] startCast called, already active =", castState.active, "duration =", params.Duration)
     if castState.active then
         cleanupConnections()
     end
@@ -453,6 +452,8 @@ castCompleteEvent.Parent = screenGui
 
 local _origComplete = completeCast
 completeCast = function()
+    print("[CastBar] completeCast called, active =", castState.active)
     _origComplete()
+    print("[CastBar] CastComplete event fired")
     castCompleteEvent:Fire()
 end

@@ -126,7 +126,7 @@ CastManager.MOVEMENT_MODE = MOVEMENT_MODE
 -- Запустить каст для игрока.
 -- Возвращает castId если запущен, nil если игрок уже кастует.
 function CastManager.start(player, params)
-    -- Уже активный каст — отклоняем (вызывающая сторона сама решает что делать)
+    print("[CastManager] start() called for", player.Name, "already active =", activeCasts[player] ~= nil)
     if activeCasts[player] then
         return nil, "already_casting"
     end
@@ -188,6 +188,7 @@ function CastManager._complete(player, castId)
     if not castData or castData.castId ~= castId then return end
     if castData.cancelled then return end
 
+    print("[CastManager] cast finished for", player.Name, "removing from activeCasts")
     activeCasts[player] = nil
 
     -- Восстанавливаем движение

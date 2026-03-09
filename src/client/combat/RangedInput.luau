@@ -85,28 +85,28 @@ local beginCast
 local sendReleaseAndRefire
 
 sendReleaseAndRefire = function(mousePos)
-    print("[RangedInput] sendReleaseAndRefire called, isHolding =", isHolding)
+    print("[RangedInput] sendReleaseAndRefire: isHolding =", isHolding)
     cleanup()
     if mousePos then
         Remotes.RangedRelease:FireServer(mousePos)
     end
     if isHolding then
-        print("[RangedInput] scheduling refire in", REFIRE_DELAY)
+        print("[RangedInput] scheduling refire")
         task.delay(REFIRE_DELAY, function()
-            print("[RangedInput] refire timer fired, isHolding =", isHolding, "state =", state)
+            print("[RangedInput] refire tick: isHolding =", isHolding, "state =", state)
             if isHolding then
                 beginCast()
             end
         end)
     else
-        print("[RangedInput] NOT refiring — isHolding is false")
+        print("[RangedInput] no refire — not holding")
     end
 end
 
 beginCast = function()
-    print("[RangedInput] beginCast called, state =", state, "isHolding =", isHolding)
+    print("[RangedInput] beginCast: state =", state, "isHolding =", isHolding)
     if state ~= STATE_IDLE then
-        print("[RangedInput] beginCast BLOCKED — state is not IDLE")
+        print("[RangedInput] beginCast BLOCKED — not IDLE")
         return
     end
 
