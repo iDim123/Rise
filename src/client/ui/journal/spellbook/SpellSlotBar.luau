@@ -35,7 +35,7 @@ function SpellSlotBar.build(parent)
     slotsLabel.BackgroundColor3 = Color3.fromRGB(10, 8, 14) -- match bg to "cut" the line
     slotsLabel.BackgroundTransparency = 0
     slotsLabel.Font = Enum.Font.Gotham
-    slotsLabel.TextSize = 12
+    slotsLabel.TextSize = 16
     slotsLabel.TextColor3 = C.TEXT_DIM
     slotsLabel.Text = "Current Spells"
     slotsLabel.Parent = barFrame
@@ -45,7 +45,7 @@ function SpellSlotBar.build(parent)
     slotContainer.Name = "SlotContainer"
     slotContainer.Size = UDim2.new(0, 3 * C.SLOT_SIZE + 2 * C.SLOT_GAP, 0, C.SLOT_SIZE + 20)
     slotContainer.AnchorPoint = Vector2.new(0.5, 0)
-    slotContainer.Position = UDim2.new(0.5, 0, 0, 12)
+    slotContainer.Position = UDim2.new(0.5, 0, 0, 18)
     slotContainer.BackgroundTransparency = 1
     slotContainer.Parent = barFrame
 

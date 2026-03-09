@@ -5,8 +5,9 @@ local C = require(script.Parent:WaitForChild("SpellbookConstants"))
 local SpellDetailPanel = {}
 
 local panelFrame = nil
+local contentFrame = nil -- контейнер для всего контента заклинания
+local placeholderLabel = nil -- "Select spell" по центру
 local iconFrame, nameLabel, classLabel, castLabel, cooldownLabel, descLabel
-local equipButton
 local onEquipCallback = nil
 
 function SpellDetailPanel.build(parent)
@@ -27,17 +28,38 @@ function SpellDetailPanel.build(parent)
     stroke.Thickness = 1
     stroke.Parent = panelFrame
 
+    -- ═══ Placeholder (centered "Select spell") ═══
+    placeholderLabel = Instance.new("TextLabel")
+    placeholderLabel.Name = "Placeholder"
+    placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
+    placeholderLabel.BackgroundTransparency = 1
+    placeholderLabel.Font = Enum.Font.Gotham
+    placeholderLabel.TextSize = 16
+    placeholderLabel.TextColor3 = C.TEXT_DIM
+    placeholderLabel.Text = "Select spell"
+    placeholderLabel.Visible = true
+    placeholderLabel.ZIndex = 2
+    placeholderLabel.Parent = panelFrame
+
+    -- ═══ Content container (hidden when no spell selected) ═══
+    contentFrame = Instance.new("Frame")
+    contentFrame.Name = "Content"
+    contentFrame.Size = UDim2.new(1, 0, 1, 0)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Visible = false
+    contentFrame.Parent = panelFrame
+
     local pad = Instance.new("UIPadding")
     pad.PaddingTop = UDim.new(0, 16)
     pad.PaddingBottom = UDim.new(0, 16)
     pad.PaddingLeft = UDim.new(0, 16)
     pad.PaddingRight = UDim.new(0, 16)
-    pad.Parent = panelFrame
+    pad.Parent = contentFrame
 
     local layout = Instance.new("UIListLayout")
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0, 8)
-    layout.Parent = panelFrame
+    layout.Parent = contentFrame
 
     -- Header row: Icon + Name/Class
     local headerRow = Instance.new("Frame")
@@ -45,7 +67,7 @@ function SpellDetailPanel.build(parent)
     headerRow.Size = UDim2.new(1, 0, 0, 56)
     headerRow.BackgroundTransparency = 1
     headerRow.LayoutOrder = 1
-    headerRow.Parent = panelFrame
+    headerRow.Parent = contentFrame
 
     iconFrame = Instance.new("Frame")
     iconFrame.Name = "SpellIcon"
@@ -99,7 +121,7 @@ function SpellDetailPanel.build(parent)
     classLabel.Position = UDim2.new(0, 60, 0, 26)
     classLabel.BackgroundTransparency = 1
     classLabel.Font = Enum.Font.Gotham
-    classLabel.TextSize = 13
+    classLabel.TextSize = 16
     classLabel.TextColor3 = C.TEXT_DIM
     classLabel.TextXAlignment = Enum.TextXAlignment.Left
     classLabel.Parent = headerRow
@@ -111,30 +133,30 @@ function SpellDetailPanel.build(parent)
     sep1.BackgroundTransparency = 0.5
     sep1.BorderSizePixel = 0
     sep1.LayoutOrder = 2
-    sep1.Parent = panelFrame
+    sep1.Parent = contentFrame
 
-    -- Stats: Cast time, Cooldown
+    -- Stats
     castLabel = Instance.new("TextLabel")
     castLabel.Name = "CastTime"
     castLabel.Size = UDim2.new(1, 0, 0, 18)
     castLabel.BackgroundTransparency = 1
     castLabel.Font = Enum.Font.Gotham
-    castLabel.TextSize = 13
+    castLabel.TextSize = 16
     castLabel.TextColor3 = C.TEXT_BRIGHT
     castLabel.TextXAlignment = Enum.TextXAlignment.Left
     castLabel.LayoutOrder = 3
-    castLabel.Parent = panelFrame
+    castLabel.Parent = contentFrame
 
     cooldownLabel = Instance.new("TextLabel")
     cooldownLabel.Name = "Cooldown"
     cooldownLabel.Size = UDim2.new(1, 0, 0, 18)
     cooldownLabel.BackgroundTransparency = 1
     cooldownLabel.Font = Enum.Font.Gotham
-    cooldownLabel.TextSize = 13
+    cooldownLabel.TextSize = 16
     cooldownLabel.TextColor3 = C.TEXT_BRIGHT
     cooldownLabel.TextXAlignment = Enum.TextXAlignment.Left
     cooldownLabel.LayoutOrder = 4
-    cooldownLabel.Parent = panelFrame
+    cooldownLabel.Parent = contentFrame
 
     -- Separator 2
     local sep2 = Instance.new("Frame")
@@ -143,7 +165,7 @@ function SpellDetailPanel.build(parent)
     sep2.BackgroundTransparency = 0.5
     sep2.BorderSizePixel = 0
     sep2.LayoutOrder = 5
-    sep2.Parent = panelFrame
+    sep2.Parent = contentFrame
 
     -- Description
     descLabel = Instance.new("TextLabel")
@@ -152,36 +174,27 @@ function SpellDetailPanel.build(parent)
     descLabel.AutomaticSize = Enum.AutomaticSize.Y
     descLabel.BackgroundTransparency = 1
     descLabel.Font = Enum.Font.Gotham
-    descLabel.TextSize = 12
+    descLabel.TextSize = 15
     descLabel.TextColor3 = C.TEXT_DIM
     descLabel.TextXAlignment = Enum.TextXAlignment.Left
     descLabel.TextWrapped = true
     descLabel.LayoutOrder = 6
-    descLabel.Parent = panelFrame
+    descLabel.Parent = contentFrame
 
-    -- Placeholder (no spell selected)
+    -- Start in placeholder mode
     SpellDetailPanel._showPlaceholder()
 
     return panelFrame
 end
 
 function SpellDetailPanel._showPlaceholder()
-    nameLabel.Text = "Selected spell"
-    classLabel.Text = ""
-    castLabel.Text = ""
-    cooldownLabel.Text = ""
-    descLabel.Text = ""
+    contentFrame.Visible = false
+    placeholderLabel.Visible = true
+end
 
-    local iconImg = iconFrame:FindFirstChild("Icon")
-    local iconFb = iconFrame:FindFirstChild("Fallback")
-    if iconImg then
-        iconImg.Image = "";
-        iconImg.Visible = false
-    end
-    if iconFb then
-        iconFb.Text = "?";
-        iconFb.Visible = true
-    end
+function SpellDetailPanel._showContent()
+    placeholderLabel.Visible = false
+    contentFrame.Visible = true
 end
 
 function SpellDetailPanel.refresh(spellId)
@@ -196,12 +209,13 @@ function SpellDetailPanel.refresh(spellId)
         return
     end
 
+    SpellDetailPanel._showContent()
+
     local accent = C.SCHOOL_ACCENTS[spell.School] or C.TEXT_COLOR
 
     nameLabel.Text = spell.Name or spellId
     nameLabel.TextColor3 = accent
 
-    -- Class label: "Projectile", "AoE", etc.
     local classParts = {}
     if spell.Tags then
         for _, tag in spell.Tags do
@@ -210,17 +224,14 @@ function SpellDetailPanel.refresh(spellId)
     end
     classLabel.Text = table.concat(classParts, ", ")
 
-    -- Cast time
     local castTime = spell.CastTime or 0
     castLabel.Text = castTime > 0 and ("Cast time: " .. castTime .. "s") or "Instant"
     castLabel.Visible = true
 
-    -- Cooldown
     local cd = spell.Cooldown or 0
     cooldownLabel.Text = cd > 0 and ("Cooldown: " .. cd .. "s") or ""
     cooldownLabel.Visible = cd > 0
 
-    -- Description
     descLabel.Text = spell.Description or ""
 
     -- Icon

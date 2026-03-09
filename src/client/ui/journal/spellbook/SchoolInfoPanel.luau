@@ -31,21 +31,21 @@ function SchoolInfoPanel.build(parent)
     stroke.Parent = panelFrame
 
     local pad = Instance.new("UIPadding")
-    pad.PaddingTop = UDim.new(0, 12)
-    pad.PaddingBottom = UDim.new(0, 12)
+    pad.PaddingTop = UDim.new(0, 14)
+    pad.PaddingBottom = UDim.new(0, 14)
     pad.PaddingLeft = UDim.new(0, 14)
     pad.PaddingRight = UDim.new(0, 14)
     pad.Parent = panelFrame
 
     local layout = Instance.new("UIListLayout")
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 6)
+    layout.Padding = UDim.new(0, 4)
     layout.Parent = panelFrame
 
     -- ═══ Section 1: School name + description ═══
     schoolNameLabel = Instance.new("TextLabel")
     schoolNameLabel.Name = "SchoolName"
-    schoolNameLabel.Size = UDim2.new(1, 0, 0, 24)
+    schoolNameLabel.Size = UDim2.new(1, 0, 0, 26)
     schoolNameLabel.BackgroundTransparency = 1
     schoolNameLabel.Font = Enum.Font.GothamBold
     schoolNameLabel.TextSize = 20
@@ -67,25 +67,39 @@ function SchoolInfoPanel.build(parent)
     schoolDescLabel.LayoutOrder = 2
     schoolDescLabel.Parent = panelFrame
 
-    -- ═══ Separator 1 ═══
+    -- ═══ Spacer + Separator 1 ═══
+    local spacer1 = Instance.new("Frame")
+    spacer1.Name = "Spacer1"
+    spacer1.Size = UDim2.new(1, 0, 0, 8)
+    spacer1.BackgroundTransparency = 1
+    spacer1.LayoutOrder = 3
+    spacer1.Parent = panelFrame
+
     local sep1 = Instance.new("Frame")
     sep1.Size = UDim2.new(1, 0, 0, 1)
     sep1.BackgroundColor3 = C.SEPARATOR
     sep1.BackgroundTransparency = 0.5
     sep1.BorderSizePixel = 0
-    sep1.LayoutOrder = 3
+    sep1.LayoutOrder = 4
     sep1.Parent = panelFrame
+
+    local spacer2 = Instance.new("Frame")
+    spacer2.Name = "Spacer2"
+    spacer2.Size = UDim2.new(1, 0, 0, 8)
+    spacer2.BackgroundTransparency = 1
+    spacer2.LayoutOrder = 5
+    spacer2.Parent = panelFrame
 
     -- ═══ Section 2: Passive ═══
     passiveNameLabel = Instance.new("TextLabel")
     passiveNameLabel.Name = "PassiveName"
-    passiveNameLabel.Size = UDim2.new(1, 0, 0, 20)
+    passiveNameLabel.Size = UDim2.new(1, 0, 0, 22)
     passiveNameLabel.BackgroundTransparency = 1
     passiveNameLabel.Font = Enum.Font.GothamBold
     passiveNameLabel.TextSize = 18
     passiveNameLabel.TextColor3 = C.TEXT_COLOR
     passiveNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    passiveNameLabel.LayoutOrder = 4
+    passiveNameLabel.LayoutOrder = 6
     passiveNameLabel.Parent = panelFrame
 
     passiveDescLabel = Instance.new("TextLabel")
@@ -98,30 +112,44 @@ function SchoolInfoPanel.build(parent)
     passiveDescLabel.TextColor3 = C.TEXT_DIM
     passiveDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     passiveDescLabel.TextWrapped = true
-    passiveDescLabel.LayoutOrder = 5
+    passiveDescLabel.LayoutOrder = 7
     passiveDescLabel.Parent = panelFrame
 
-    -- ═══ Separator 2 ═══
+    -- ═══ Spacer + Separator 2 ═══
+    local spacer3 = Instance.new("Frame")
+    spacer3.Name = "Spacer3"
+    spacer3.Size = UDim2.new(1, 0, 0, 8)
+    spacer3.BackgroundTransparency = 1
+    spacer3.LayoutOrder = 8
+    spacer3.Parent = panelFrame
+
     local sep2 = Instance.new("Frame")
     sep2.Name = "Sep2"
     sep2.Size = UDim2.new(1, 0, 0, 1)
     sep2.BackgroundColor3 = C.SEPARATOR
     sep2.BackgroundTransparency = 0.5
     sep2.BorderSizePixel = 0
-    sep2.LayoutOrder = 6
+    sep2.LayoutOrder = 9
     sep2.Parent = panelFrame
+
+    local spacer4 = Instance.new("Frame")
+    spacer4.Name = "Spacer4"
+    spacer4.Size = UDim2.new(1, 0, 0, 8)
+    spacer4.BackgroundTransparency = 1
+    spacer4.LayoutOrder = 10
+    spacer4.Parent = panelFrame
 
     -- ═══ Section 3: Tier Bonuses ═══
     tierBonusHeaderLabel = Instance.new("TextLabel")
     tierBonusHeaderLabel.Name = "TierBonusHeader"
-    tierBonusHeaderLabel.Size = UDim2.new(1, 0, 0, 20)
+    tierBonusHeaderLabel.Size = UDim2.new(1, 0, 0, 22)
     tierBonusHeaderLabel.BackgroundTransparency = 1
     tierBonusHeaderLabel.Font = Enum.Font.GothamBold
     tierBonusHeaderLabel.TextSize = 18
     tierBonusHeaderLabel.TextColor3 = C.TEXT_COLOR
     tierBonusHeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
     tierBonusHeaderLabel.Text = "Tier Bonuses"
-    tierBonusHeaderLabel.LayoutOrder = 7
+    tierBonusHeaderLabel.LayoutOrder = 11
     tierBonusHeaderLabel.Parent = panelFrame
 
     tierBonusDescLabel = Instance.new("TextLabel")
@@ -134,7 +162,7 @@ function SchoolInfoPanel.build(parent)
     tierBonusDescLabel.TextColor3 = C.TEXT_DIM
     tierBonusDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     tierBonusDescLabel.TextWrapped = true
-    tierBonusDescLabel.LayoutOrder = 8
+    tierBonusDescLabel.LayoutOrder = 12
     tierBonusDescLabel.Parent = panelFrame
 
     return panelFrame
@@ -148,21 +176,20 @@ function SchoolInfoPanel.refresh(schoolId)
 
     local accent = C.SCHOOL_ACCENTS[schoolId] or C.STROKE_COLOR
 
-    -- ═══ Section 1: Name + Description ═══
+    -- Section 1
     schoolNameLabel.Text = school.Name or schoolId
     schoolNameLabel.TextColor3 = accent
     schoolDescLabel.Text = school.Description or ""
 
-    -- ═══ Section 2: Passive ═══
+    -- Section 2
     local passiveName = school.PassiveName or (school.Passive and school.Passive.Name) or "Passive"
     passiveNameLabel.Text = passiveName
     passiveDescLabel.Text = school.PassiveDescription or ""
 
-    -- ═══ Section 3: Tier Bonuses ═══
+    -- Section 3
     local tierLines = {}
 
     if school.TierBonuses then
-        -- Sort tiers numerically
         local sortedTiers = {}
         for tier in school.TierBonuses do
             table.insert(sortedTiers, tier)
