@@ -236,14 +236,6 @@ function SpellCastManager.cancelChannel(player)
     StatsManager.recalculate(player)
 end
 
--- ═══ Remote ═══
-
-Remotes.CastSpell.OnServerEvent:Connect(function(player, spellId, mousePosition)
-    if type(spellId) ~= "string" then return end
-    if typeof(mousePosition) ~= "Vector3" then return end
-    SpellCastManager.castSpell(player, spellId, mousePosition)
-end)
-
 -- ═══ Cleanup ═══
 
 Players.PlayerRemoving:Connect(function(player)

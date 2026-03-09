@@ -121,23 +121,23 @@ function LeechHandler.onTargetKilled(attacker, target)
     end
 end
 
--- ═══════════════════════════════════════════════════════════
--- EventBus integration
--- ═══════════════════════════════════════════════════════════
+function LeechHandler.init()
+    EventBus.on("EntityTookDamage", function(target, damage, attacker)
+        if not attacker then
+            return
+        end
+        LeechHandler.onDamageDealt(attacker, target, damage)
+    end)
 
-EventBus.on("EntityTookDamage", function(target, damage, attacker)
-    if not attacker then
-        return
-    end
-    LeechHandler.onDamageDealt(attacker, target, damage)
-end)
+    EventBus.on("EntityDying", function(target, attacker)
+        if not attacker then
+            return
+        end
+        LeechHandler.onTargetKilled(attacker, target)
+    end)
 
-EventBus.on("EntityDying", function(target, attacker)
-    if not attacker then
-        return
-    end
-    LeechHandler.onTargetKilled(attacker, target)
-end)
+    print("[LeechHandler] Initialized")
+end
 
 print("[LeechHandler] Initialized")
 

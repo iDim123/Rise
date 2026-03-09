@@ -9,11 +9,19 @@ local RangedHandler = require(script.Parent:WaitForChild("RangedHandler"))
 local ProjectileManager = require(script.Parent:WaitForChild("ProjectileManager"))
 local AbilityManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("AbilityManager"))
 
+-- Phase 5: Magic system
+local SpellCastManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("SpellCastManager"))
+local SpellProgressManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("SpellProgressManager"))
+local LeechHandler = require(ServerScriptService:WaitForChild("modules"):WaitForChild("LeechHandler"))
+local IgniteHandler = require(ServerScriptService:WaitForChild("modules"):WaitForChild("IgniteHandler"))
+
 -- ═══════════════════════════════════════════════════════════
 -- Инициализация
 -- ═══════════════════════════════════════════════════════════
 
 ProjectileManager.init()
+LeechHandler.init()
+IgniteHandler.init()
 
 -- ═══════════════════════════════════════════════════════════
 -- Основная атака (LMB)
@@ -23,8 +31,7 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePos, comboInde
     if typeof(mousePos) ~= "Vector3" then
         return
     end
-
-    local weaponConfig, weaponItem = WeaponUtil.getConfig(player)
+    local weaponConfig = WeaponUtil.getConfig(player)
     if not weaponConfig then
         return
     end
@@ -37,19 +44,18 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePos, comboInde
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- Ranged: финальная mousePosition после каста (LMB up)
+-- Ranged: отпускание ЛКМ
 -- ═══════════════════════════════════════════════════════════
 
 Remotes.RangedRelease.OnServerEvent:Connect(function(player, mousePosition)
     if typeof(mousePosition) ~= "Vector3" then
         return
     end
-
     RangedHandler.onRelease(player, mousePosition)
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- Способности Q / E
+-- Способности Q / E (weapon abilities)
 -- ═══════════════════════════════════════════════════════════
 
 Remotes.UseAbility.OnServerEvent:Connect(function(player, key, mousePosition)
@@ -59,9 +65,58 @@ Remotes.UseAbility.OnServerEvent:Connect(function(player, key, mousePosition)
     if typeof(mousePosition) ~= "Vector3" then
         return
     end
-
     AbilityManager.useAbility(player, key, mousePosition)
 end)
+
+-- ═══════════════════════════════════════════════════════════
+-- Заклинания R / G / Z (magic spells)
+-- ═══════════════════════════════════════════════════════════
+
+Remotes.CastSpell.OnServerEvent:Connect(function(player, spellId, mousePosition)
+    if type(spellId) ~= "string" then
+        return
+    end
+    if typeof(mousePosition) ~= "Vector3" then
+        return
+    end
+    SpellCastManager.castSpell(player, spellId, mousePosition)
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- Spellbook: learn / equip / unequip / query
+-- ═══════════════════════════════════════════════════════════
+
+Remotes.LearnSpell.OnServerEvent:Connect(function(player, spellId)
+    if type(spellId) ~= "string" then
+        return
+    end
+    local ok, reason = SpellProgressManager.learnSpell(player, spellId)
+    if not ok then
+        Remotes.Notify:FireClient(player, "Не удалось изучить: " .. (reason or "unknown"), "error")
+    end
+end)
+
+Remotes.EquipSpell.OnServerEvent:Connect(function(player, spellId, slotKey)
+    if type(spellId) ~= "string" or type(slotKey) ~= "string" then
+        return
+    end
+    local ok, reason = SpellProgressManager.equipSpell(player, spellId, slotKey)
+    if not ok then
+        Remotes.Notify:FireClient(player, "Не удалось экипировать: " .. (reason or "unknown"),
+            "error")
+    end
+end)
+
+Remotes.UnequipSpell.OnServerEvent:Connect(function(player, slotKey)
+    if type(slotKey) ~= "string" then
+        return
+    end
+    SpellProgressManager.unequipSpell(player, slotKey)
+end)
+
+Remotes.GetSpellData.OnServerInvoke = function(player)
+    return SpellProgressManager._getPlayerData(player)
+end
 
 -- ═══════════════════════════════════════════════════════════
 -- Cleanup при выходе
