@@ -19,6 +19,11 @@ return {
             BloodType = nil, -- нет типа крови, нельзя пить
             BloodQuality = nil,
             CanCapture = false, -- нельзя обычным захватом
+            SpellPointReward = {
+                School = "Blood",
+                Tier = 1,
+                Amount = 1
+            },
             Loot = {{
                 ItemId = "blood_essence",
                 Amount = {
@@ -38,6 +43,11 @@ return {
                 Icon = "rbxassetid://133649527466179",
                 Name = "Малая сумка",
                 Description = "Содержит различные ресурсы."
+            }, {
+                Type = "Spell",
+                Icon = "rbxassetid://0",
+                Name = "Blood Rage",
+                Description = "Открывает Blood Rage (Tier I Blood)."
             }},
             Abilities = {
                 BloodSlash = {
@@ -92,6 +102,11 @@ return {
             BloodType = nil,
             BloodQuality = nil,
             CanCapture = false,
+            SpellPointReward = {
+                School = "Chaos",
+                Tier = 1,
+                Amount = 1
+            },
             Loot = {{
                 ItemId = "wood",
                 Amount = {
@@ -99,6 +114,11 @@ return {
                     Max = 40
                 },
                 Chance = 1.0
+            }, {
+                Type = "Spell",
+                Icon = "rbxassetid://0",
+                Name = "Chaos Volley",
+                Description = "Открывает Chaos Volley (Tier I Chaos)."
             }},
             Unlocks = {{
                 Type = "Recipes",

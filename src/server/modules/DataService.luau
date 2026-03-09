@@ -51,6 +51,12 @@ local function getDefaultData()
         Servants = {
             Captured = {}, -- array of servant data tables
             ActiveId = nil
+        },
+        SpellData = {
+            SpellPoints = {}, -- [school] = { [tier] = count }
+            LearnedSpells = {}, -- { [spellId] = true }
+            EquippedSlots = {}, -- { R = spellId|nil, G = spellId|nil, Z = spellId|nil }
+            SchoolProgress = {} -- { [school] = { CompletedTiers = {} } }
         }
     }
 end
@@ -199,7 +205,7 @@ function DataService._applyData(player, data)
     local BloodManager = require(modules:WaitForChild("BloodManager"))
     local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
     local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
-
+    local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
     -- Level (init first, then override)
     LevelManager.initPlayer(player)
     LevelManager._setPlayerData(player, data.Level or 1, data.XP or 0)
@@ -242,6 +248,12 @@ function DataService._applyData(player, data)
     -- Servants
     ServantManager.init(player)
     ServantManager._setPlayerServants(player, deserializeServants(data.Servants and data.Servants.Captured))
+
+    -- Spell data
+    SpellProgressManager.init(player)
+    if data.SpellData then
+        SpellProgressManager._setPlayerData(player, data.SpellData)
+    end
 end
 
 -- ═══ Collect ═══
@@ -251,6 +263,7 @@ function DataService.collect(player)
     local BloodManager = require(modules:WaitForChild("BloodManager"))
     local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
     local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
+    local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
 
     local inv = InventoryManager.getInventory(player)
     local bloodData = BloodManager.getData(player)
@@ -286,6 +299,9 @@ function DataService.collect(player)
         data.Servants.Captured = serializeServants(servantData.captured or {})
         data.Servants.ActiveId = servantData.activeId
     end
+
+    -- Spell data
+    data.SpellData = SpellProgressManager._getPlayerData(player)
 
     return data
 end

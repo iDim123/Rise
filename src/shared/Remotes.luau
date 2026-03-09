@@ -14,10 +14,11 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "ContainerOpen", "ContainerClose", "ContainerTakeItem", "ContainerTakeAll", "ContainerSort",
                 "ContainerOpened", "ContainerUpdate", "ContainerClosed", "CastStart", "CastCancel", "CastCancelRequest",
                 "DayNightSync", "PlayerRespawn", "RangedRelease", "ProjectileFired", "ProjectileHit",
-                "ProjectileRemoved"}
+                "ProjectileRemoved", "CastSpell", "LearnSpell", "EquipSpell", "UnequipSpell", "SpellCooldown",
+                "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect", "UpdateSpellData"}
 
 -- RemoteFunctions
-local functions = {"GetInventory", "GetServants", "GetPlayerStats", "GetBossData"}
+local functions = {"GetInventory", "GetServants", "GetPlayerStats", "GetBossData", "GetSpellData"}
 
 if RunService:IsServer() then
     for _, name in events do
