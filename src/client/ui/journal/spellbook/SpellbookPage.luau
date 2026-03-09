@@ -21,7 +21,7 @@ local dataLoaded = false
 function SpellbookPage.build(contentParent, screenGui)
     pageFrame = Instance.new("Frame")
     pageFrame.Name = "SpellbookPage"
-    pageFrame.Size = UDim2.new(0.8, 0, 0.9, 0)
+    pageFrame.Size = UDim2.new(0.7, 0, 0.9, 0)
     pageFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     pageFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     pageFrame.BackgroundTransparency = 1
@@ -93,19 +93,14 @@ end
 
 -- ═══ School change ═══
 function SpellbookPage._onSchoolChanged(schoolId)
-    SchoolInfoPanel.refresh(schoolId)
+    SchoolInfoPanel.refresh(schoolId, spellData)
 
     local learned = spellData and spellData.LearnedSpells or {}
     SpellGrid.clearSelection()
     SpellGrid.rebuild(schoolId, learned, spellData)
     SpellDetailPanel.refresh(nil)
 
-    local progress = spellData and spellData.SchoolProgress and spellData.SchoolProgress[schoolId]
-    local tierReached = 0
-    if progress then
-        tierReached = progress.Tier or 0
-    end
-    TierProgressBar.refresh(tierReached)
+    TierProgressBar.refresh(schoolId, learned)
 end
 
 -- ═══ Refresh all ═══

@@ -82,7 +82,7 @@ function SpellGrid.rebuild(schoolId, learnedSpells, spellData)
         tierLabel.BackgroundTransparency = 1
         tierLabel.Font = Enum.Font.GothamBold
         tierLabel.TextSize = 16
-        tierLabel.TextColor3 = tierIdx == 4 and C.ULT_COLOR or C.TEXT_DIM
+        tierLabel.TextColor3 = C.TEXT_DIM
         tierLabel.Text = tierNames[tierIdx]
         tierLabel.TextXAlignment = Enum.TextXAlignment.Center
         tierLabel.Parent = tierRow

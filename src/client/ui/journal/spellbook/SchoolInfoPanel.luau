@@ -7,7 +7,8 @@ local SchoolInfoPanel = {}
 local panelFrame = nil
 local schoolNameLabel, schoolDescLabel
 local passiveNameLabel, passiveDescLabel
-local tierBonusHeaderLabel, tierBonusDescLabel
+local tierBonusHeaderLabel
+local tierBonusContainer = nil
 
 function SchoolInfoPanel.build(parent)
     panelFrame = Instance.new("ScrollingFrame")
@@ -152,23 +153,30 @@ function SchoolInfoPanel.build(parent)
     tierBonusHeaderLabel.LayoutOrder = 11
     tierBonusHeaderLabel.Parent = panelFrame
 
-    tierBonusDescLabel = Instance.new("TextLabel")
-    tierBonusDescLabel.Name = "TierBonusDesc"
-    tierBonusDescLabel.Size = UDim2.new(1, 0, 0, 0)
-    tierBonusDescLabel.AutomaticSize = Enum.AutomaticSize.Y
-    tierBonusDescLabel.BackgroundTransparency = 1
-    tierBonusDescLabel.Font = Enum.Font.Gotham
-    tierBonusDescLabel.TextSize = 16
-    tierBonusDescLabel.TextColor3 = C.TEXT_DIM
-    tierBonusDescLabel.TextXAlignment = Enum.TextXAlignment.Left
-    tierBonusDescLabel.TextWrapped = true
-    tierBonusDescLabel.LayoutOrder = 12
-    tierBonusDescLabel.Parent = panelFrame
+    -- Container for individual tier bonus labels (so we can color each one)
+    tierBonusContainer = Instance.new("Frame")
+    tierBonusContainer.Name = "TierBonusContainer"
+    tierBonusContainer.Size = UDim2.new(1, 0, 0, 0)
+    tierBonusContainer.AutomaticSize = Enum.AutomaticSize.Y
+    tierBonusContainer.BackgroundTransparency = 1
+    tierBonusContainer.LayoutOrder = 12
+    tierBonusContainer.Parent = panelFrame
+
+    local containerLayout = Instance.new("UIListLayout")
+    containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    containerLayout.Padding = UDim.new(0, 6)
+    containerLayout.Parent = tierBonusContainer
 
     return panelFrame
 end
 
-function SchoolInfoPanel.refresh(schoolId)
+--[[
+    SchoolInfoPanel.refresh(schoolId, spellData)
+    
+    spellData.SchoolProgress[school].CompletedTiers = { ["1"] = true, ... }
+    Used to highlight completed tier bonuses with ✓ and white text.
+]]
+function SchoolInfoPanel.refresh(schoolId, spellData)
     local school = SpellConfig.MagicSchools[schoolId]
     if not school then
         return
@@ -186,8 +194,36 @@ function SchoolInfoPanel.refresh(schoolId)
     passiveNameLabel.Text = passiveName
     passiveDescLabel.Text = school.PassiveDescription or ""
 
-    -- Section 3
-    local tierLines = {}
+    -- Section 3: Clear old bonus labels
+    for _, child in tierBonusContainer:GetChildren() do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    -- Determine completed tiers
+    local completedTiers = {}
+    if spellData and spellData.SchoolProgress and spellData.SchoolProgress[schoolId] then
+        completedTiers = spellData.SchoolProgress[schoolId].CompletedTiers or {}
+    end
+
+    -- Check ULT completion: all Ultimate spells of this school learned
+    local ultComplete = true
+    local hasUltSpell = false
+    for spellId, spell in SpellConfig.Spells do
+        if spell.School == schoolId and spell.Class == "Ultimate" then
+            hasUltSpell = true
+            if not (spellData and spellData.LearnedSpells and spellData.LearnedSpells[spellId]) then
+                ultComplete = false
+            end
+        end
+    end
+    if not hasUltSpell then
+        ultComplete = false
+    end
+
+    local order = 0
+    local hasAny = false
 
     if school.TierBonuses then
         local sortedTiers = {}
@@ -199,23 +235,62 @@ function SchoolInfoPanel.refresh(schoolId)
         for _, tier in sortedTiers do
             local bonus = school.TierBonuses[tier]
             local desc = bonus.Description or ("Tier " .. tier .. " bonus")
-            table.insert(tierLines, "Tier " .. tier .. ": " .. desc)
+            local isComplete = completedTiers[tostring(tier)] == true
+
+            order = order + 1
+            local label = Instance.new("TextLabel")
+            label.Name = "Bonus_" .. tier
+            label.Size = UDim2.new(1, 0, 0, 0)
+            label.AutomaticSize = Enum.AutomaticSize.Y
+            label.BackgroundTransparency = 1
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 16
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.TextWrapped = true
+            label.LayoutOrder = order
+            label.Parent = tierBonusContainer
+
+            if isComplete then
+                label.Text = "✓ Tier " .. tier .. ": " .. desc
+                label.TextColor3 = C.TEXT_COLOR
+            else
+                label.Text = "○ Tier " .. tier .. ": " .. desc
+                label.TextColor3 = C.TEXT_DIM
+            end
+
+            hasAny = true
         end
     end
 
     if school.UltTierBonus then
         local ultDesc = school.UltTierBonus.Description or "Ultimate tier bonus"
-        table.insert(tierLines, "Ultimate: " .. ultDesc)
+        order = order + 1
+
+        local label = Instance.new("TextLabel")
+        label.Name = "Bonus_ULT"
+        label.Size = UDim2.new(1, 0, 0, 0)
+        label.AutomaticSize = Enum.AutomaticSize.Y
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 16
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.TextWrapped = true
+        label.LayoutOrder = order
+        label.Parent = tierBonusContainer
+
+        if ultComplete then
+            label.Text = "✓ Ultimate: " .. ultDesc
+            label.TextColor3 = C.ULT_COLOR
+        else
+            label.Text = "○ Ultimate: " .. ultDesc
+            label.TextColor3 = C.TEXT_DIM
+        end
+
+        hasAny = true
     end
 
-    if #tierLines > 0 then
-        tierBonusHeaderLabel.Visible = true
-        tierBonusDescLabel.Visible = true
-        tierBonusDescLabel.Text = table.concat(tierLines, "\n\n")
-    else
-        tierBonusHeaderLabel.Visible = false
-        tierBonusDescLabel.Visible = false
-    end
+    tierBonusHeaderLabel.Visible = hasAny
+    tierBonusContainer.Visible = hasAny
 end
 
 function SchoolInfoPanel.setVisible(visible)

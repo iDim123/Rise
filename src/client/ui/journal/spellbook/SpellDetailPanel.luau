@@ -335,6 +335,7 @@ function SpellDetailPanel.refresh(spellId, spellData)
     else
         local school = spell.School
         local tier = spell.Tier
+        local isUlt = spell.Class == "Ultimate"
         local cost = spell.UnlockCost or 1
         local pointsKey = spell.Class == "Ultimate" and "ULT" or tostring(tier)
 
@@ -359,7 +360,8 @@ function SpellDetailPanel.refresh(spellId, spellData)
         else
             learnButton.Visible = false
             requireLabel.Visible = true
-            requireLabel.Text = "Требуется: " .. cost .. " " .. school .. " Tier " .. tier ..
+            local tierName = isUlt and "Ultimate" or ("Tier " .. tier)
+            requireLabel.Text = "Требуется: " .. cost .. " " .. school .. " " .. tierName ..
                                     " Spell Point (есть: " .. available .. ")"
         end
     end

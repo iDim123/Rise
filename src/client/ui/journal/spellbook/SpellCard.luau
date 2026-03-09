@@ -33,25 +33,26 @@ function SpellCard.build(parent, spellConfig, isLearned, isSelected, layoutOrder
     end
     stroke.Parent = card
 
-    -- Icon
+    -- Icon — fills entire card
     local icon = Instance.new("ImageLabel")
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0.7, 0, 0.7, 0)
+    icon.Size = UDim2.new(1, -6, 1, -6)
     icon.AnchorPoint = Vector2.new(0.5, 0.5)
-    icon.Position = UDim2.new(0.5, 0, 0.42, 0)
+    icon.Position = UDim2.new(0.5, 0, 0.5, 0)
     icon.BackgroundTransparency = 1
     icon.Image = spellConfig.Icon or ""
     icon.ImageTransparency = isLearned and 0 or 0.5
     icon.ScaleType = Enum.ScaleType.Fit
     icon.Parent = card
 
-    -- Fallback text
+    -- Fallback text (when no icon)
     if not spellConfig.Icon or spellConfig.Icon == "" or spellConfig.Icon == "rbxassetid://0" then
         icon.Visible = false
         local fallback = Instance.new("TextLabel")
         fallback.Name = "Fallback"
-        fallback.Size = UDim2.new(1, -6, 0.6, 0)
-        fallback.Position = UDim2.new(0, 3, 0.05, 0)
+        fallback.Size = UDim2.new(1, -6, 1, -6)
+        fallback.AnchorPoint = Vector2.new(0.5, 0.5)
+        fallback.Position = UDim2.new(0.5, 0, 0.5, 0)
         fallback.BackgroundTransparency = 1
         fallback.Font = Enum.Font.GothamBold
         fallback.TextSize = 11
@@ -61,20 +62,6 @@ function SpellCard.build(parent, spellConfig, isLearned, isSelected, layoutOrder
         fallback.TextWrapped = true
         fallback.Parent = card
     end
-
-    -- Name below icon
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Name = "SpellName"
-    nameLabel.Size = UDim2.new(1, -4, 0, 12)
-    nameLabel.AnchorPoint = Vector2.new(0.5, 1)
-    nameLabel.Position = UDim2.new(0.5, 0, 1, -2)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Font = Enum.Font.Gotham
-    nameLabel.TextSize = 9
-    nameLabel.TextColor3 = isLearned and C.TEXT_DIM or Color3.fromRGB(80, 80, 90)
-    nameLabel.Text = spellConfig.Name or ""
-    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLabel.Parent = card
 
     -- Lock overlay: ONLY for fully locked (not learned AND not canLearn)
     if not isLearned and not canLearn then
