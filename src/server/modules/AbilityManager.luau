@@ -32,6 +32,14 @@ end
 local AbilityManager = {}
 local abilityCooldowns = {} -- [userId] = { [abilityId] = lastUseTime }
 
+local function flatDirection(from, to)
+    local dir = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+    if dir.Magnitude < 0.001 then
+        return Vector3.new(0, 0, 1)
+    end
+    return dir.Unit
+end
+
 -- ═══════════════════════════════════════════════════════════
 -- Основная точка входа
 -- ═══════════════════════════════════════════════════════════
@@ -127,7 +135,7 @@ end
 
 function AbilityManager._directDamage(player, character, rootPart, mousePosition, effect, weaponConfig)
     local range = weaponConfig.Range or 6
-    local direction = (mousePosition - rootPart.Position).Unit
+    local direction = flatDirection(rootPart.Position, mousePosition)
 
     local target = TargetFinder.closestInCone(rootPart.Position, direction, range, 0.3, character)
 
@@ -185,12 +193,12 @@ function AbilityManager._fireProjectile(player, character, rootPart, mousePositi
         return
     end
 
-    local direction = (mousePosition - rootPart.Position).Unit
+    local dir = flatDirection(rootPart.Position, mousePosition)
 
     pm.fire({
         owner = player,
-        origin = rootPart.Position + direction * 2,
-        direction = direction,
+        origin = rootPart.Position + dir * 2,
+        direction = dir,
         projectileId = effect.ProjectileId,
         baseDamage = effect.Damage,
         damageType = ability.DamageType or "Physical",

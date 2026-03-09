@@ -18,16 +18,16 @@ return {
         Id = "bow_shot",
         Name = "Bow Shot",
         Description = "Charged arrow shot.",
-        Icon = "rbxassetid://0"
+        Icon = "rbxassetid://114549612188882"
     },
     Abilities = {
         Q = {
             Id = "power_shot",
             Name = "Мощный выстрел",
             Description = "Пробивающая стрела, наносит повышенный урон.",
-            Icon = "rbxassetid://0",
+            Icon = "rbxassetid://114549612188882",
             AnimationId = "rbxassetid://0",
-            Cooldown = 10,
+            Cooldown = 2,
             DamageType = "Physical",
             Effects = {{
                 Type = "Projectile",
@@ -40,9 +40,9 @@ return {
             Id = "arrow_rain",
             Name = "Дождь стрел",
             Description = "AoE: стрелы падают в указанную область.",
-            Icon = "rbxassetid://0",
+            Icon = "rbxassetid://114549612188882",
             AnimationId = "rbxassetid://0",
-            Cooldown = 16,
+            Cooldown = 3,
             DamageType = "Physical",
             Effects = {{
                 Type = "AoEProjectile",

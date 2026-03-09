@@ -111,31 +111,25 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 function RangedHandler.attack(player, mousePosition, weaponConfig)
-    print("[RangedHandler] attack() called for", player.Name)
 
     local character, rootPart = validateCharacter(player)
     if not character then
-        print("[RangedHandler] BLOCKED: no character")
         return
     end
 
     if isOnCooldown(player, weaponConfig) then
-        print("[RangedHandler] BLOCKED: on cooldown")
         return
     end
 
     local CM = getCastManager()
     if CM.isActive(player) then
-        print("[RangedHandler] BLOCKED: CastManager.isActive = true")
         return
     end
 
     if pendingCasts[player] then
-        print("[RangedHandler] BLOCKED: pendingCasts exists")
         return
     end
 
-    print("[RangedHandler] → starting cast...")
     -- ── Запуск каста ──────────────────────────────────────
     local castId = CM.start(player, {
         Duration = weaponConfig.CastTime or 0.8,
@@ -145,17 +139,13 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         CancelOnDamage = true,
 
         OnComplete = function(completedPlayer)
-            print("[RangedHandler] OnComplete fired for", completedPlayer.Name)
             local pending = pendingCasts[completedPlayer]
             if not pending then
-                print("[RangedHandler] OnComplete — no pending cast!")
                 return
             end
 
             pending.waitTask = task.delay(FALLBACK_TIMEOUT, function()
-                print("[RangedHandler] Fallback timer fired")
                 if pendingCasts[completedPlayer] then
-                    print("[RangedHandler] pending exists, firing LookVector")
                     RangedHandler._fireWithLookVector(completedPlayer)
                 else
                     print("[RangedHandler] pending is NIL, skipped")
@@ -164,7 +154,6 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         end,
 
         OnCancel = function(cancelledPlayer, reason)
-            print("[RangedHandler] OnCancel fired, reason:", reason)
             local pending = pendingCasts[cancelledPlayer]
             if pending then
                 if pending.waitTask then
@@ -175,9 +164,7 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         end
     })
 
-    print("[RangedHandler] CastManager.start returned:", castId)
     if not castId then
-        print("[RangedHandler] BLOCKED: CastManager returned nil")
         return
     end
 

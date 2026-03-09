@@ -28,7 +28,7 @@ local COOLDOWN_COLOR = Color3.fromRGB(0, 0, 0)
 local COOLDOWN_TRANSPARENCY = 0.45
 
 local TOTAL_SLOTS = 8
-local SLOT_KEYS = { "LMB", "Q", "E", "Space", "R", "T", "Z", "X" }
+local SLOT_KEYS = {"LMB", "Q", "E", "Space", "R", "T", "Z", "X"}
 local KEYCODES = {
     Q = Enum.KeyCode.Q,
     E = Enum.KeyCode.E,
@@ -36,7 +36,7 @@ local KEYCODES = {
     R = Enum.KeyCode.R,
     T = Enum.KeyCode.T,
     Z = Enum.KeyCode.Z,
-    X = Enum.KeyCode.X,
+    X = Enum.KeyCode.X
 }
 
 -- ═══ State ═══
@@ -159,7 +159,7 @@ local function createSlot(key, col)
         frame = slot,
         icon = icon,
         fallback = fallback,
-        stroke = stroke,
+        stroke = stroke
     }
 end
 
@@ -205,14 +205,20 @@ end
 
 local function connectCharacter(character)
     -- Disconnect previous
-    if toolConnection then toolConnection:Disconnect() end
+    if toolConnection then
+        toolConnection:Disconnect()
+    end
 
     -- Watch for tool changes
     toolConnection = character.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") then updateAbilities() end
+        if child:IsA("Tool") then
+            updateAbilities()
+        end
     end)
     character.ChildRemoved:Connect(function(child)
-        if child:IsA("Tool") then updateAbilities() end
+        if child:IsA("Tool") then
+            updateAbilities()
+        end
     end)
 
     updateAbilities()
@@ -227,22 +233,45 @@ end
 local function getMouseWorldPosition()
     local mouse = player:GetMouse()
     local camera = workspace.CurrentCamera
-    local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    if player.Character then params.FilterDescendantsInstances = { player.Character } end
-    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
-    return result and result.Position or (ray.Origin + ray.Direction * 100)
+    local character = player.Character
+    if not character then
+        return Vector3.new(0, 0, 0)
+    end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        return Vector3.new(0, 0, 0)
+    end
+
+    local mouseRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
+    local rayOrigin = mouseRay.Origin
+    local rayDirection = mouseRay.Direction
+
+    local groundY = rootPart.Position.Y - 3
+    if math.abs(rayDirection.Y) < 0.001 then
+        return rootPart.Position + rootPart.CFrame.LookVector * 10
+    end
+    local t = (groundY - rayOrigin.Y) / rayDirection.Y
+    if t < 0 then
+        return rootPart.Position + rootPart.CFrame.LookVector * 10
+    end
+
+    return rayOrigin + rayDirection * t
 end
 
 -- ═══ Input ═══
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    for _, key in { "Q", "E", "Space", "R", "T", "Z", "X" } do
+    if gameProcessed then
+        return
+    end
+    for _, key in {"Q", "E", "Space", "R", "T", "Z", "X"} do
         if KEYCODES[key] and input.KeyCode == KEYCODES[key] then
             local ability = currentAbilities[key]
-            if not ability then return end
-            if AbilityCooldowns.isOnCooldown(key) then return end
+            if not ability then
+                return
+            end
+            if AbilityCooldowns.isOnCooldown(key) then
+                return
+            end
             Remotes.UseAbility:FireServer(key, getMouseWorldPosition())
             break
         end

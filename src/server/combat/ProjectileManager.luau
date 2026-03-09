@@ -227,8 +227,6 @@ end
 --- params.damageType   : string        — "Physical"|"Magic"|"Ranged"
 --- params.pierceCount  : number?       — override из эффекта (иначе из конфига)
 function ProjectileManager.fire(params)
-    print(string.format("[ProjectileManager] fire: %s → %s, dmg=%d, dir=%s", tostring(params.owner),
-        tostring(params.projectileId), params.baseDamage or 0, tostring(params.direction)))
     local projConfig = getProjectileConfig(params.projectileId)
     if not projConfig then
         warn("[ProjectileManager] Unknown projectile: " .. tostring(params.projectileId))
