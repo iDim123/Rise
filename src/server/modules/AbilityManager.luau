@@ -3,45 +3,80 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local modules = ServerScriptService:WaitForChild("modules")
 
-local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
-local InventoryManager = require(modules:WaitForChild("InventoryManager"))
-local ResourceManager = require(modules:WaitForChild("ResourceManager"))
 local StatsManager = require(modules:WaitForChild("StatsManager"))
-local LevelManager = require(modules:WaitForChild("LevelManager"))
+
+-- Боевые модули из combat/
+local combat = ServerScriptService:WaitForChild("combat")
+local WeaponUtil = require(combat:WaitForChild("WeaponUtil"))
+local DamageCalc = require(combat:WaitForChild("DamageCalc"))
+local TargetFinder = require(combat:WaitForChild("TargetFinder"))
+local ResourceHit = require(combat:WaitForChild("ResourceHit"))
+
+-- ProjectileManager — ленивая загрузка (создаётся в Шаге 10)
+local ProjectileManager
+local function getProjectileManager()
+    if not ProjectileManager then
+        local ok, mod = pcall(function()
+            return require(combat:WaitForChild("ProjectileManager", 2))
+        end)
+        if ok then
+            ProjectileManager = mod
+        end
+    end
+    return ProjectileManager
+end
 
 local AbilityManager = {}
 local abilityCooldowns = {} -- [userId] = { [abilityId] = lastUseTime }
 
-function AbilityManager.getWeaponConfig(player)
-    local inv = InventoryManager.getInventory(player)
-    if not inv then return nil end
-    local slot = inv.slots[inv.activeWeaponSlot]
-    if not slot or slot == false then return nil end
-    return Config.Weapons[slot.Id]
-end
+-- ═══════════════════════════════════════════════════════════
+-- Основная точка входа
+-- ═══════════════════════════════════════════════════════════
 
 function AbilityManager.useAbility(player, key, mousePosition)
-    if type(key) ~= "string" then return end
-    if key ~= "Q" and key ~= "E" then return end
+    if type(key) ~= "string" then
+        return
+    end
+    if key ~= "Q" and key ~= "E" then
+        return
+    end
 
     local character = player.Character
-    if not character then return end
+    if not character then
+        return
+    end
+    if character:GetAttribute("IsDead") then
+        return
+    end
+
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then return end
+    if not humanoid or humanoid.Health <= 0 then
+        return
+    end
+
     local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
+    if not rootPart then
+        return
+    end
 
-    local weaponConfig = AbilityManager.getWeaponConfig(player)
-    if not weaponConfig then return end
+    local weaponConfig = WeaponUtil.getConfig(player)
+    if not weaponConfig then
+        return
+    end
+
     local ability = weaponConfig.Abilities and weaponConfig.Abilities[key]
-    if not ability then return end
+    if not ability then
+        return
+    end
 
-    -- ═══ Cooldown with CD speed stat ═══
+    -- ── Cooldown с учётом CD speed стата ──────────────────
     local userId = player.UserId
-    if not abilityCooldowns[userId] then abilityCooldowns[userId] = {} end
+    if not abilityCooldowns[userId] then
+        abilityCooldowns[userId] = {}
+    end
     local lastUse = abilityCooldowns[userId][ability.Id] or 0
     local now = tick()
 
@@ -52,20 +87,31 @@ function AbilityManager.useAbility(player, key, mousePosition)
         cdSpeed = StatsManager.get(player, "WeaponCDSpeed")
     end
     local actualCooldown = ability.Cooldown / math.max(cdSpeed, 0.1)
-    if now - lastUse < actualCooldown then return end
+    if now - lastUse < actualCooldown then
+        return
+    end
 
-    -- Apply effects
+    -- ── Применение эффектов ───────────────────────────────
     for _, effect in ability.Effects do
         if effect.Type == "DirectDamage" then
             AbilityManager._directDamage(player, character, rootPart, mousePosition, effect, weaponConfig)
-            AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
+            ResourceHit.hitInRadius(player, rootPart, weaponConfig.Range or 6, weaponConfig)
+
         elseif effect.Type == "AoEDamage" then
             AbilityManager._aoeDamage(player, character, rootPart, effect)
-            AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
+            ResourceHit.hitInRadius(player, rootPart, effect.Radius or 8, weaponConfig)
+
         elseif effect.Type == "ApplyBuff" then
             BuffManager.applyBuff(character, effect.BuffId, effect.Duration, ability.Id)
+
         elseif effect.Type == "ApplyDebuff" then
-            AbilityManager._applyDebuffToTargets(character, rootPart, mousePosition, effect, weaponConfig)
+            AbilityManager._applyDebuffToTargets(character, rootPart, effect, weaponConfig)
+
+        elseif effect.Type == "Projectile" then
+            AbilityManager._fireProjectile(player, character, rootPart, mousePosition, effect, ability)
+
+        elseif effect.Type == "AoEProjectile" then
+            AbilityManager._fireAoEProjectile(player, rootPart, mousePosition, effect, ability)
         end
     end
 
@@ -75,190 +121,125 @@ function AbilityManager.useAbility(player, key, mousePosition)
     print("[Ability] " .. player.Name .. " used " .. ability.Name .. " (" .. key .. ")")
 end
 
--- ═══ Расчёт урона способности ═══
-local function calcAbilityDamage(player, character, target, baseDamage, damageType)
-    damageType = damageType or "Physical"
-
-    local damage = baseDamage
-
-    if damageType == "Magic" then
-        local magPower = StatsManager.get(player, "MagicalPower")
-        damage = baseDamage * (magPower / 10)
-
-        local critChance = StatsManager.get(player, "MagicCritChance")
-        local critDamage = StatsManager.get(player, "MagicCritDamage")
-        if math.random() < critChance then
-            damage = damage * critDamage
-        end
-
-        local targetResist = target:GetAttribute("MagicResistance") or 0
-        damage = damage * (1 - targetResist / 100)
-    else
-        local physPower = StatsManager.get(player, "PhysicalPower")
-        damage = baseDamage * (physPower / 10)
-
-        local critChance = StatsManager.get(player, "PhysCritChance")
-        local critDamage = StatsManager.get(player, "PhysCritDamage")
-        if math.random() < critChance then
-            damage = damage * critDamage
-        end
-
-        local targetResist = target:GetAttribute("PhysResistance") or 0
-        damage = damage * (1 - targetResist / 100)
-    end
-
-    -- Level modifier
-    local playerLevel = LevelManager.getPlayerLevel(player)
-    local targetLevel = target:GetAttribute("Level") or target:GetAttribute("EnemyLevel") or playerLevel
-    local dmgMod = LevelManager.getDamageModifier(playerLevel, targetLevel)
-    damage = damage * (1 + dmgMod)
-
-    return math.max(1, math.floor(damage))
-end
-
-
-function AbilityManager._getEnemiesInRadius(position, radius)
-    local targets = {}
-    local enemiesFolder = workspace:FindFirstChild("Enemies")
-    if enemiesFolder then
-        for _, enemy in enemiesFolder:GetChildren() do
-            local eRoot = enemy:FindFirstChild("HumanoidRootPart")
-            local eHum = enemy:FindFirstChildOfClass("Humanoid")
-            if eRoot and eHum and eHum.Health > 0 then
-                if (eRoot.Position - position).Magnitude <= radius then
-                    table.insert(targets, enemy)
-                end
-            end
-        end
-    end
-    return targets
-end
-
-function AbilityManager._getPlayersInRadius(attacker, position, radius)
-    local targets = {}
-    for _, p in Players:GetPlayers() do
-        if p.Character and p.Character ~= attacker then
-            local root = p.Character:FindFirstChild("HumanoidRootPart")
-            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-            if root and hum and hum.Health > 0 then
-                if (root.Position - position).Magnitude <= radius then
-                    table.insert(targets, p.Character)
-                end
-            end
-        end
-    end
-    return targets
-end
+-- ═══════════════════════════════════════════════════════════
+-- DirectDamage — ближайшая цель в конусе
+-- ═══════════════════════════════════════════════════════════
 
 function AbilityManager._directDamage(player, character, rootPart, mousePosition, effect, weaponConfig)
     local range = weaponConfig.Range or 6
     local direction = (mousePosition - rootPart.Position).Unit
-    local targets = {}
 
-    for _, enemy in AbilityManager._getEnemiesInRadius(rootPart.Position, range) do
-        local eRoot = enemy:FindFirstChild("HumanoidRootPart")
-        if eRoot then
-            local toTarget = (eRoot.Position - rootPart.Position).Unit
-            if direction:Dot(toTarget) > 0.3 then
-                table.insert(targets, enemy)
-            end
-        end
-    end
+    local target = TargetFinder.closestInCone(rootPart.Position, direction, range, 0.3, character)
 
-    for _, target in AbilityManager._getPlayersInRadius(character, rootPart.Position, range) do
-        local tRoot = target:FindFirstChild("HumanoidRootPart")
-        if tRoot then
-            local toTarget = (tRoot.Position - rootPart.Position).Unit
-            if direction:Dot(toTarget) > 0.3 then
-                table.insert(targets, target)
-            end
-        end
-    end
-
-    if #targets > 0 then
-        local closest = nil
-        local closestDist = math.huge
-        for _, t in targets do
-            local tRoot = t:FindFirstChild("HumanoidRootPart")
-            if tRoot then
-                local dist = (tRoot.Position - rootPart.Position).Magnitude
-                if dist < closestDist then
-                    closest = t
-                    closestDist = dist
-                end
-            end
-        end
-        if closest then
-            local finalDamage = calcAbilityDamage(player, character, closest, effect.Damage, effect.DamageType)
-            HealthManager.takeDamage(closest, finalDamage, character)
-        end
-    end
-end
-
-function AbilityManager._aoeDamage(player, character, rootPart, effect)
-    local radius = effect.Radius or 8
-    local targets = AbilityManager._getEnemiesInRadius(rootPart.Position, radius)
-    for _, target in AbilityManager._getPlayersInRadius(character, rootPart.Position, radius) do
-        table.insert(targets, target)
-    end
-
-    for _, target in targets do
-        local finalDamage = calcAbilityDamage(player, character, target, effect.Damage, effect.DamageType)
+    if target then
+        local finalDamage = DamageCalc.calculate({
+            player = player,
+            target = target,
+            baseDamage = effect.Damage,
+            damageType = effect.DamageType or "Physical"
+        })
         HealthManager.takeDamage(target, finalDamage, character)
     end
 end
 
-function AbilityManager._applyDebuffToTargets(character, rootPart, mousePosition, effect, weaponConfig)
-    local range = effect.Radius or weaponConfig.Range or 6
-    local targets = AbilityManager._getEnemiesInRadius(rootPart.Position, range)
-    for _, target in AbilityManager._getPlayersInRadius(character, rootPart.Position, range) do
-        table.insert(targets, target)
+-- ═══════════════════════════════════════════════════════════
+-- AoEDamage — все цели в радиусе
+-- ═══════════════════════════════════════════════════════════
+
+function AbilityManager._aoeDamage(player, character, rootPart, effect)
+    local radius = effect.Radius or 8
+    local targets = TargetFinder.inRadius(rootPart.Position, radius, character)
+
+    for _, target in targets do
+        local finalDamage = DamageCalc.calculate({
+            player = player,
+            target = target,
+            baseDamage = effect.Damage,
+            damageType = effect.DamageType or "Physical"
+        })
+        HealthManager.takeDamage(target, finalDamage, character)
     end
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- ApplyDebuff — все цели в радиусе
+-- ═══════════════════════════════════════════════════════════
+
+function AbilityManager._applyDebuffToTargets(character, rootPart, effect, weaponConfig)
+    local range = effect.Radius or weaponConfig.Range or 6
+    local targets = TargetFinder.inRadius(rootPart.Position, range, character)
 
     for _, target in targets do
         BuffManager.applyBuff(target, effect.BuffId, effect.Duration, "ability")
     end
 end
 
-function AbilityManager._hitResourceNodes(character, rootPart, effect, weaponConfig)
-    local resourcesFolder = workspace:FindFirstChild("Resources")
-    if not resourcesFolder then return end
+-- ═══════════════════════════════════════════════════════════
+-- Projectile — одиночный снаряд (Q лука: Мощный выстрел)
+-- ═══════════════════════════════════════════════════════════
 
-    local player = Players:GetPlayerFromCharacter(character)
-    if not player then return end
+function AbilityManager._fireProjectile(player, character, rootPart, mousePosition, effect, ability)
+    local pm = getProjectileManager()
+    if not pm then
+        warn("[AbilityManager] ProjectileManager not available")
+        return
+    end
 
-    local resourceDamage = weaponConfig.ResourceDamage or 0
-    if resourceDamage <= 0 then return end
+    local direction = (mousePosition - rootPart.Position).Unit
 
-    local radius = effect.Radius or weaponConfig.Range or 8
+    pm.fire({
+        owner = player,
+        origin = rootPart.Position + direction * 2,
+        direction = direction,
+        projectileId = effect.ProjectileId,
+        baseDamage = effect.Damage,
+        damageType = ability.DamageType or "Physical",
+        pierceCount = effect.PierceCount
+    })
+end
 
-    for _, node in resourcesFolder:GetChildren() do
-        if not node:GetAttribute("NodeType") then continue end
+-- ═══════════════════════════════════════════════════════════
+-- AoEProjectile — дождь снарядов (E лука: Дождь стрел)
+-- ═══════════════════════════════════════════════════════════
 
-        local closestDist = math.huge
-        local parts = {}
-        if node:IsA("BasePart") then
-            table.insert(parts, node)
-        else
-            for _, desc in node:GetDescendants() do
-                if desc:IsA("BasePart") then table.insert(parts, desc) end
-            end
-        end
+function AbilityManager._fireAoEProjectile(player, rootPart, mousePosition, effect, ability)
+    local pm = getProjectileManager()
+    if not pm then
+        warn("[AbilityManager] ProjectileManager not available")
+        return
+    end
 
-        for _, part in parts do
-            local dx = rootPart.Position.X - part.Position.X
-            local dz = rootPart.Position.Z - part.Position.Z
-            local hDist = math.sqrt(dx * dx + dz * dz)
-            if hDist < closestDist then closestDist = hDist end
-        end
+    local count = effect.Count or 8
+    local radius = effect.Radius or 12
+    local spawnHeight = effect.SpawnHeight or 40
 
-        if closestDist <= radius then
-            ResourceManager.hit(player, node, resourceDamage)
-        end
+    -- mousePosition = центр области на земле
+    local centerGround = Vector3.new(mousePosition.X, rootPart.Position.Y, mousePosition.Z)
+
+    for i = 1, count do
+        local offsetX = (math.random() - 0.5) * 2 * radius
+        local offsetZ = (math.random() - 0.5) * 2 * radius
+        local spawnPos = centerGround + Vector3.new(offsetX, spawnHeight, offsetZ)
+
+        -- Небольшой временной разброс для визуального эффекта
+        task.defer(function()
+            task.wait(math.random() * 0.3)
+            pm.fire({
+                owner = player,
+                origin = spawnPos,
+                direction = Vector3.new(0, -1, 0),
+                projectileId = effect.ProjectileId,
+                baseDamage = effect.Damage,
+                damageType = ability.DamageType or "Physical"
+            })
+        end)
     end
 end
 
+-- ═══════════════════════════════════════════════════════════
 -- Cleanup
+-- ═══════════════════════════════════════════════════════════
+
 Players.PlayerRemoving:Connect(function(player)
     abilityCooldowns[player.UserId] = nil
 end)
