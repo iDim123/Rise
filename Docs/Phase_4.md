@@ -860,3 +860,192 @@ PierceCount: Снаряд ведёт hitList чтобы не бить одну �
 Gravity: Для rain_arrow стрелы спавнятся сверху, Gravity ускоряет падение.
 Performance: ProjectileManager лимитирует ≤50 активных снарядов. При превышении — самый старый удаляется.
 Серверная авторитетность: Клиент НЕ решает попадания. ProjectileVisuals — чисто косметический.
+
+
+Сценарии:
+
+Сценарий	LMB up	Каст	Результат
+A. Нормальный	После каста	Завершён	RangedRelease приходит → выстрел ✅
+B. Раннее отпускание	До конца каста	Ещё идёт	RangedRelease приходит → pendingCasts пуст → пакет теряется → каст завершится → fallback по LookVector ❌
+C. Быстрый клик	Сразу	Начался	То же что B, но хуже — игрок ожидал отмену
+Проблема B — игрок целится и отпускает LMB, ожидая что стрела полетит в нужном направлении, но mousePosition теряется и срабатывает fallback по LookVector.
+
+Решение: клиент отправляет RangedRelease только после получения CastComplete
+Вместо привязки к InputEnded (LMB up), клиент ждёт сигнал завершения каста от сервера:
+
+LMB down → AttackRequest → сервер начинает каст
+          → клиент запоминает isAiming = true
+
+Сервер каст завершён → CastStart remote уже отработал, CastBar закончился
+          → клиент получает событие завершения каста
+
+Клиент после завершения каста:
+  - Если LMB всё ещё зажат → отправить RangedRelease сразу
+  - Если LMB уже отпущен → ТОЖЕ отправить RangedRelease 
+    (mousePosition запоминается в момент отпускания)
+
+LMB up до конца каста → запомнить earlyReleasePosition, 
+                        НЕ отправлять RangedRelease
+Давай посмотрю как CastBar/CastManager сигнализирует клиенту о завершении:
+
+Использование инструмента
+|
+Чтение
+https://raw.githubusercontent.com/iDim123/Rise/develop_1.7/src/client/ui/CastBar.client.luau
+Посмотреть
+Отлично — вижу ключевой момент: CastBar.client.luau создаёт BindableEvent под названием CastComplete, который файрится при успешном завершении каста. Это именно тот сигнал, который нужен RangedInput.
+
+Также вижу что CastCancel от сервера тоже обрабатывается.
+
+Теперь у меня полная картина для исправления проблемы. Вот финальная схема:
+
+Исправление: RangedInput.stop() и CastComplete
+Проблема: Если игрок отпустит LMB до завершения каста, stop() отправит RangedRelease преждевременно. На сервере pendingCasts[player] ещё пуст (OnComplete не вызван) → пакет теряется → fallback по LookVector.
+
+Решение: RangedInput работает через 3 состояния:
+
+IDLE → CASTING → READY → IDLE
+Состояние	LMB down	LMB up	CastComplete	CastCancel
+IDLE	→ CASTING (send AttackRequest)	—	—	—
+CASTING	—	запомнить earlyRelease + mousePos	→ отправить RangedRelease (earlyRelease mousePos) → IDLE	→ IDLE
+READY	—	отправить RangedRelease (текущая mousePos) → IDLE	—	→ IDLE
+Сценарии:
+
+A. Нормальный (зажал → каст → отпустил):
+
+LMB down → state = CASTING, send AttackRequest
+CastComplete → state = READY (LMB ещё зажат)
+LMB up → send RangedRelease с текущей mousePosition → IDLE
+B. Раннее отпускание (нажал → отпустил → каст завершился):
+
+LMB down → state = CASTING, send AttackRequest
+LMB up → earlyReleasePos = текущая mousePosition, state остаётся CASTING
+CastComplete → send RangedRelease с earlyReleasePos → IDLE
+C. Каст отменён:
+
+LMB down → state = CASTING
+CastCancel → state = IDLE (ничего не отправляем)
+Код RangedInput.luau:
+
+Copylocal ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.CurrentCamera
+
+local RangedInput = {}
+
+-- Состояния
+local STATE_IDLE = "Idle"
+local STATE_CASTING = "Casting"
+local STATE_READY = "Ready"
+
+local state = STATE_IDLE
+local earlyReleasePos = nil -- mousePosition запомненная при раннем отпускании
+local castCompleteConn = nil
+local castCancelConn = nil
+
+local function getMouseWorldPosition()
+    local mouseRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
+    local origin = mouseRay.Origin
+    local dir = mouseRay.Direction
+
+    local character = player.Character
+    if not character then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+
+    local groundY = rootPart.Position.Y - 3
+    if math.abs(dir.Y) < 0.001 then return nil end
+    local t = (groundY - origin.Y) / dir.Y
+    if t < 0 then return nil end
+
+    return origin + dir * t
+end
+
+local function cleanup()
+    if castCompleteConn then
+        castCompleteConn:Disconnect()
+        castCompleteConn = nil
+    end
+    if castCancelConn then
+        castCancelConn:Disconnect()
+        castCancelConn = nil
+    end
+    state = STATE_IDLE
+    earlyReleasePos = nil
+end
+
+local function sendRelease(mousePos)
+    if mousePos then
+        Remotes.RangedRelease:FireServer(mousePos)
+    end
+    cleanup()
+end
+
+-- LMB down → начать каст
+function RangedInput.start()
+    if state ~= STATE_IDLE then return end
+
+    local mousePos = getMouseWorldPosition()
+    if not mousePos then return end
+
+    state = STATE_CASTING
+    earlyReleasePos = nil
+
+    -- Отправляем AttackRequest → сервер начнёт каст
+    Remotes.AttackRequest:FireServer(mousePos)
+
+    -- Слушаем CastComplete (BindableEvent в CastBarUI)
+    local castBarUI = player:WaitForChild("PlayerGui"):FindFirstChild("CastBarUI")
+    if castBarUI then
+        local completeEvent = castBarUI:FindFirstChild("CastComplete")
+        if completeEvent then
+            castCompleteConn = completeEvent.Event:Connect(function()
+                if castCompleteConn then
+                    castCompleteConn:Disconnect()
+                    castCompleteConn = nil
+                end
+
+                if state == STATE_CASTING then
+                    -- Каст завершился
+                    if earlyReleasePos then
+                        -- Игрок уже отпустил LMB → отправляем запомненную позицию
+                        sendRelease(earlyReleasePos)
+                    else
+                        -- LMB ещё зажат → переходим в READY, ждём отпускания
+                        state = STATE_READY
+                    end
+                end
+            end)
+        end
+    end
+
+    -- Слушаем CastCancel от сервера
+    castCancelConn = Remotes.CastCancel.OnClientEvent:Connect(function()
+        cleanup()
+    end)
+end
+
+-- LMB up
+function RangedInput.stop()
+    if state == STATE_CASTING then
+        -- Каст ещё идёт → запоминаем позицию, ждём CastComplete
+        earlyReleasePos = getMouseWorldPosition()
+        -- НЕ отправляем RangedRelease!
+    elseif state == STATE_READY then
+        -- Каст завершён, ожидали отпускания → отправляем текущую позицию
+        local mousePos = getMouseWorldPosition()
+        sendRelease(mousePos)
+    end
+    -- STATE_IDLE → ничего не делаем
+end
+
+function RangedInput.isActive()
+    return state ~= STATE_IDLE
+end
+
+return RangedInput
