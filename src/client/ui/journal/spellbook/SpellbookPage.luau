@@ -71,9 +71,10 @@ function SpellbookPage.build(contentParent, screenGui)
 
     SpellGrid.onSelect(function(spellId)
         SpellDetailPanel.refresh(spellId, spellData)
+        -- Rebuild grid to update selection highlight
         local currentSchool = SchoolTabs.getSelected()
         local learned = spellData and spellData.LearnedSpells or {}
-        SpellGrid.rebuild(currentSchool, learned)
+        SpellGrid.rebuild(currentSchool, learned, spellData)
     end)
 
     SpellSlotBar.onSlotClick(function(slotKey)
@@ -82,11 +83,6 @@ function SpellbookPage.build(contentParent, screenGui)
             return
         end
         Remotes.EquipSpell:FireServer(selectedSpell, slotKey)
-    end)
-
-    -- Learn button callback
-    SpellDetailPanel.onLearned(function(spellId)
-        -- Server processes and sends UpdateSpellData
     end)
 
     -- ═══ Remote listeners ═══
@@ -106,11 +102,12 @@ function SpellbookPage._onSchoolChanged(schoolId)
     SchoolInfoPanel.refresh(schoolId)
 
     SpellGrid.clearSelection()
-    SpellDetailPanel.refresh(nil, spellData)
+    SpellDetailPanel.refresh(nil)
 
     local learned = spellData and spellData.LearnedSpells or {}
-    SpellGrid.rebuild(schoolId, learned)
+    SpellGrid.rebuild(schoolId, learned, spellData)
 
+    -- Update tier progress
     local progress = spellData and spellData.SchoolProgress and spellData.SchoolProgress[schoolId]
     local tierReached = 0
     if progress then
@@ -128,12 +125,6 @@ function SpellbookPage._refreshAll()
 
     local equipped = spellData and spellData.EquippedSlots or {}
     SpellSlotBar.refresh(equipped)
-
-    -- Re-update detail if spell selected
-    local selectedSpell = SpellGrid.getSelected()
-    if selectedSpell then
-        SpellDetailPanel.refresh(selectedSpell, spellData)
-    end
 end
 
 -- ═══ Page lifecycle ═══
@@ -165,7 +156,7 @@ end
 
 function SpellbookPage.onDeactivate()
     SpellGrid.clearSelection()
-    SpellDetailPanel.refresh(nil, spellData)
+    SpellDetailPanel.refresh(nil)
     JournalWindow.setBackground(nil)
 end
 
