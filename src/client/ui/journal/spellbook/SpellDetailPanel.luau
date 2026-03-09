@@ -86,12 +86,12 @@ function SpellDetailPanel.build(parent)
 
     local iconImage = Instance.new("ImageLabel")
     iconImage.Name = "Icon"
-    iconImage.Size = UDim2.new(0.8, 0, 0.8, 0)
-    iconImage.AnchorPoint = Vector2.new(0.5, 0.5)
-    iconImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+    iconImage.Size = UDim2.new(1, 0, 1, 0)
     iconImage.BackgroundTransparency = 1
-    iconImage.ScaleType = Enum.ScaleType.Fit
+    iconImage.ScaleType = Enum.ScaleType.Crop
     iconImage.Parent = iconFrame
+
+    Instance.new("UICorner", iconImage).CornerRadius = UDim.new(0, 6)
 
     local iconFallback = Instance.new("TextLabel")
     iconFallback.Name = "Fallback"

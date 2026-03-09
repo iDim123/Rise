@@ -34,6 +34,7 @@ function JournalWindow.build()
     mainFrame.BackgroundColor3 = JC.BG_COLOR
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = false
+    mainFrame.Active = true
     mainFrame.Parent = screenGui
 
     -- Background image (same as BossJournal)
