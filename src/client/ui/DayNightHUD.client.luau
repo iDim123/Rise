@@ -27,6 +27,7 @@ local BLOOD_COLOR = Color3.fromRGB(180, 30, 30)
 local STROKE = Color3.fromRGB(60, 60, 80)
 local TEXT_COLOR = Color3.fromRGB(220, 220, 220)
 local TEXT_DIM = Color3.fromRGB(150, 150, 170)
+local NIGHT_COLOR_ICON = Color3.fromRGB(230, 230, 230)
 
 -- ════════════════════════════════════════════════════════════
 -- UI
@@ -107,25 +108,103 @@ timeLabel.TextXAlignment = Enum.TextXAlignment.Right
 timeLabel.Text = "0"
 timeLabel.Parent = frame
 
--- Прогресс-бар цикла
+-- ════════════════════════════════════════════════════════════
+-- Прогресс-бар: 3 зоны + маркер
+-- ════════════════════════════════════════════════════════════
+local BAR_TOTAL_W = BAR_WIDTH + ICON_SIZE - 4 -- вся ширина внутри фрейма
+
+local barContainer = Instance.new("Frame")
+barContainer.Name = "BarContainer"
+barContainer.Size = UDim2.new(1, -8, 0, BAR_HEIGHT + 4)
+barContainer.Position = UDim2.new(0, 4, 1, -BAR_HEIGHT - 5)
+barContainer.BackgroundTransparency = 1
+barContainer.ClipsDescendants = false
+barContainer.Parent = frame
+
+-- Фон бара
 local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(1, -8, 0, BAR_HEIGHT)
-barBg.Position = UDim2.new(0, 4, 1, -BAR_HEIGHT - 3)
+barBg.Name = "BarBg"
+barBg.Size = UDim2.new(1, 0, 0, BAR_HEIGHT)
+barBg.Position = UDim2.new(0, 0, 0, 2)
 barBg.BackgroundColor3 = BAR_BG
 barBg.BorderSizePixel = 0
 barBg.ClipsDescendants = true
-barBg.Parent = frame
-
+barBg.Parent = barContainer
 Instance.new("UICorner", barBg).CornerRadius = UDim.new(0, 3)
 
-local barFill = Instance.new("Frame")
-barFill.Name = "Fill"
-barFill.Size = UDim2.new(0.5, 0, 1, 0)
-barFill.BackgroundColor3 = NIGHT_COLOR
-barFill.BorderSizePixel = 0
-barFill.Parent = barBg
+local dawn = DNC.DawnHour -- 12
+local day = DNC.DayHour -- 13
+local dusk = DNC.DuskHour -- 18
+local night = DNC.NightHour -- 19
 
-Instance.new("UICorner", barFill).CornerRadius = UDim.new(0, 3)
+local zones = {{
+    from = 0,
+    to = dawn / 24,
+    color = NIGHT_COLOR
+}, -- ночь
+{
+    from = dawn / 24,
+    to = day / 24,
+    color = Color3.fromRGB(140, 140, 180)
+}, -- рассвет
+{
+    from = day / 24,
+    to = dusk / 24,
+    color = DAY_COLOR
+}, -- день
+{
+    from = dusk / 24,
+    to = night / 24,
+    color = Color3.fromRGB(180, 120, 60)
+}, -- закат
+{
+    from = night / 24,
+    to = 1,
+    color = NIGHT_COLOR
+} -- ночь
+}
+
+for _, zone in zones do
+    local zoneFrame = Instance.new("Frame")
+    zoneFrame.Size = UDim2.new(zone.to - zone.from, 0, 1, 0)
+    zoneFrame.Position = UDim2.new(zone.from, 0, 0, 0)
+    zoneFrame.BackgroundColor3 = zone.color
+    zoneFrame.BackgroundTransparency = 0.3
+    zoneFrame.BorderSizePixel = 0
+    zoneFrame.ZIndex = 1
+    zoneFrame.Parent = barBg
+end
+
+-- Маркер (кружок)
+local MARKER_SIZE = BAR_HEIGHT + 6
+
+local marker = Instance.new("Frame")
+marker.Name = "Marker"
+marker.Size = UDim2.new(0, MARKER_SIZE, 0, MARKER_SIZE)
+marker.AnchorPoint = Vector2.new(0.5, 0.5)
+marker.Position = UDim2.new(0, 0, 0.5, 2) -- обновляется в updateUI
+marker.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+marker.BorderSizePixel = 0
+marker.ZIndex = 5
+marker.Parent = barContainer
+
+Instance.new("UICorner", marker).CornerRadius = UDim.new(1, 0)
+
+local markerStroke = Instance.new("UIStroke")
+markerStroke.Color = Color3.fromRGB(40, 40, 60)
+markerStroke.Thickness = 2
+markerStroke.Parent = marker
+
+-- Иконка внутри маркера (☀/🌙)
+local markerIcon = Instance.new("TextLabel")
+markerIcon.Name = "Icon"
+markerIcon.Size = UDim2.new(1, 0, 1, 0)
+markerIcon.BackgroundTransparency = 1
+markerIcon.TextSize = 10
+markerIcon.Font = Enum.Font.GothamBold
+markerIcon.Text = "🌙"
+markerIcon.TextColor3 = Color3.fromRGB(40, 40, 60)
+markerIcon.Parent = marker
 
 -- ════════════════════════════════════════════════════════════
 -- Состояние (от сервера)
@@ -148,29 +227,40 @@ local LUNAR_NAMES = {
     blood_moon = "Кровавая луна"
 }
 
+-- ════════════════════════════════════════════════════════════
+-- updateUI
+-- ════════════════════════════════════════════════════════════
 local function updateUI()
-    local progress = syncData.CycleTimer / syncData.TotalCycle
-    barFill.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
+    local clock = syncData.ClockTime or 0
+    local progress = math.clamp(clock / 24, 0, 0.9999)
+
+    -- Маркер
+    marker.Position = UDim2.new(progress, 0, 0.5, 0.9)
 
     if syncData.IsDay then
         phaseIcon.Text = "☀"
         phaseIcon.TextColor3 = DAY_COLOR
         phaseLabel.Text = "День"
-        barFill.BackgroundColor3 = DAY_COLOR
+        marker.BackgroundColor3 = DAY_COLOR
+        markerIcon.Text = "☀"
+        markerIcon.TextColor3 = Color3.fromRGB(120, 80, 0)
     else
         if syncData.LunarPhase == "blood_moon" then
             phaseIcon.Text = "🌑"
             phaseIcon.TextColor3 = BLOOD_COLOR
-            barFill.BackgroundColor3 = BLOOD_COLOR
+            marker.BackgroundColor3 = BLOOD_COLOR
+            markerIcon.Text = "🌑"
+            markerIcon.TextColor3 = Color3.fromRGB(255, 200, 200)
         else
             phaseIcon.Text = "🌙"
             phaseIcon.TextColor3 = NIGHT_COLOR
-            barFill.BackgroundColor3 = NIGHT_COLOR
+            marker.BackgroundColor3 = NIGHT_COLOR_ICON
+            markerIcon.Text = "🌙"
+            markerIcon.TextColor3 = Color3.fromRGB(200, 200, 255)
         end
         phaseLabel.Text = "Ночь"
     end
 
-    local clock = syncData.ClockTime or 0
     local hour = math.floor(clock) % 24
     local minutes = math.floor((clock % 1) * 60)
     timeLabel.Text = string.format("%02d:%02d", hour, minutes)
@@ -194,11 +284,10 @@ RunService.Heartbeat:Connect(function(dt)
     syncData.CycleTimer = (syncData.CycleTimer + dt) % syncData.TotalCycle
     syncData.ClockTime = (syncData.CycleTimer / syncData.TotalCycle) * 24
 
-    local progress = syncData.CycleTimer / syncData.TotalCycle
-    barFill.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
-
-    -- Обновляем часы между синками
     local clock = syncData.ClockTime
+    local progress = math.clamp(clock / 24, 0, 0.9999)
+    marker.Position = UDim2.new(progress, 0, 0.5, 0.9)
+
     local hour = math.floor(clock) % 24
     local minutes = math.floor((clock % 1) * 60)
     timeLabel.Text = string.format("%02d:%02d", hour, minutes)
