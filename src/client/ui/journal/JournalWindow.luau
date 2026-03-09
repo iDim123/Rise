@@ -13,6 +13,7 @@ local isOpen = false
 local activePage = nil -- "Bosses" | "Spellbook" | "Map"
 local pages = {} -- [pageName] = { frame, module }
 local screenGui, mainFrame, navBar, contentFrame
+local bgImage
 
 -- ═══ Navbar pages config ═══
 local PAGE_ORDER = {"Map", "Bosses", "Spellbook"}
@@ -38,7 +39,7 @@ function JournalWindow.build()
     mainFrame.Parent = screenGui
 
     -- Background image (same as BossJournal)
-    local bgImage = Instance.new("ImageLabel")
+    bgImage = Instance.new("ImageLabel")
     bgImage.Name = "BackgroundImage"
     bgImage.Size = UDim2.new(1, 0, 1, 0)
     bgImage.BackgroundTransparency = 1
@@ -267,6 +268,12 @@ end
 
 function JournalWindow.getScreenGui()
     return screenGui
+end
+
+function JournalWindow.setBackground(imageId)
+    if bgImage then
+        bgImage.Image = imageId or JC.DEFAULT_BG
+    end
 end
 
 return JournalWindow

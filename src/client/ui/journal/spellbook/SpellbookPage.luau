@@ -2,6 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
+local JournalWindow = require(script.Parent.Parent:WaitForChild("JournalWindow"))
+local JC = require(script.Parent.Parent:WaitForChild("JournalConstants"))
 
 local SchoolTabs = require(script.Parent:WaitForChild("SchoolTabs"))
 local SchoolInfoPanel = require(script.Parent:WaitForChild("SchoolInfoPanel"))
@@ -103,6 +105,9 @@ end
 
 -- ═══ School change ═══
 function SpellbookPage._onSchoolChanged(schoolId)
+    local schoolBg = JC.SCHOOL_BACKGROUNDS[schoolId]
+    JournalWindow.setBackground(schoolBg)
+
     SchoolInfoPanel.refresh(schoolId)
 
     SpellGrid.clearSelection()
@@ -162,7 +167,10 @@ function SpellbookPage.onActivate()
 end
 
 function SpellbookPage.onDeactivate()
-    -- nothing
+    SpellGrid.clearSelection()
+    SpellDetailPanel.refresh(nil)
+    -- Возвращаем дефолтный фон при уходе со Spellbook
+    JournalWindow.setBackground(nil)
 end
 
 return SpellbookPage
