@@ -139,6 +139,4 @@ function LeechHandler.init()
     print("[LeechHandler] Initialized")
 end
 
-print("[LeechHandler] Initialized")
-
 return LeechHandler
