@@ -13,10 +13,6 @@ local StatsManager
 
 local ProjectileManager = {}
 
--- ═══════════════════════════════════════════════════════════
--- Ленивая загрузка
--- ═══════════════════════════════════════════════════════════
-
 local function getHealthManager()
     if not HealthManager then
         HealthManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("HealthManager"))
@@ -31,36 +27,22 @@ local function getStatsManager()
     return StatsManager
 end
 
--- ═══════════════════════════════════════════════════════════
--- Константы
--- ═══════════════════════════════════════════════════════════
-
 local MAX_PROJECTILES = 50
 local nextId = 0
 
--- ═══════════════════════════════════════════════════════════
--- Состояние
--- ═══════════════════════════════════════════════════════════
-
-local activeProjectiles = {} -- [id] = projectileData
+local activeProjectiles = {}
 local heartbeatConn = nil
 local initialized = false
-
--- ═══════════════════════════════════════════════════════════
--- Внутренние хелперы
--- ═══════════════════════════════════════════════════════════
 
 local function generateId()
     nextId = nextId + 1
     return nextId
 end
 
--- Получить конфиг снаряда из ProjectileConfig
 local function getProjectileConfig(projectileId)
     return Config.Projectiles and Config.Projectiles[projectileId]
 end
 
--- Подсчёт активных снарядов
 local function countActive()
     local count = 0
     for _ in activeProjectiles do
@@ -69,7 +51,6 @@ local function countActive()
     return count
 end
 
--- Удалить самый старый снаряд (при превышении лимита)
 local function removeOldest()
     local oldestId = nil
     local oldestTime = math.huge
@@ -86,10 +67,6 @@ local function removeOldest()
     end
 end
 
--- ═══════════════════════════════════════════════════════════
--- Удаление снаряда
--- ═══════════════════════════════════════════════════════════
-
 function ProjectileManager._remove(id)
     local proj = activeProjectiles[id]
     if not proj then
@@ -97,22 +74,15 @@ function ProjectileManager._remove(id)
     end
 
     activeProjectiles[id] = nil
-
     Remotes.ProjectileRemoved:FireAllClients(id)
 end
 
--- ═══════════════════════════════════════════════════════════
--- Обработка попадания
--- ═══════════════════════════════════════════════════════════
-
 function ProjectileManager._processHit(proj, target)
-    -- Не бить владельца
     local ownerCharacter = proj.owner and proj.owner.Character
     if target == ownerCharacter then
         return false
     end
 
-    -- Рассчитать урон
     local finalDamage, isCrit = DamageCalc.calculate({
         player = proj.owner,
         target = target,
@@ -120,61 +90,73 @@ function ProjectileManager._processHit(proj, target)
         damageType = proj.damageType
     })
 
-    -- Нанести урон
     getHealthManager().takeDamage(target, finalDamage, ownerCharacter)
     getStatsManager().markCombat(target)
 
-    -- Добавить в hitList
     proj.hitList[target] = true
 
-    -- Отправить эффект попадания клиентам
+    -- ═══ OnHit Effects ═══
+    if proj.onHitEffects then
+        for _, onHit in proj.onHitEffects do
+            if onHit.Type == "ApplyPassive" then
+                local passiveId = onHit.PassiveId
+                target:SetAttribute("Passive_" .. passiveId, true)
+                target:SetAttribute("Passive_" .. passiveId .. "_Owner", proj.owner.UserId)
+                target:SetAttribute("Passive_" .. passiveId .. "_Expire", tick() + (onHit.Duration or 5))
+                print("[ProjectileManager] Applied passive", passiveId, "to", target.Name)
+
+            elseif onHit.Type == "HealCaster" then
+                local healAmount = 0
+                if onHit.DrainPercent then
+                    -- % от нанесённого урона (LifeDrain механика)
+                    healAmount = math.floor(finalDamage * onHit.DrainPercent)
+                elseif onHit.HealPercent then
+                    -- % от spell power (прямой хил)
+                    local sm = getStatsManager()
+                    local spellPower = sm.get(proj.owner, "MagicalPower") or 1.0
+                    healAmount = math.floor(spellPower * onHit.HealPercent * 100)
+                end
+                if healAmount > 0 and proj.owner and proj.owner.Character then
+                    getHealthManager().heal(proj.owner.Character, healAmount)
+                    print("[ProjectileManager] HealCaster healed", proj.owner.Name, "for", healAmount)
+                end
+            end
+        end
+    end
+
     local targetRoot = target:FindFirstChild("HumanoidRootPart")
     local hitPos = targetRoot and targetRoot.Position or proj.position
     Remotes.ProjectileHit:FireAllClients(proj.id, hitPos, isCrit)
 
-    -- Уменьшить pierce
     proj.pierceLeft = proj.pierceLeft - 1
 
     return true
 end
 
--- ═══════════════════════════════════════════════════════════
--- Tick одного снаряда (вызывается из Heartbeat)
--- Возвращает true если снаряд должен быть удалён
--- ═══════════════════════════════════════════════════════════
-
 function ProjectileManager._tickProjectile(proj, dt)
-    -- Обновить время жизни
     proj.elapsed = proj.elapsed + dt
 
-    -- Гравитация: накапливаем вертикальную скорость
     proj.velocityY = proj.velocityY - proj.gravity * dt
 
-    -- Вычислить перемещение
     local velocity = proj.direction * proj.speed + Vector3.new(0, proj.velocityY, 0)
     local displacement = velocity * dt
     local newPos = proj.position + displacement
 
-    -- Обновить пройденное расстояние (горизонтальное)
     local horizDisp = Vector3.new(displacement.X, 0, displacement.Z)
     proj.distanceTraveled = proj.distanceTraveled + horizDisp.Magnitude
 
-    -- Обновить позицию
     proj.position = newPos
 
-    -- ── Hit detection (sphere overlap) ────────────────────
     local hits = TargetFinder.sphereOverlap(newPos, proj.hitRadius, proj.hitList)
 
     for _, target in hits do
         local didHit = ProjectileManager._processHit(proj, target)
 
         if didHit and proj.pierceLeft < 0 then
-            -- Pierce исчерпан — удалить
             return true
         end
     end
 
-    -- ── Проверка земли (для снарядов с гравитацией) ───────
     if proj.gravity > 0 then
         local rayResult = workspace:Raycast(proj.position, Vector3.new(0, -1, 0), RaycastParams.new())
         if rayResult and (proj.position.Y - rayResult.Position.Y) < 0.5 then
@@ -182,7 +164,6 @@ function ProjectileManager._tickProjectile(proj, dt)
         end
     end
 
-    -- ── Проверка лимитов ──────────────────────────────────
     if proj.distanceTraveled > proj.maxDistance then
         return true
     end
@@ -193,10 +174,6 @@ function ProjectileManager._tickProjectile(proj, dt)
 
     return false
 end
-
--- ═══════════════════════════════════════════════════════════
--- Heartbeat — обновление всех снарядов
--- ═══════════════════════════════════════════════════════════
 
 function ProjectileManager._update(dt)
     local toRemove = {}
@@ -213,19 +190,6 @@ function ProjectileManager._update(dt)
     end
 end
 
--- ═══════════════════════════════════════════════════════════
--- Публичное API
--- ═══════════════════════════════════════════════════════════
-
---- Создать и запустить снаряд
---- @param params table
---- params.owner        : Player        — владелец снаряда
---- params.origin       : Vector3       — начальная позиция
---- params.direction    : Vector3       — направление (unit)
---- params.projectileId : string        — ключ из ProjectileConfig
---- params.baseDamage   : number        — базовый урон
---- params.damageType   : string        — "Physical"|"Magic"|"Ranged"
---- params.pierceCount  : number?       — override из эффекта (иначе из конфига)
 function ProjectileManager.fire(params)
     local projConfig = getProjectileConfig(params.projectileId)
     if not projConfig then
@@ -233,14 +197,12 @@ function ProjectileManager.fire(params)
         return nil
     end
 
-    -- Лимит активных снарядов
     if countActive() >= MAX_PROJECTILES then
         removeOldest()
     end
 
     local id = generateId()
 
-    -- Нормализуем направление
     local direction = params.direction
     if direction.Magnitude > 0.001 then
         direction = direction.Unit
@@ -265,14 +227,15 @@ function ProjectileManager.fire(params)
         pierceLeft = pierceCount,
         distanceTraveled = 0,
         elapsed = 0,
-        velocityY = 0, -- вертикальная скорость (для гравитации)
+        velocityY = 0,
         spawnTime = tick(),
-        hitList = {} -- { [entity] = true }
+        hitList = {},
+        onHitEffects = params.onHitEffects,
+        spellSchool = params.spellSchool
     }
 
     activeProjectiles[id] = proj
 
-    -- Уведомить клиентов для визуализации
     Remotes.ProjectileFired:FireAllClients({
         id = id,
         origin = params.origin,
@@ -285,8 +248,6 @@ function ProjectileManager.fire(params)
     return id
 end
 
---- Инициализация — подключить Heartbeat
---- Вызывается из CombatManager.server.luau
 function ProjectileManager.init()
     if initialized then
         return

@@ -86,6 +86,37 @@ return {
             }}
         },
 
+        sanguine_coil = {
+            Id = "sanguine_coil",
+            Name = "Sanguine Coil",
+            Description = "Выпускает снаряд, наносящий 80% магического урона, высасывает 30% нанесённого урона в здоровье и накладывает Leech. 3 заряда.",
+            Icon = "rbxassetid://111528193416142",
+            School = "Blood",
+            Class = "Basic",
+            Tier = 1,
+            UnlockCost = 1,
+            Tags = {"Projectile", "CanCrit", "Charges"},
+            CastTime = 0.4,
+            CastMovementMode = "Free",
+            Cooldown = 6,
+            MaxCharges = 3,
+            ChargeRechargeTime = 6,
+            DamageType = "Magic",
+            CanCrit = true,
+            Effects = {{
+                Type = "Projectile",
+                ProjectileId = "sanguine_coil",
+                DamageMult = 0.80,
+                OnHitEffects = {{
+                    Type = "HealCaster",
+                    DrainPercent = 0.30
+                }, {
+                    Type = "ApplyPassive",
+                    PassiveId = "Leech"
+                }}
+            }}
+        },
+
         shadowbolt = {
             Id = "shadowbolt",
             Name = "Shadowbolt",
