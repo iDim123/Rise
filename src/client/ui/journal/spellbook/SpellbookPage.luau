@@ -15,7 +15,7 @@ local SpellSlotBar = require(script.Parent:WaitForChild("SpellSlotBar"))
 local SpellbookPage = {}
 
 local pageFrame = nil
-local spellData = nil -- { SpellPoints, LearnedSpells, EquippedSlots, SchoolProgress }
+local spellData = nil
 local isVisible = false
 local dataLoaded = false
 
@@ -23,17 +23,15 @@ local dataLoaded = false
 function SpellbookPage.build(contentParent, screenGui)
     pageFrame = Instance.new("Frame")
     pageFrame.Name = "SpellbookPage"
-    pageFrame.Size = UDim2.new(0.8, 0, 0.9, 0) -- 80% ширины, 90% высоты
+    pageFrame.Size = UDim2.new(0.8, 0, 0.9, 0)
     pageFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    pageFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- центрирован
+    pageFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     pageFrame.BackgroundTransparency = 1
     pageFrame.Visible = false
     pageFrame.Parent = contentParent
 
-    -- School tabs (top)
     SchoolTabs.build(pageFrame)
 
-    -- Main content area (below tabs, above slot bar)
     local mainArea = Instance.new("Frame")
     mainArea.Name = "MainArea"
     mainArea.Size = UDim2.new(1, -C.CONTENT_PAD * 2, 1, -(C.SCHOOL_TAB_H + C.SLOT_BAR_H + C.CONTENT_PAD))
@@ -41,10 +39,8 @@ function SpellbookPage.build(contentParent, screenGui)
     mainArea.BackgroundTransparency = 1
     mainArea.Parent = pageFrame
 
-    -- School info panel (left)
     SchoolInfoPanel.build(mainArea)
 
-    -- Tier progress bar (above spell grid)
     local centerArea = Instance.new("Frame")
     centerArea.Name = "CenterArea"
     centerArea.Size = UDim2.new(1, -(C.SCHOOL_INFO_W + C.DETAIL_W + C.CONTENT_PAD * 2), 1, 0)
@@ -54,7 +50,6 @@ function SpellbookPage.build(contentParent, screenGui)
 
     TierProgressBar.build(centerArea)
 
-    -- Spell grid (center, below tier bar)
     local gridContainer = Instance.new("Frame")
     gridContainer.Name = "GridContainer"
     gridContainer.Size = UDim2.new(1, 0, 1, -C.TIER_BAR_H)
@@ -64,10 +59,8 @@ function SpellbookPage.build(contentParent, screenGui)
 
     SpellGrid.build(gridContainer)
 
-    -- Detail panel (right)
     SpellDetailPanel.build(mainArea)
 
-    -- Slot bar (bottom)
     SpellSlotBar.build(pageFrame)
 
     -- ═══ Callbacks ═══
@@ -77,8 +70,7 @@ function SpellbookPage.build(contentParent, screenGui)
     end)
 
     SpellGrid.onSelect(function(spellId)
-        SpellDetailPanel.refresh(spellId)
-        -- Rebuild grid to update selection highlight
+        SpellDetailPanel.refresh(spellId, spellData)
         local currentSchool = SchoolTabs.getSelected()
         local learned = spellData and spellData.LearnedSpells or {}
         SpellGrid.rebuild(currentSchool, learned)
@@ -89,9 +81,12 @@ function SpellbookPage.build(contentParent, screenGui)
         if not selectedSpell then
             return
         end
-
-        -- Equip the selected spell to this slot
         Remotes.EquipSpell:FireServer(selectedSpell, slotKey)
+    end)
+
+    -- Learn button callback
+    SpellDetailPanel.onLearned(function(spellId)
+        -- Server processes and sends UpdateSpellData
     end)
 
     -- ═══ Remote listeners ═══
@@ -111,14 +106,11 @@ function SpellbookPage._onSchoolChanged(schoolId)
     SchoolInfoPanel.refresh(schoolId)
 
     SpellGrid.clearSelection()
-    SpellDetailPanel.refresh(nil)
+    SpellDetailPanel.refresh(nil, spellData)
 
     local learned = spellData and spellData.LearnedSpells or {}
-    SpellGrid.clearSelection()
     SpellGrid.rebuild(schoolId, learned)
-    SpellDetailPanel.refresh(nil) -- clear detail
 
-    -- Update tier progress
     local progress = spellData and spellData.SchoolProgress and spellData.SchoolProgress[schoolId]
     local tierReached = 0
     if progress then
@@ -136,6 +128,12 @@ function SpellbookPage._refreshAll()
 
     local equipped = spellData and spellData.EquippedSlots or {}
     SpellSlotBar.refresh(equipped)
+
+    -- Re-update detail if spell selected
+    local selectedSpell = SpellGrid.getSelected()
+    if selectedSpell then
+        SpellDetailPanel.refresh(selectedSpell, spellData)
+    end
 end
 
 -- ═══ Page lifecycle ═══
@@ -147,7 +145,6 @@ function SpellbookPage.setVisible(visible)
 end
 
 function SpellbookPage.onActivate()
-    -- Всегда выбираем первую школу при открытии
     if not SchoolTabs.getSelected() then
         SchoolTabs.selectFirst()
     end
@@ -168,8 +165,7 @@ end
 
 function SpellbookPage.onDeactivate()
     SpellGrid.clearSelection()
-    SpellDetailPanel.refresh(nil)
-    -- Возвращаем дефолтный фон при уходе со Spellbook
+    SpellDetailPanel.refresh(nil, spellData)
     JournalWindow.setBackground(nil)
 end
 

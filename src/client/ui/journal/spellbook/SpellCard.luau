@@ -1,100 +1,146 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
 
 local SpellCard = {}
 
-function SpellCard.build(parent, spellConfig, isLearned, isSelected, layoutOrder)
-    local accent = C.SCHOOL_ACCENTS[spellConfig.School] or C.STROKE_COLOR
+function SpellCard.build(parent, spellId, isLearned, isSelected, schoolId, canLearn)
+    local spellDef = SpellConfig.Spells[spellId]
+    if not spellDef then
+        return nil
+    end
 
-    local card = Instance.new("ImageButton")
-    card.Name = "SpellCard_" .. spellConfig.Id
-    card.Size = UDim2.new(0, C.SPELL_ICON_SIZE, 0, C.SPELL_ICON_SIZE)
-    card.BackgroundColor3 = isSelected and C.CARD_BG_SELECTED or (isLearned and C.CARD_BG or C.CARD_BG_LOCKED)
+    canLearn = canLearn or false
+    local accentColor = C.SCHOOL_ACCENTS[schoolId] or C.STROKE_COLOR
+
+    -- Определяем цвет фона
+    local bgColor
+    if isSelected then
+        bgColor = C.CARD_BG_SELECTED
+    elseif isLearned then
+        bgColor = C.CARD_BG
+    else
+        bgColor = C.CARD_BG_LOCKED
+    end
+
+    local card = Instance.new("TextButton")
+    card.Name = "SpellCard_" .. spellId
+    card.Size = UDim2.new(0, C.SPELL_ICON_SIZE, 0, C.SPELL_ICON_SIZE + 22)
+    card.BackgroundColor3 = bgColor
+    card.BorderSizePixel = 0
     card.AutoButtonColor = false
-    card.Image = ""
-    card.LayoutOrder = layoutOrder or 0
+    card.Text = ""
     card.Parent = parent
 
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = card
 
+    -- Рамка: яркая для canLearn, обычная для остальных
     local stroke = Instance.new("UIStroke")
-    stroke.Color = isSelected and accent or (isLearned and C.STROKE_COLOR or Color3.fromRGB(50, 50, 60))
-    stroke.Thickness = isSelected and 2 or 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    if canLearn then
+        stroke.Color = accentColor
+        stroke.Thickness = 2.5
+        stroke.Transparency = 0
+    elseif isLearned then
+        stroke.Color = accentColor
+        stroke.Thickness = 1
+        stroke.Transparency = 0.4
+    else
+        stroke.Color = C.STROKE_COLOR
+        stroke.Thickness = 1
+        stroke.Transparency = 0.6
+    end
     stroke.Parent = card
 
-    -- Icon
+    -- Иконка заклинания
     local icon = Instance.new("ImageLabel")
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0.7, 0, 0.7, 0)
-    icon.AnchorPoint = Vector2.new(0.5, 0.5)
-    icon.Position = UDim2.new(0.5, 0, 0.42, 0)
+    icon.Size = UDim2.new(0, C.SPELL_ICON_SIZE - 12, 0, C.SPELL_ICON_SIZE - 12)
+    icon.Position = UDim2.new(0.5, 0, 0, 6)
+    icon.AnchorPoint = Vector2.new(0.5, 0)
     icon.BackgroundTransparency = 1
-    icon.Image = spellConfig.Icon or ""
-    icon.ImageTransparency = isLearned and 0 or 0.5
     icon.ScaleType = Enum.ScaleType.Fit
+
+    if spellDef.Icon and spellDef.Icon ~= "" then
+        icon.Image = spellDef.Icon
+    else
+        icon.Image = ""
+    end
+
+    -- Затемнение для неизученных (и canLearn тоже — остаётся затемнённой)
+    if isLearned then
+        icon.ImageTransparency = 0
+    else
+        icon.ImageTransparency = 0.55
+    end
     icon.Parent = card
 
-    -- Fallback text
-    if not spellConfig.Icon or spellConfig.Icon == "" or spellConfig.Icon == "rbxassetid://0" then
-        icon.Visible = false
+    -- Fallback текст если нет иконки
+    if not spellDef.Icon or spellDef.Icon == "" then
         local fallback = Instance.new("TextLabel")
         fallback.Name = "Fallback"
-        fallback.Size = UDim2.new(1, -6, 0.6, 0)
-        fallback.Position = UDim2.new(0, 3, 0.05, 0)
+        fallback.Size = UDim2.new(1, -8, 0, C.SPELL_ICON_SIZE - 12)
+        fallback.Position = UDim2.new(0, 4, 0, 6)
         fallback.BackgroundTransparency = 1
+        fallback.Text = string.sub(spellDef.Name or spellId, 1, 6)
+        fallback.TextColor3 = C.TEXT_DIM
+        fallback.TextScaled = true
         fallback.Font = Enum.Font.GothamBold
-        fallback.TextSize = 11
-        fallback.TextColor3 = isLearned and C.TEXT_COLOR or C.TEXT_DIM
-        fallback.TextTransparency = isLearned and 0 or 0.4
-        fallback.Text = spellConfig.Name or "?"
-        fallback.TextWrapped = true
         fallback.Parent = card
     end
 
-    -- Name below icon
+    -- Имя заклинания
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "SpellName"
-    nameLabel.Size = UDim2.new(1, -4, 0, 12)
-    nameLabel.AnchorPoint = Vector2.new(0.5, 1)
-    nameLabel.Position = UDim2.new(0.5, 0, 1, -2)
+    nameLabel.Size = UDim2.new(1, -4, 0, 16)
+    nameLabel.Position = UDim2.new(0, 2, 1, -18)
     nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = spellDef.Name or spellId
+    nameLabel.TextColor3 = isLearned and C.TEXT_COLOR or C.TEXT_DIM
+    nameLabel.TextScaled = true
     nameLabel.Font = Enum.Font.Gotham
-    nameLabel.TextSize = 9
-    nameLabel.TextColor3 = isLearned and C.TEXT_DIM or Color3.fromRGB(80, 80, 90)
-    nameLabel.Text = spellConfig.Name or ""
     nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
     nameLabel.Parent = card
 
-    -- Lock overlay
-    if not isLearned then
-        local lockOverlay = Instance.new("Frame")
-        lockOverlay.Size = UDim2.new(1, 0, 1, 0)
-        lockOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        lockOverlay.BackgroundTransparency = 0.5
-        lockOverlay.BorderSizePixel = 0
-        lockOverlay.ZIndex = 2
-        lockOverlay.Parent = card
-        Instance.new("UICorner", lockOverlay).CornerRadius = UDim.new(0, 8)
+    -- Оверлей с "?" ТОЛЬКО для заблокированных (нет очков)
+    -- canLearn — НЕ показываем "?"
+    if not isLearned and not canLearn then
+        local overlay = Instance.new("Frame")
+        overlay.Name = "LockOverlay"
+        overlay.Size = UDim2.new(1, 0, 1, 0)
+        overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        overlay.BackgroundTransparency = 0.55
+        overlay.BorderSizePixel = 0
+        overlay.ZIndex = 2
+        overlay.Parent = card
 
-        local lockText = Instance.new("TextLabel")
-        lockText.Size = UDim2.new(1, 0, 1, 0)
-        lockText.BackgroundTransparency = 1
-        lockText.Text = "?"
-        lockText.TextColor3 = Color3.fromRGB(80, 80, 100)
-        lockText.TextSize = 24
-        lockText.Font = Enum.Font.GothamBold
-        lockText.ZIndex = 3
-        lockText.Parent = card
+        local overlayCorner = Instance.new("UICorner")
+        overlayCorner.CornerRadius = UDim.new(0, 6)
+        overlayCorner.Parent = overlay
+
+        local lockIcon = Instance.new("TextLabel")
+        lockIcon.Name = "LockIcon"
+        lockIcon.Size = UDim2.new(1, 0, 1, -18)
+        lockIcon.BackgroundTransparency = 1
+        lockIcon.Text = "?"
+        lockIcon.TextColor3 = C.TEXT_DIM
+        lockIcon.TextScaled = true
+        lockIcon.Font = Enum.Font.GothamBold
+        lockIcon.ZIndex = 3
+        lockIcon.Parent = overlay
     end
 
-    -- Hover
+    -- Ховер эффект
     card.MouseEnter:Connect(function()
         if not isSelected then
-            card.BackgroundColor3 = isLearned and C.CARD_BG_HOVER or C.CARD_BG_LOCKED
+            card.BackgroundColor3 = C.CARD_BG_HOVER
         end
     end)
     card.MouseLeave:Connect(function()
         if not isSelected then
-            card.BackgroundColor3 = isLearned and C.CARD_BG or C.CARD_BG_LOCKED
+            card.BackgroundColor3 = bgColor
         end
     end)
 

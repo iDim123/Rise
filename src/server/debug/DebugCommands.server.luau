@@ -12,7 +12,7 @@ local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
 local DayNightManager = require(modules:WaitForChild("DayNightManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
-
+local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
 -- ════════════════════════════════════════════════════════════
 -- Парсинг команды: "/settime 14" → cmd="/settime", args={"14"}
 -- ════════════════════════════════════════════════════════════
@@ -29,6 +29,14 @@ end
 -- Команды
 -- ════════════════════════════════════════════════════════════
 local commands = {}
+
+commands["/spellpoint"] = function(player, args)
+    local school = args[1] or "Blood"
+    local tier = args[2] or "1"
+    local amount = tonumber(args[3]) or 1
+    SpellProgressManager.addSpellPoints(player, school, tier, amount)
+    return "Added " .. amount .. " " .. school .. " T" .. tier .. " spell point"
+end
 
 commands["/save"] = function(player, args)
     local success = DataService.save(player)

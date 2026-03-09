@@ -58,3 +58,20 @@ inputBox.FocusLost:Connect(function(enterPressed)
     end
     inputBox.Visible = false
 end)
+
+-- ── Debug hotkeys ──
+-- Ctrl+1: получить Blood Spell Point Tier 1
+-- Ctrl+2: получить Chaos Spell Point Tier 1
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then
+        return
+    end
+
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        if input.KeyCode == Enum.KeyCode.One then
+            Remotes.DebugCommand:FireServer("/spellpoint Blood 1")
+        elseif input.KeyCode == Enum.KeyCode.Two then
+            Remotes.DebugCommand:FireServer("/spellpoint Chaos 1")
+        end
+    end
+end)

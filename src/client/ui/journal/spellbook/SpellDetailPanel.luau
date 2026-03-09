@@ -1,14 +1,18 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
 
 local SpellDetailPanel = {}
 
 local panelFrame = nil
-local contentFrame = nil -- контейнер для всего контента заклинания
-local placeholderLabel = nil -- "Select spell" по центру
+local contentFrame = nil
+local placeholderLabel = nil
 local iconFrame, nameLabel, classLabel, castLabel, cooldownLabel, descLabel
-local onEquipCallback = nil
+local learnButton = nil
+local requireLabel = nil
+local currentSpellId = nil
+local onLearnedCallback = nil
 
 function SpellDetailPanel.build(parent)
     panelFrame = Instance.new("Frame")
@@ -28,7 +32,7 @@ function SpellDetailPanel.build(parent)
     stroke.Thickness = 1
     stroke.Parent = panelFrame
 
-    -- ═══ Placeholder (centered "Select spell") ═══
+    -- ═══ Placeholder ═══
     placeholderLabel = Instance.new("TextLabel")
     placeholderLabel.Name = "Placeholder"
     placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -41,7 +45,7 @@ function SpellDetailPanel.build(parent)
     placeholderLabel.ZIndex = 2
     placeholderLabel.Parent = panelFrame
 
-    -- ═══ Content container (hidden when no spell selected) ═══
+    -- ═══ Content ═══
     contentFrame = Instance.new("Frame")
     contentFrame.Name = "Content"
     contentFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -61,7 +65,7 @@ function SpellDetailPanel.build(parent)
     layout.Padding = UDim.new(0, 8)
     layout.Parent = contentFrame
 
-    -- Header row: Icon + Name/Class
+    -- Header row
     local headerRow = Instance.new("Frame")
     headerRow.Name = "HeaderRow"
     headerRow.Size = UDim2.new(1, 0, 0, 56)
@@ -126,7 +130,7 @@ function SpellDetailPanel.build(parent)
     classLabel.TextXAlignment = Enum.TextXAlignment.Left
     classLabel.Parent = headerRow
 
-    -- Separator
+    -- Separator 1
     local sep1 = Instance.new("Frame")
     sep1.Size = UDim2.new(1, 0, 0, 1)
     sep1.BackgroundColor3 = C.SEPARATOR
@@ -135,7 +139,6 @@ function SpellDetailPanel.build(parent)
     sep1.LayoutOrder = 2
     sep1.Parent = contentFrame
 
-    -- Stats
     castLabel = Instance.new("TextLabel")
     castLabel.Name = "CastTime"
     castLabel.Size = UDim2.new(1, 0, 0, 18)
@@ -167,7 +170,6 @@ function SpellDetailPanel.build(parent)
     sep2.LayoutOrder = 5
     sep2.Parent = contentFrame
 
-    -- Description
     descLabel = Instance.new("TextLabel")
     descLabel.Name = "Description"
     descLabel.Size = UDim2.new(1, 0, 0, 0)
@@ -181,15 +183,79 @@ function SpellDetailPanel.build(parent)
     descLabel.LayoutOrder = 6
     descLabel.Parent = contentFrame
 
-    -- Start in placeholder mode
-    SpellDetailPanel._showPlaceholder()
+    -- Separator 3
+    local sep3 = Instance.new("Frame")
+    sep3.Name = "Sep3"
+    sep3.Size = UDim2.new(1, 0, 0, 1)
+    sep3.BackgroundColor3 = C.SEPARATOR
+    sep3.BackgroundTransparency = 0.5
+    sep3.BorderSizePixel = 0
+    sep3.LayoutOrder = 7
+    sep3.Visible = false
+    sep3.Parent = contentFrame
 
+    -- Requirement text (not enough points)
+    requireLabel = Instance.new("TextLabel")
+    requireLabel.Name = "RequireLabel"
+    requireLabel.Size = UDim2.new(1, 0, 0, 0)
+    requireLabel.AutomaticSize = Enum.AutomaticSize.Y
+    requireLabel.BackgroundTransparency = 1
+    requireLabel.Font = Enum.Font.GothamBold
+    requireLabel.TextSize = 14
+    requireLabel.TextColor3 = Color3.fromRGB(200, 100, 100)
+    requireLabel.TextXAlignment = Enum.TextXAlignment.Left
+    requireLabel.TextWrapped = true
+    requireLabel.LayoutOrder = 8
+    requireLabel.Visible = false
+    requireLabel.Parent = contentFrame
+
+    -- Learn button
+    learnButton = Instance.new("TextButton")
+    learnButton.Name = "LearnButton"
+    learnButton.Size = UDim2.new(1, 0, 0, 36)
+    learnButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+    learnButton.AutoButtonColor = false
+    learnButton.Font = Enum.Font.GothamBold
+    learnButton.TextSize = 16
+    learnButton.TextColor3 = Color3.fromRGB(220, 255, 220)
+    learnButton.Text = "Изучить"
+    learnButton.LayoutOrder = 9
+    learnButton.Visible = false
+    learnButton.Parent = contentFrame
+
+    Instance.new("UICorner", learnButton).CornerRadius = UDim.new(0, 6)
+
+    local learnStroke = Instance.new("UIStroke")
+    learnStroke.Color = Color3.fromRGB(60, 140, 60)
+    learnStroke.Thickness = 1
+    learnStroke.Parent = learnButton
+
+    -- Hover effects
+    learnButton.MouseEnter:Connect(function()
+        learnButton.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+    end)
+    learnButton.MouseLeave:Connect(function()
+        learnButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+    end)
+
+    -- Click → learn
+    learnButton.Activated:Connect(function()
+        if currentSpellId then
+            Remotes.LearnSpell:FireServer(currentSpellId)
+            if onLearnedCallback then
+                onLearnedCallback(currentSpellId)
+            end
+        end
+    end)
+
+    SpellDetailPanel._showPlaceholder()
     return panelFrame
 end
 
 function SpellDetailPanel._showPlaceholder()
     contentFrame.Visible = false
     placeholderLabel.Visible = true
+    currentSpellId = nil
 end
 
 function SpellDetailPanel._showContent()
@@ -197,7 +263,7 @@ function SpellDetailPanel._showContent()
     contentFrame.Visible = true
 end
 
-function SpellDetailPanel.refresh(spellId)
+function SpellDetailPanel.refresh(spellId, spellData)
     if not spellId then
         SpellDetailPanel._showPlaceholder()
         return
@@ -209,6 +275,7 @@ function SpellDetailPanel.refresh(spellId)
         return
     end
 
+    currentSpellId = spellId
     SpellDetailPanel._showContent()
 
     local accent = C.SCHOOL_ACCENTS[spell.School] or C.TEXT_COLOR
@@ -254,10 +321,56 @@ function SpellDetailPanel.refresh(spellId)
             iconFb.Visible = true
         end
     end
+
+    -- ═══ Learn / Requirement ═══
+    local sep3 = contentFrame:FindFirstChild("Sep3")
+    local isLearned = spellData and spellData.LearnedSpells and spellData.LearnedSpells[spellId]
+
+    if isLearned then
+        learnButton.Visible = false
+        requireLabel.Visible = false
+        if sep3 then
+            sep3.Visible = false
+        end
+    else
+        local school = spell.School
+        local tier = spell.Tier
+        local cost = spell.UnlockCost or 1
+        local pointsKey = spell.Class == "Ultimate" and "ULT" or tostring(tier)
+
+        local available = 0
+        if spellData and spellData.SpellPoints and spellData.SpellPoints[school] then
+            available = spellData.SpellPoints[school][pointsKey] or 0
+        end
+
+        if sep3 then
+            sep3.Visible = true
+        end
+
+        if available >= cost then
+            learnButton.Visible = true
+            requireLabel.Visible = false
+            -- Tint button with school accent
+            learnButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+            local btnStroke = learnButton:FindFirstChildOfClass("UIStroke")
+            if btnStroke then
+                btnStroke.Color = accent
+            end
+        else
+            learnButton.Visible = false
+            requireLabel.Visible = true
+            requireLabel.Text = "Требуется: " .. cost .. " " .. school .. " Tier " .. tier ..
+                                    " Spell Point (есть: " .. available .. ")"
+        end
+    end
 end
 
-function SpellDetailPanel.onEquip(callback)
-    onEquipCallback = callback
+function SpellDetailPanel.onLearned(callback)
+    onLearnedCallback = callback
+end
+
+function SpellDetailPanel.getFrame()
+    return panelFrame
 end
 
 function SpellDetailPanel.setVisible(visible)
