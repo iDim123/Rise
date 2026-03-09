@@ -42,7 +42,7 @@ function SchoolInfoPanel.build(parent)
     schoolNameLabel.Size = UDim2.new(1, 0, 0, 24)
     schoolNameLabel.BackgroundTransparency = 1
     schoolNameLabel.Font = Enum.Font.GothamBold
-    schoolNameLabel.TextSize = 18
+    schoolNameLabel.TextSize = 20
     schoolNameLabel.TextColor3 = C.TEXT_COLOR
     schoolNameLabel.TextXAlignment = Enum.TextXAlignment.Left
     schoolNameLabel.LayoutOrder = 1
@@ -55,7 +55,7 @@ function SchoolInfoPanel.build(parent)
     schoolDescLabel.AutomaticSize = Enum.AutomaticSize.Y
     schoolDescLabel.BackgroundTransparency = 1
     schoolDescLabel.Font = Enum.Font.Gotham
-    schoolDescLabel.TextSize = 12
+    schoolDescLabel.TextSize = 15
     schoolDescLabel.TextColor3 = C.TEXT_DIM
     schoolDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     schoolDescLabel.TextWrapped = true
@@ -77,7 +77,7 @@ function SchoolInfoPanel.build(parent)
     passiveNameLabel.Size = UDim2.new(1, 0, 0, 20)
     passiveNameLabel.BackgroundTransparency = 1
     passiveNameLabel.Font = Enum.Font.GothamBold
-    passiveNameLabel.TextSize = 15
+    passiveNameLabel.TextSize = 18
     passiveNameLabel.TextColor3 = C.TEXT_COLOR
     passiveNameLabel.TextXAlignment = Enum.TextXAlignment.Left
     passiveNameLabel.LayoutOrder = 4
@@ -90,7 +90,7 @@ function SchoolInfoPanel.build(parent)
     passiveDescLabel.AutomaticSize = Enum.AutomaticSize.Y
     passiveDescLabel.BackgroundTransparency = 1
     passiveDescLabel.Font = Enum.Font.Gotham
-    passiveDescLabel.TextSize = 12
+    passiveDescLabel.TextSize = 15
     passiveDescLabel.TextColor3 = C.TEXT_DIM
     passiveDescLabel.TextXAlignment = Enum.TextXAlignment.Left
     passiveDescLabel.TextWrapped = true
@@ -108,7 +108,7 @@ function SchoolInfoPanel.refresh(schoolId)
 
     local accent = C.SCHOOL_ACCENTS[schoolId] or C.STROKE_COLOR
 
-    schoolNameLabel.Text = school.Name .. " Magic"
+    schoolNameLabel.Text = school.Name
     schoolNameLabel.TextColor3 = accent
 
     -- Build description from school data

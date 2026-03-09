@@ -21,7 +21,9 @@ local dataLoaded = false
 function SpellbookPage.build(contentParent, screenGui)
     pageFrame = Instance.new("Frame")
     pageFrame.Name = "SpellbookPage"
-    pageFrame.Size = UDim2.new(1, 0, 1, 0)
+    pageFrame.Size = UDim2.new(0.8, 0, 0.9, 0) -- 80% ширины, 90% высоты
+    pageFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    pageFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- центрирован
     pageFrame.BackgroundTransparency = 1
     pageFrame.Visible = false
     pageFrame.Parent = contentParent
@@ -148,6 +150,10 @@ function SpellbookPage.onActivate()
             end
         end)
     else
+        -- Всегда выбираем первую вкладку если ни одна не выбрана
+        if not SchoolTabs.getSelected() then
+            SchoolTabs.selectFirst()
+        end
         SpellbookPage._refreshAll()
     end
 end

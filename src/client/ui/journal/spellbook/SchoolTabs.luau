@@ -46,7 +46,7 @@ function SchoolTabs.build(parent)
         btn.AutoButtonColor = false
         btn.Text = school.Name
         btn.TextColor3 = C.TEXT_DIM
-        btn.TextSize = 14
+        btn.TextSize = 16
         btn.Font = Enum.Font.GothamBold
         btn.LayoutOrder = i
         btn.Parent = container

@@ -21,7 +21,7 @@ function TierProgressBar.build(parent)
     tierLabel.Position = UDim2.new(0, 0, 0.5, -10)
     tierLabel.BackgroundTransparency = 1
     tierLabel.Font = Enum.Font.Gotham
-    tierLabel.TextSize = 12
+    tierLabel.TextSize = 20
     tierLabel.TextColor3 = C.TEXT_DIM
     tierLabel.Text = "Tier"
     tierLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -61,7 +61,7 @@ function TierProgressBar.build(parent)
         marker.Position = UDim2.new(xRatio, 0, 0, -6) -- relative to lineBg
         marker.BackgroundTransparency = 1
         marker.Font = Enum.Font.GothamBold
-        marker.TextSize = 12
+        marker.TextSize = 18
         marker.TextColor3 = C.TEXT_DIM
         marker.Text = name
         marker.Parent = lineBg
