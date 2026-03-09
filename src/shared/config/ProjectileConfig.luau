@@ -43,6 +43,16 @@ return {
             TrailColor = Color3.fromRGB(150, 0, 50),
             HitRadius = 2
         },
+        sanguine_coil = {
+            Speed = 90,
+            MaxDistance = 50,
+            Gravity = 0,
+            PierceCount = 0,
+            Lifetime = 3,
+            ModelId = "rbxassetid://0",
+            TrailColor = Color3.fromRGB(139, 0, 0),
+            HitRadius = 2
+        },
         chaos_bolt = {
             Speed = 110,
             MaxDistance = 50,
@@ -53,15 +63,27 @@ return {
             TrailColor = Color3.fromRGB(180, 50, 255),
             HitRadius = 1.8
         },
-        void_bolt = {
-            Speed = 140,
-            MaxDistance = 55,
+        void_orb = {
+            Speed = 60,
+            MaxDistance = 40,
             Gravity = 0,
             PierceCount = 0,
             Lifetime = 3,
             ModelId = "rbxassetid://0",
             TrailColor = Color3.fromRGB(80, 0, 120),
-            HitRadius = 2.2
+            HitRadius = 2,
+            DestinationBased = true
+        },
+        chaos_barrage_bolt = {
+            Speed = 80,
+            MaxDistance = 50,
+            Gravity = 0,
+            PierceCount = 0,
+            Lifetime = 3,
+            ModelId = "rbxassetid://0",
+            TrailColor = Color3.fromRGB(200, 30, 200),
+            HitRadius = 2.5,
+            SplashRadius = 5
         }
     }
 }

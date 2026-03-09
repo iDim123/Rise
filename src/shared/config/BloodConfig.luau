@@ -16,13 +16,13 @@ return {
         Types = {
             Outcast = {
                 DisplayName = "Изгой",
-                Icon = "rbxassetid://122168979244567",
+                Icon = "rbxassetid://114600183308256",
                 Color = Color3.fromRGB(120, 120, 120),
                 Tiers = {}
             },
             Warrior = {
                 DisplayName = "Воин",
-                Icon = "rbxassetid://72937285531599",
+                Icon = "rbxassetid://92034301247399",
                 Color = Color3.fromRGB(200, 50, 50),
                 Tiers = {
                     I = {
@@ -48,7 +48,7 @@ return {
             },
             Creature = {
                 DisplayName = "Животное",
-                Icon = "rbxassetid://121693018205086",
+                Icon = "rbxassetid://117182307480997",
                 Color = Color3.fromRGB(100, 180, 80),
                 Tiers = {
                     I = {

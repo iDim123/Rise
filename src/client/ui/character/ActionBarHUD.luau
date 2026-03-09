@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UC = require(script.Parent:WaitForChild("UIConstants"))
+local C = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local SlotBehavior = require(script.Parent:WaitForChild("SlotBehavior"))
 
@@ -9,24 +9,21 @@ local actionBarSlots = {}
 local cachedSlotsData = nil
 local actionBarFrame = nil
 
-local FLASK_WIDTH = 50
-local GAP = 8
-
 function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equipRemote)
     local gui = Instance.new("ScreenGui")
     gui.Name = "ActionBarGui"
     gui.ResetOnSpawn = false
     gui.Parent = playerGui
 
-    local frameW = UC.padding + UC.cols * (UC.slotSize + UC.padding)
-    local frameH = UC.slotSize + 20
+    local frameW = C.padding + C.cols * (C.slotSize + C.padding)
+    local frameH = C.slotSize + 20
 
     local frame = Instance.new("Frame")
     frame.Name = "ActionBar"
     frame.Size = UDim2.new(0, frameW, 0, frameH)
     frame.AnchorPoint = Vector2.new(1, 1)
-    frame.Position = UDim2.new(0.5, -(FLASK_WIDTH / 2) - GAP, 1, -10)
-    frame.BackgroundColor3 = UC.windowBg
+    frame.Position = UDim2.new(0.5, -(C.FLASK_WIDTH / 2) - C.GAP, 1, -10)
+    frame.BackgroundColor3 = C.windowBg
     frame.BackgroundTransparency = 0.3
     frame.BorderSizePixel = 0
     frame.Parent = gui
@@ -37,9 +34,9 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
 
     actionBarFrame = frame
 
-    for col = 0, UC.cols - 1 do
+    for col = 0, C.cols - 1 do
         local index = col + 1
-        local posX = UC.padding + col * (UC.slotSize + UC.padding)
+        local posX = C.padding + col * (C.slotSize + C.padding)
 
         local slot = SlotFactory.createSlot(frame, "AB_" .. index, posX, 2)
 
@@ -48,7 +45,7 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
         numLabel.Size = UDim2.new(1, 0, 0, 14)
         numLabel.Position = UDim2.new(0, 0, 1, 2)
         numLabel.BackgroundTransparency = 1
-        numLabel.TextColor3 = UC.bindColor
+        numLabel.TextColor3 = C.bindColor
         numLabel.TextSize = 11
         numLabel.Font = Enum.Font.GothamBold
         numLabel.Text = tostring(index)
@@ -60,7 +57,7 @@ function ActionBarHUD.build(playerGui, setActiveWeaponRemote, useItemRemote, equ
         end, {
             equipRemote = equipRemote,
             useItemRemote = useItemRemote,
-            setActiveWeaponRemote = setActiveWeaponRemote,
+            setActiveWeaponRemote = setActiveWeaponRemote
         })
 
         actionBarSlots[index] = slot
@@ -79,7 +76,9 @@ function ActionBarHUD.refresh(slotsData, activeWeaponSlot)
     cachedSlotsData = slotsData
     for i, slot in actionBarSlots do
         local itemData = slotsData[i]
-        if itemData == false then itemData = nil end
+        if itemData == false then
+            itemData = nil
+        end
         SlotFactory.updateSlot(slot, itemData, activeWeaponSlot, i)
     end
 end

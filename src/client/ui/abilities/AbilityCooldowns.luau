@@ -1,28 +1,27 @@
-local RunService = game:GetService("RunService")
-
 local AbilityCooldowns = {}
 
 -- [key] = { endTime, duration }
 local active = {}
 
--- [key] = { overlay, timerLabel, stroke }
+-- [key] = { overlay, timerLabel, stroke, activeColor, inactiveColor }
 local trackedSlots = {}
 
-local SLOT_BORDER = Color3.fromRGB(80, 80, 100)
-local ACTIVE_STROKE = Color3.fromRGB(200, 170, 60)
-local INACTIVE_BORDER = Color3.fromRGB(50, 50, 50)
-
 function AbilityCooldowns.start(key, duration)
-    active[key] = { endTime = tick() + duration, duration = duration }
+    active[key] = {
+        endTime = tick() + duration,
+        duration = duration
+    }
     local tracked = trackedSlots[key]
     if tracked and tracked.stroke then
-        tracked.stroke.Color = ACTIVE_STROKE
+        tracked.stroke.Color = tracked.activeColor
     end
 end
 
 function AbilityCooldowns.isOnCooldown(key)
     local cd = active[key]
-    if not cd then return false end
+    if not cd then
+        return false
+    end
     if tick() >= cd.endTime then
         active[key] = nil
         return false
@@ -30,11 +29,13 @@ function AbilityCooldowns.isOnCooldown(key)
     return true
 end
 
-function AbilityCooldowns.registerSlot(key, overlay, timerLabel, stroke)
+function AbilityCooldowns.registerSlot(key, overlay, timerLabel, stroke, activeColor, inactiveColor)
     trackedSlots[key] = {
         overlay = overlay,
         timerLabel = timerLabel,
         stroke = stroke,
+        activeColor = activeColor or Color3.fromRGB(200, 170, 60),
+        inactiveColor = inactiveColor or Color3.fromRGB(50, 50, 50)
     }
 end
 
@@ -53,7 +54,7 @@ function AbilityCooldowns.tick(hasAbilityFn)
             tracked.timerLabel.Visible = false
             if cd then
                 active[key] = nil
-                tracked.stroke.Color = hasAbilityFn(key) and SLOT_BORDER or INACTIVE_BORDER
+                tracked.stroke.Color = hasAbilityFn(key) and tracked.activeColor or tracked.inactiveColor
             end
         end
     end

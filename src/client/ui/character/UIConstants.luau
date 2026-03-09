@@ -8,7 +8,7 @@ C.cols = Config.Inventory.Columns       -- 8
 C.totalRows = Config.Inventory.Rows     -- 5
 C.displayRows = C.totalRows - 1         -- 4
 C.slotSize = Config.Inventory.SlotSize  -- 50
-C.padding = Config.Inventory.Padding    -- 4
+C.padding = 5
 
 -- Подсчёт слотов по сторонам
 local leftCount = 0

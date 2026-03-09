@@ -11,7 +11,7 @@ function SlotFactory.createSlot(parent, name, posX, posY)
     slot.BorderSizePixel = 1
     slot.BorderColor3 = UC.slotBorder
     slot.Text = ""
-    slot.AutoButtonColor = false  -- <<< ДОБАВИТЬ
+    slot.AutoButtonColor = false -- <<< ДОБАВИТЬ
     slot.Parent = parent
 
     local c = Instance.new("UICorner")
@@ -20,8 +20,8 @@ function SlotFactory.createSlot(parent, name, posX, posY)
 
     local icon = Instance.new("ImageLabel")
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0.8, 0, 0.8, 0)
-    icon.Position = UDim2.new(0.1, 0, 0.1, 0)
+    icon.Size = UDim2.new(1, 0, 1, 0)
+    -- icon.Position = UDim2.new(0.1, 0, 0.1, 0)
     icon.BackgroundTransparency = 1
     icon.ScaleType = Enum.ScaleType.Fit
     icon.Image = ""
@@ -70,7 +70,7 @@ function SlotFactory.createSlot(parent, name, posX, posY)
     activeCorner.CornerRadius = UDim.new(0, 4)
     activeCorner.Parent = activeFrame
 
-        -- Cooldown overlay (затемнение)
+    -- Cooldown overlay (затемнение)
     local cooldownOverlay = Instance.new("Frame")
     cooldownOverlay.Name = "CooldownOverlay"
     cooldownOverlay.Size = UDim2.new(1, 0, 1, 0)
@@ -104,7 +104,7 @@ function SlotFactory.createSlot(parent, name, posX, posY)
     textStroke.Color = Color3.fromRGB(0, 0, 0)
     textStroke.Thickness = 2
     textStroke.Parent = cooldownText
-    
+
     return slot
 end
 
@@ -118,7 +118,9 @@ function SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, slotIndex
         if itemData.Icon and itemData.Icon ~= "" and itemData.Icon ~= "rbxassetid://0" then
             icon.Image = itemData.Icon
             icon.Visible = true
-            if nameLabel then nameLabel.Visible = false end
+            if nameLabel then
+                nameLabel.Visible = false
+            end
         else
             icon.Visible = false
             if nameLabel then
@@ -139,8 +141,12 @@ function SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, slotIndex
         slotFrame.BackgroundColor3 = UC.slotBgFilled
     else
         icon.Visible = false
-        if nameLabel then nameLabel.Visible = false end
-        if amountLabel then amountLabel.Visible = false end
+        if nameLabel then
+            nameLabel.Visible = false
+        end
+        if amountLabel then
+            amountLabel.Visible = false
+        end
         slotFrame.BackgroundColor3 = UC.slotBg
     end
 
