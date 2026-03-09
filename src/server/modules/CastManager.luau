@@ -1,352 +1,213 @@
--- API:
---   CastManager.start(player, params) → castId | nil
---   CastManager.cancel(player, reason?)
---   CastManager.isActive(player) → bool
---   CastManager.getCast(player) → castData | nil
---
--- params = {
---   Duration        : number               -- длительность в секундах
---   Label           : string               -- текст на CastBar
---   MovementMode    : string               -- "Locked"|"Slowed"|"Free"|"CancelOnMove"
---   SpeedMult       : number?              -- множитель скорости для Slowed (default 0.5)
---   CancelKey       : string?              -- "MMB"|"RMB"|"F" и т.д. (передаётся клиенту)
---   CancelOnStun    : bool?                -- прерывать при Stun/Knockdown (default true)
---   CancelOnDamage  : bool?                -- прерывать при получении урона (default false)
---   OnComplete      : function(player)?    -- колбэк при успешном завершении
---   OnCancel        : function(player, reason)? -- колбэк при отмене
--- }
-
-local Players           = game:GetService("Players")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService        = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Remotes   = require(ReplicatedStorage:WaitForChild("Remotes"))
-local EventBus  = require(ServerScriptService:WaitForChild("modules"):WaitForChild("EventBus"))
+local modules = ServerScriptService:WaitForChild("modules")
+local combat = ServerScriptService:WaitForChild("combat")
 
--- ─────────────────────────────────────────────────────────
--- Режимы движения
--- ─────────────────────────────────────────────────────────
-local MOVEMENT_MODE = {
-    LOCKED          = "Locked",        -- WalkSpeed = 0, WASD игнорируется
-    SLOWED          = "Slowed",        -- WalkSpeed = base * SpeedMult
-    FREE            = "Free",          -- скорость не меняется
-    CANCEL_ON_MOVE  = "CancelOnMove",  -- любое движение отменяет каст
-}
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+local StatsManager = require(modules:WaitForChild("StatsManager"))
+local CastManager = require(modules:WaitForChild("CastManager"))
+local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
 
--- ─────────────────────────────────────────────────────────
--- Внутренние данные
--- ─────────────────────────────────────────────────────────
--- activeCasts[player] = {
---   castId         : string
---   player         : Player
---   params         : table
---   startTime      : number (tick())
---   duration       : number
---   baseSpeed      : number        -- WalkSpeed до каста
---   startPosition  : Vector3       -- для CancelOnMove
---   timerTask      : thread        -- task.delay handle
---   cancelled      : bool
--- }
-local activeCasts = {}
+local SpellCastManager = {}
 
--- ─────────────────────────────────────────────────────────
--- Вспомогательные
--- ─────────────────────────────────────────────────────────
+-- ═══ State ═══
+local spellCooldowns = {}   -- [userId] = { [spellId] = lastUseTime }
+local spellCharges = {}     -- [userId] = { [spellId] = { charges, lastRecharge } }
+local activeChannels = {}   -- [userId] = { spellId, task }
 
-local function makeCastId()
-    return "cast_" .. tostring(math.floor(tick() * 10000)) .. "_" .. tostring(math.random(1000, 9999))
+-- ═══ Auto-load effect handlers ═══
+local effectHandlers = {}
+local effectsFolder = modules:WaitForChild("spellEffects")
+for _, module in effectsFolder:GetChildren() do
+    if module:IsA("ModuleScript") then
+        local effectType = module.Name:gsub("Effect$", "")
+        effectHandlers[effectType] = require(module)
+    end
 end
 
--- Безопасно получить Humanoid персонажа
-local function getHumanoid(player)
+-- ═══ Helpers ═══
+
+local function getSpellPower(player)
+    return StatsManager.get(player, "MagicalPower") or 1.0
+end
+
+local function validateCaster(player)
     local character = player.Character
     if not character then return nil end
-    return character:FindFirstChildOfClass("Humanoid")
-end
-
--- Получить текущий WalkSpeed персонажа (базовый, до каста)
-local function getBaseSpeed(player)
-    -- Берём из StatsManager если доступен, иначе fallback 16
-    local ok, StatsManager = pcall(function()
-        return require(ServerScriptService:WaitForChild("modules"):WaitForChild("StatsManager"))
-    end)
-    if ok and StatsManager then
-        local moveSpeed = StatsManager.get(player, "MoveSpeed")
-        return 16 * (moveSpeed or 1)
-    end
-    return 16
-end
-
--- Получить позицию HumanoidRootPart
-local function getRootPosition(player)
-    local character = player.Character
-    if not character then return nil end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    return hrp and hrp.Position or nil
-end
-
--- Применить ограничение движения по режиму
-local function applyMovementRestriction(player, mode, speedMult, baseSpeed)
-    local humanoid = getHumanoid(player)
-    if not humanoid then return end
-
-    if mode == MOVEMENT_MODE.LOCKED then
-        humanoid.WalkSpeed = 0
-    elseif mode == MOVEMENT_MODE.SLOWED then
-        local mult = speedMult or 0.5
-        humanoid.WalkSpeed = math.max(0, baseSpeed * mult)
-    elseif mode == MOVEMENT_MODE.FREE or mode == MOVEMENT_MODE.CANCEL_ON_MOVE then
-        -- скорость не меняем
-    end
-end
-
--- Восстановить WalkSpeed после каста
-local function restoreMovement(player, baseSpeed)
-    local humanoid = getHumanoid(player)
-    if not humanoid then return end
-    -- Через StatsManager чтобы учесть баффы/дебаффы скорости
-    local ok, StatsManager = pcall(function()
-        return require(ServerScriptService:WaitForChild("modules"):WaitForChild("StatsManager"))
-    end)
-    if ok and StatsManager then
-        StatsManager.recalculate(player)
-    else
-        humanoid.WalkSpeed = baseSpeed or 16
-    end
-end
-
--- ─────────────────────────────────────────────────────────
--- Публичное API
--- ─────────────────────────────────────────────────────────
-
-local CastManager = {}
-CastManager.MOVEMENT_MODE = MOVEMENT_MODE
-
--- Запустить каст для игрока.
--- Возвращает castId если запущен, nil если игрок уже кастует.
-function CastManager.start(player, params)
-    if activeCasts[player] then
-        return nil, "already_casting"
-    end
-
-    -- Валидация обязательных полей
-    assert(type(params.Duration) == "number" and params.Duration > 0,
-        "[CastManager] Duration должен быть > 0")
-
-    local castId   = makeCastId()
-    local mode     = params.MovementMode or MOVEMENT_MODE.FREE
-    local baseSpeed = getBaseSpeed(player)
-    local rawPos   = getRootPosition(player)
-    local startPos = rawPos and Vector3.new(rawPos.X, 0, rawPos.Z) or nil
-
-    local castData = {
-        castId        = castId,
-        player        = player,
-        params        = params,
-        startTime     = tick(),
-        duration      = params.Duration,
-        baseSpeed     = baseSpeed,
-        startPosition = startPos,
-        timerTask     = nil,
-        cancelled     = false,
+    if character:GetAttribute("IsDead") then return nil end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    return {
+        player = player,
+        character = character,
+        humanoid = humanoid,
+        rootPart = rootPart,
+        spellPower = getSpellPower(player),
+        mousePosition = nil, -- filled by caller
     }
-
-    activeCasts[player] = castData
-
-    -- Применяем ограничение движения на сервере
-    applyMovementRestriction(player, mode, params.SpeedMult, baseSpeed)
-
-    -- Уведомляем клиент — CastBar.client.luau покажет полоску
-    Remotes.CastStart:FireClient(player, {
-        Duration        = params.Duration,
-        Label           = params.Label or "Каст...",
-        MovementMode    = mode,
-        SpeedMult       = params.SpeedMult or 0.5,
-        CancelKey       = params.CancelKey or "MMB",
-        CancelOnStun    = params.CancelOnStun ~= false,
-        CancelOnDamage  = params.CancelOnDamage or false,
-        BaseSpeed       = baseSpeed,
-    })
-
-    -- Авто-завершение по таймеру
-    castData.timerTask = task.delay(params.Duration, function()
-        -- Проверяем что каст всё ещё активен и это именно наш castId
-        local current = activeCasts[player]
-        if current and current.castId == castId and not current.cancelled then
-            CastManager._complete(player, castId)
-        end
-    end)
-
-    return castId
 end
 
--- Успешное завершение каста (внутреннее)
-function CastManager._complete(player, castId)
-    local castData = activeCasts[player]
-    if not castData or castData.castId ~= castId then return end
-    if castData.cancelled then return end
+-- ═══ Cooldown / Charges ═══
 
-    activeCasts[player] = nil
+local function isOnCooldown(player, spellConfig)
+    local userId = player.UserId
+    if spellConfig.MaxCharges then
+        local cd = spellCharges[userId] and spellCharges[userId][spellConfig.Id]
+        return cd and cd.charges <= 0
+    end
+    if not spellCooldowns[userId] then return false end
+    local lastUse = spellCooldowns[userId][spellConfig.Id] or 0
+    local cdSpeed = StatsManager.get(player, "MagicCDSpeed") or 1
+    local actualCd = spellConfig.Cooldown / math.max(cdSpeed, 0.1)
+    return (tick() - lastUse) < actualCd
+end
 
-    -- Восстанавливаем движение
-    restoreMovement(player, castData.baseSpeed)
+local function applyCooldown(player, spellConfig)
+    local userId = player.UserId
+    local cdSpeed = StatsManager.get(player, "MagicCDSpeed") or 1
 
-    -- Вызываем OnComplete колбэк
-    if castData.params.OnComplete then
-        task.spawn(castData.params.OnComplete, player)
+    if spellConfig.MaxCharges then
+        if not spellCharges[userId] then spellCharges[userId] = {} end
+        local cd = spellCharges[userId][spellConfig.Id]
+        if not cd then
+            cd = { charges = spellConfig.MaxCharges, lastRecharge = tick() }
+            spellCharges[userId][spellConfig.Id] = cd
+        end
+        cd.charges = math.max(0, cd.charges - 1)
+        local rechargeTime = (spellConfig.ChargeRechargeTime or spellConfig.Cooldown) / math.max(cdSpeed, 0.1)
+        Remotes.SpellChargeUpdate:FireClient(player, spellConfig.Id, cd.charges, spellConfig.MaxCharges)
+        if cd.charges < spellConfig.MaxCharges then
+            Remotes.SpellCooldown:FireClient(player, spellConfig.Id, rechargeTime)
+        end
+    else
+        if not spellCooldowns[userId] then spellCooldowns[userId] = {} end
+        spellCooldowns[userId][spellConfig.Id] = tick()
+        local actualCd = spellConfig.Cooldown / math.max(cdSpeed, 0.1)
+        Remotes.SpellCooldown:FireClient(player, spellConfig.Id, actualCd)
     end
 end
 
--- Отменить каст игрока
--- reason: "player" | "stun" | "damage" | "move" | "server" | "disconnect"
-function CastManager.cancel(player, reason)
-    local castData = activeCasts[player]
-    if not castData then return end
+-- ═══ Charge recharge loop ═══
 
-    castData.cancelled = true
-    activeCasts[player] = nil
-
-    -- Восстанавливаем движение
-    restoreMovement(player, castData.baseSpeed)
-
-    -- Уведомляем клиент — CastBar скроется
-    Remotes.CastCancel:FireClient(player)
-
-    -- Вызываем OnCancel колбэк
-    if castData.params.OnCancel then
-        task.spawn(castData.params.OnCancel, player, reason or "server")
-    end
-end
-
--- Проверить, кастует ли игрок прямо сейчас
-function CastManager.isActive(player)
-    return activeCasts[player] ~= nil
-end
-
--- Получить текущие данные каста
-function CastManager.getCast(player)
-    return activeCasts[player]
-end
-
-
-local _StatsManager
-local function getStatsManager()
-    if not _StatsManager then
-        _StatsManager = require(
-            game:GetService("ServerScriptService"):WaitForChild("modules"):WaitForChild("StatsManager")
-        )
-    end
-    return _StatsManager
-end
-
--- ─────────────────────────────────────────────────────────
--- Heartbeat: логика CancelOnMove + Stun/Knockdown
--- ─────────────────────────────────────────────────────────
-local MOVE_THRESHOLD = 2  -- studs — минимальное смещение для отмены
-
-RunService.Heartbeat:Connect(function()
-    -- Собираем отмены отдельно, чтобы не мутировать таблицу во время итерации
-    local toCancel = {}
-
-    for player, castData in activeCasts do
-        if not player.Parent then
-            table.insert(toCancel, { player = player, reason = "disconnect" })
-            continue
-        end
-
-        local character = player.Character
-        if not character then
-            table.insert(toCancel, { player = player, reason = "server" })
-            continue
-        end
-
-        local mode = castData.params.MovementMode or MOVEMENT_MODE.FREE
-
-        if mode == MOVEMENT_MODE.CANCEL_ON_MOVE then
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if hrp and castData.startPosition then
-                local currentXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
-                local moved = (currentXZ - castData.startPosition).Magnitude
-                if moved > MOVE_THRESHOLD then
-                    table.insert(toCancel, { player = player, reason = "move" })
-                    continue
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        for userId, spells in spellCharges do
+            local player = Players:GetPlayerByUserId(userId)
+            if not player then continue end
+            for spellId, cd in spells do
+                local cfg = Config.Spells[spellId]
+                if not cfg or not cfg.MaxCharges then continue end
+                if cd.charges >= cfg.MaxCharges then continue end
+                local cdSpeed = StatsManager.get(player, "MagicCDSpeed") or 1
+                local rechargeTime = (cfg.ChargeRechargeTime or cfg.Cooldown) / math.max(cdSpeed, 0.1)
+                if (tick() - cd.lastRecharge) >= rechargeTime then
+                    cd.charges = math.min(cd.charges + 1, cfg.MaxCharges)
+                    cd.lastRecharge = tick()
+                    Remotes.SpellChargeUpdate:FireClient(player, spellId, cd.charges, cfg.MaxCharges)
+                    if cd.charges < cfg.MaxCharges then
+                        Remotes.SpellCooldown:FireClient(player, spellId, rechargeTime)
+                    end
                 end
             end
         end
+    end
+end)
 
-        if mode == MOVEMENT_MODE.LOCKED then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.WalkSpeed ~= 0 then
-                humanoid.WalkSpeed = 0
-            end
+-- ═══ Main entry ═══
+
+function SpellCastManager.castSpell(player, spellId, mousePosition)
+    local ctx = validateCaster(player)
+    if not ctx then return end
+    ctx.mousePosition = mousePosition
+
+    -- Equipped?
+    local slots = SpellProgressManager.getEquippedSlots(player)
+    local equipped = false
+    for _, id in slots do
+        if id == spellId then equipped = true break end
+    end
+    if not equipped then return end
+
+    local spellConfig = Config.Spells[spellId]
+    if not spellConfig then return end
+    if isOnCooldown(player, spellConfig) then return end
+    if activeChannels[player.UserId] then return end
+    if CastManager.isActive(player) then return end
+
+    if spellConfig.CastTime and spellConfig.CastTime > 0.05 then
+        local castId = CastManager.start(player, {
+            Duration = spellConfig.CastTime,
+            Label = spellConfig.Name,
+            MovementMode = spellConfig.CastMovementMode or "Free",
+            SpeedMult = spellConfig.CastSpeedMult or 0.5,
+            CancelOnStun = true,
+            CancelOnDamage = false,
+            OnComplete = function()
+                SpellCastManager._execute(player, spellConfig, mousePosition)
+            end,
+            OnCancel = function() end,
+        })
+        if not castId then return end
+    else
+        SpellCastManager._execute(player, spellConfig, mousePosition)
+    end
+end
+
+function SpellCastManager._execute(player, spellConfig, mousePosition)
+    local ctx = validateCaster(player)
+    if not ctx then return end
+    ctx.mousePosition = mousePosition
+
+    applyCooldown(player, spellConfig)
+
+    for _, effect in spellConfig.Effects do
+        local handler = effectHandlers[effect.Type]
+        if handler then
+            handler(ctx, effect, spellConfig)
+        else
+            warn("[SpellCastManager] Unknown effect: " .. tostring(effect.Type))
         end
-
-        if castData.params.CancelOnStun ~= false then
-            local isStunned = character:GetAttribute("Stunned")
-                or character:GetAttribute("Knockdown")
-            if isStunned then
-                table.insert(toCancel, { player = player, reason = "stun" })
-                continue
-            end
-        end
     end
 
-    -- Применяем отмены после итерации
-    for _, entry in toCancel do
-        CastManager.cancel(entry.player, entry.reason)
-    end
+    print("[Spell] " .. player.Name .. " cast " .. spellConfig.Name)
+end
+
+-- ═══ Channel management (exposed for handlers) ═══
+
+function SpellCastManager.getActiveChannels()
+    return activeChannels
+end
+
+function SpellCastManager.cancelChannel(player)
+    local userId = player.UserId
+    local channel = activeChannels[userId]
+    if not channel then return end
+    if channel.task then pcall(task.cancel, channel.task) end
+    activeChannels[userId] = nil
+    Remotes.BeamEnd:FireAllClients(userId)
+    StatsManager.recalculate(player)
+end
+
+-- ═══ Remote ═══
+
+Remotes.CastSpell.OnServerEvent:Connect(function(player, spellId, mousePosition)
+    if type(spellId) ~= "string" then return end
+    if typeof(mousePosition) ~= "Vector3" then return end
+    SpellCastManager.castSpell(player, spellId, mousePosition)
 end)
 
--- ─────────────────────────────────────────────────────────
--- Интеграция с EventBus: прерывание при смерти
--- ─────────────────────────────────────────────────────────
-EventBus.on("PlayerDied", function(player, entity, attacker)
-    if CastManager.isActive(player) then
-        CastManager.cancel(player, "server")
-    end
-end)
+-- ═══ Cleanup ═══
 
--- ─────────────────────────────────────────────────────────
--- Remote: клиент запросил отмену (MMB / RMB)
--- ─────────────────────────────────────────────────────────
--- CastCancel уже есть в Remotes, добавляем обработчик входящего события
--- Для этого в Remotes.luau нужно разделить CastCancel на:
---   CastCancel  (Server → Client)  ← уже есть
---   CastCancelRequest (Client → Server) ← добавляем
--- Но чтобы не ломать уже написанный код —
--- слушаем CastCancel в оба направления через отдельное событие (см. Remotes ниже)
-Remotes.CastCancelRequest.OnServerEvent:Connect(function(player)
-    local castData = activeCasts[player]
-    if not castData then return end
-    CastManager.cancel(player, "player")
-end)
-
--- ─────────────────────────────────────────────────────────
--- Интеграция CancelOnDamage
--- ─────────────────────────────────────────────────────────
--- HealthManager вызывает EventBus "EntityTookDamage" — подключаемся к нему.
--- Если события нет — CastManager подписывается через хук в HealthManager (см. ниже).
-EventBus.on("EntityTookDamage", function(entity, damage, attacker)
-    local player = Players:GetPlayerFromCharacter(entity)
-    if not player then return end
-
-    local castData = activeCasts[player]
-    if not castData then return end
-
-    if castData.params.CancelOnDamage then
-        CastManager.cancel(player, "damage")
-    end
-end)
-
--- ─────────────────────────────────────────────────────────
--- Очистка при выходе из игры
--- ─────────────────────────────────────────────────────────
 Players.PlayerRemoving:Connect(function(player)
-    if activeCasts[player] then
-        activeCasts[player].cancelled = true
-        activeCasts[player] = nil
-    end
+    SpellCastManager.cancelChannel(player)
+    spellCooldowns[player.UserId] = nil
+    spellCharges[player.UserId] = nil
 end)
 
-return CastManager
+return SpellCastManager
