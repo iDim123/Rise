@@ -1,129 +1,124 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
-local SpellCard = require(script.Parent:WaitForChild("SpellCard"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
+local SpellCard = require(script.Parent:WaitForChild("SpellCard"))
 
 local SpellGrid = {}
 
-local frame
-local cards = {}
+local gridFrame = nil
+local cardInstances = {}
 local selectedSpellId = nil
 local onSelectCallback = nil
 
 function SpellGrid.build(parent)
-    frame = Instance.new("Frame")
-    frame.Name = "SpellGrid"
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundTransparency = 1
-    frame.Parent = parent
-    return frame
+    gridFrame = Instance.new("Frame")
+    gridFrame.Name = "SpellGrid"
+    gridFrame.Size = UDim2.new(1, 0, 1, 0)
+    gridFrame.BackgroundTransparency = 1
+    gridFrame.Parent = parent
+
+    return gridFrame
 end
 
 function SpellGrid.rebuild(schoolId, learnedSpells, spellData)
-    if not frame then
+    -- Clear
+    for _, inst in cardInstances do
+        inst:Destroy()
+    end
+    table.clear(cardInstances)
+
+    for _, child in gridFrame:GetChildren() do
+        child:Destroy()
+    end
+
+    if not schoolId then
         return
     end
 
-    -- Очистить
-    for _, child in frame:GetChildren() do
-        child:Destroy()
-    end
-    cards = {}
-    selectedSpellId = nil
-
-    -- Паддинг
     local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, C.CONTENT_PAD)
-    padding.PaddingTop = UDim.new(0, C.CONTENT_PAD)
-    padding.Parent = frame
+    padding.PaddingTop = UDim.new(0, 8)
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.Parent = gridFrame
 
     local layout = Instance.new("UIListLayout")
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 10)
-    layout.Parent = frame
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = gridFrame
 
-    -- Собрать заклинания по тирам
-    local tierSpells = {}
-    local school = SpellConfig.Schools[schoolId]
-    if not school then
-        return
-    end
-
-    for _, tier in school.Tiers do
-        local tierNum = tier.Tier
-        tierSpells[tierNum] = tierSpells[tierNum] or {}
-        for _, sid in tier.Spells do
-            table.insert(tierSpells[tierNum], sid)
+    -- Collect spells for this school, grouped by tier
+    local tiers = {{}, {}, {}, {}} -- tier 1, 2, 3, ult
+    for spellId, spell in SpellConfig.Spells do
+        if spell.School == schoolId then
+            local tier = spell.Tier or 1
+            if spell.Class == "Ultimate" then
+                table.insert(tiers[4], spell)
+            else
+                tier = math.clamp(tier, 1, 3)
+                table.insert(tiers[tier], spell)
+            end
         end
     end
 
-    -- Определяем доступные spell points для этой школы
+    -- Determine available spell points for this school
     local availablePoints = {}
     if spellData and spellData.SpellPoints and spellData.SpellPoints[schoolId] then
         availablePoints = spellData.SpellPoints[schoolId]
     end
 
-    local learned = learnedSpells or {}
+    local tierNames = {"I", "II", "III", "ULT"}
 
-    -- Создаём строки по тирам
-    local tierOrder = {}
-    for t in tierSpells do
-        table.insert(tierOrder, t)
-    end
-    table.sort(tierOrder)
+    for tierIdx, spells in tiers do
+        local tierRow = Instance.new("Frame")
+        tierRow.Name = "TierRow_" .. tierIdx
+        tierRow.Size = UDim2.new(1, 0, 0, C.SPELL_ICON_SIZE + 8)
+        tierRow.BackgroundTransparency = 1
+        tierRow.LayoutOrder = tierIdx
+        tierRow.Parent = gridFrame
 
-    for orderIdx, tierNum in ipairs(tierOrder) do
-        local spells = tierSpells[tierNum]
-
-        -- Контейнер строки
-        local row = Instance.new("Frame")
-        row.Name = "Tier_" .. tierNum
-        row.Size = UDim2.new(1, 0, 0, C.SPELL_ICON_SIZE + 22 + 20)
-        row.BackgroundTransparency = 1
-        row.LayoutOrder = orderIdx
-        row.Parent = frame
-
-        -- Метка тира
+        -- Tier label
         local tierLabel = Instance.new("TextLabel")
-        tierLabel.Name = "TierLabel"
-        tierLabel.Size = UDim2.new(0, C.TIER_LABEL_W, 1, 0)
+        tierLabel.Size = UDim2.new(0, C.TIER_LABEL_W, 0, C.SPELL_ICON_SIZE)
+        tierLabel.Position = UDim2.new(0, 0, 0, 4)
         tierLabel.BackgroundTransparency = 1
-        tierLabel.Text = "T" .. tierNum
-        tierLabel.TextColor3 = C.TEXT_DIM
         tierLabel.Font = Enum.Font.GothamBold
         tierLabel.TextSize = 16
-        tierLabel.Parent = row
+        tierLabel.TextColor3 = tierIdx == 4 and C.ULT_COLOR or C.TEXT_DIM
+        tierLabel.Text = tierNames[tierIdx]
+        tierLabel.TextXAlignment = Enum.TextXAlignment.Center
+        tierLabel.Parent = tierRow
 
-        -- Есть ли доступные очки для этого тира
-        local tierKey = tostring(tierNum)
-        local pointsForTier = (availablePoints[tierKey] or 0)
+        -- Points key: tiers 1-3 use "1","2","3", ult uses "1" (ult tier)
+        local pointsKey = tierIdx == 4 and "ULT" or tostring(tierIdx)
+        local pointsForTier = availablePoints[pointsKey] or 0
 
-        for i, spellId in ipairs(spells) do
-            local isLearned = (learned[spellId] == true)
+        -- Spell icons
+        local iconX = C.TIER_LABEL_W + 10
+        for i, spell in spells do
+            local isLearned = learnedSpells and learnedSpells[spell.Id] or false
+            local isSelected = selectedSpellId == spell.Id
 
-            -- canLearn: не изучено + есть очки для этого тира
             local canLearn = false
             if not isLearned and pointsForTier > 0 then
                 canLearn = true
             end
 
-            local isSelected = (spellId == selectedSpellId)
+            local card = SpellCard.build(tierRow, spell, isLearned, isSelected, i, canLearn)
+            card.Position = UDim2.new(0, iconX + (i - 1) * (C.SPELL_ICON_SIZE + C.SPELL_ICON_GAP), 0, 4)
+            cardInstances[spell.Id] = card
 
-            local cardBtn = SpellCard.build(row, spellId, isLearned, isSelected, schoolId, canLearn)
-            if cardBtn then
-                cardBtn.Position = UDim2.new(0, C.TIER_LABEL_W + (i - 1) * (C.SPELL_ICON_SIZE + C.SPELL_ICON_GAP), 0, 0)
-                cards[spellId] = cardBtn
-
-                cardBtn.Activated:Connect(function()
-                    SpellGrid.selectSpell(spellId)
-                end)
-            end
+            card.Activated:Connect(function()
+                SpellGrid.selectSpell(spell.Id)
+            end)
         end
     end
 end
 
 function SpellGrid.selectSpell(spellId)
+    if selectedSpellId == spellId then
+        return
+    end
     selectedSpellId = spellId
+
     if onSelectCallback then
         onSelectCallback(spellId)
     end

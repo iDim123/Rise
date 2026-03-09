@@ -2,8 +2,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
-local JournalWindow = require(script.Parent.Parent:WaitForChild("JournalWindow"))
-local JC = require(script.Parent.Parent:WaitForChild("JournalConstants"))
 
 local SchoolTabs = require(script.Parent:WaitForChild("SchoolTabs"))
 local SchoolInfoPanel = require(script.Parent:WaitForChild("SchoolInfoPanel"))
@@ -71,7 +69,6 @@ function SpellbookPage.build(contentParent, screenGui)
 
     SpellGrid.onSelect(function(spellId)
         SpellDetailPanel.refresh(spellId, spellData)
-        -- Rebuild grid to update selection highlight
         local currentSchool = SchoolTabs.getSelected()
         local learned = spellData and spellData.LearnedSpells or {}
         SpellGrid.rebuild(currentSchool, learned, spellData)
@@ -96,18 +93,13 @@ end
 
 -- ═══ School change ═══
 function SpellbookPage._onSchoolChanged(schoolId)
-    local schoolBg = JC.SCHOOL_BACKGROUNDS[schoolId]
-    JournalWindow.setBackground(schoolBg)
-
     SchoolInfoPanel.refresh(schoolId)
 
+    local learned = spellData and spellData.LearnedSpells or {}
     SpellGrid.clearSelection()
+    SpellGrid.rebuild(schoolId, learned, spellData)
     SpellDetailPanel.refresh(nil)
 
-    local learned = spellData and spellData.LearnedSpells or {}
-    SpellGrid.rebuild(schoolId, learned, spellData)
-
-    -- Update tier progress
     local progress = spellData and spellData.SchoolProgress and spellData.SchoolProgress[schoolId]
     local tierReached = 0
     if progress then
@@ -136,18 +128,15 @@ function SpellbookPage.setVisible(visible)
 end
 
 function SpellbookPage.onActivate()
-    if not SchoolTabs.getSelected() then
-        SchoolTabs.selectFirst()
-    end
-
     if not dataLoaded then
         task.spawn(function()
             local data = Remotes.GetSpellData:InvokeServer()
             if data then
                 spellData = data
                 dataLoaded = true
+                SchoolTabs.selectFirst()
+                SpellbookPage._refreshAll()
             end
-            SpellbookPage._refreshAll()
         end)
     else
         SpellbookPage._refreshAll()
@@ -155,9 +144,7 @@ function SpellbookPage.onActivate()
 end
 
 function SpellbookPage.onDeactivate()
-    SpellGrid.clearSelection()
-    SpellDetailPanel.refresh(nil)
-    JournalWindow.setBackground(nil)
+    -- nothing
 end
 
 return SpellbookPage
