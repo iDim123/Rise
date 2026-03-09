@@ -47,6 +47,17 @@ commands["/addxp"] = function(player, args)
     return "Added " .. amount .. " XP"
 end
 
+commands["/additem"] = function(player, args)
+    local id = args[1]
+    local count = tonumber(args[2]) or 1
+    if not id then
+        return "Usage: /additem <id> [count]"
+    end
+    InventoryManager.addItemFromConfig(player, id, count)
+    InventorySync.sendFullUpdate(player)
+    return "Added " .. count .. "x " .. id
+end
+
 commands["/togglesave"] = function(player, args)
     local enabled = DataService.toggleSave()
     return "Save " .. (enabled and "ENABLED" or "DISABLED")
@@ -118,6 +129,24 @@ commands["/clearbuffs"] = function(player, args)
     end
     BuffManager.clearBuffs(char)
     return "Buffs cleared"
+end
+
+-- ── Weapons ──
+
+commands["/bow"] = function(player, args)
+    InventoryManager.addItemFromConfig(player, "Bow", 1)
+    InventorySync.sendFullUpdate(player)
+    return "Bow added"
+end
+
+commands["/weapon"] = function(player, args)
+    local id = args[1]
+    if not id then
+        return "Usage: /weapon <Sword|Axe|Bow>"
+    end
+    InventoryManager.addItemFromConfig(player, id, 1)
+    InventorySync.sendFullUpdate(player)
+    return "Weapon " .. id .. " added"
 end
 
 -- ── Help ──

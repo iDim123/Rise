@@ -106,6 +106,7 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 function RangedHandler.attack(player, mousePosition, weaponConfig)
+    print("[RangedHandler] attack() called for", player.Name)
     -- ── Валидация ─────────────────────────────────────────
     local character, rootPart = validateCharacter(player)
     if not character then
@@ -137,22 +138,21 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
         CancelOnDamage = true,
 
         OnComplete = function(completedPlayer)
-            -- Каст завершён — ждём RangedRelease от клиента
             local pending = pendingCasts[completedPlayer]
             if not pending then
                 return
             end
 
-            -- Fallback: если клиент не отправит RangedRelease за FALLBACK_TIMEOUT
             pending.waitTask = task.delay(FALLBACK_TIMEOUT, function()
                 if pendingCasts[completedPlayer] then
                     RangedHandler._fireWithLookVector(completedPlayer)
+                else
+                    print("[RangedHandler] pending is NIL, skipped")
                 end
             end)
         end,
 
         OnCancel = function(cancelledPlayer, reason)
-            -- Каст отменён — очищаем pending, cooldown НЕ применяем
             local pending = pendingCasts[cancelledPlayer]
             if pending then
                 if pending.waitTask then
@@ -182,6 +182,7 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 function RangedHandler.onRelease(player, mousePosition)
+    print("[RangedHandler] onRelease() called for", player.Name)
     local pending = pendingCasts[player]
     if not pending then
         return

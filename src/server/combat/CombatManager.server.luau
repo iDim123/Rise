@@ -5,51 +5,15 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local WeaponUtil = require(script.Parent:WaitForChild("WeaponUtil"))
 local MeleeHandler = require(script.Parent:WaitForChild("MeleeHandler"))
-
--- RangedHandler и ProjectileManager загрузим лениво —
--- они ещё не созданы на этом этапе рефакторинга.
--- После Шага 10-11 заменим на прямой require.
-local RangedHandler
-local ProjectileManager
-
-local function getRangedHandler()
-    if not RangedHandler then
-        local ok, mod = pcall(function()
-            return require(script.Parent:WaitForChild("RangedHandler", 2))
-        end)
-        if ok then
-            RangedHandler = mod
-        end
-    end
-    return RangedHandler
-end
-
-local function getProjectileManager()
-    if not ProjectileManager then
-        local ok, mod = pcall(function()
-            return require(script.Parent:WaitForChild("ProjectileManager", 2))
-        end)
-        if ok then
-            ProjectileManager = mod
-        end
-    end
-    return ProjectileManager
-end
-
--- AbilityManager остаётся в modules/
+local RangedHandler = require(script.Parent:WaitForChild("RangedHandler"))
+local ProjectileManager = require(script.Parent:WaitForChild("ProjectileManager"))
 local AbilityManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("AbilityManager"))
 
 -- ═══════════════════════════════════════════════════════════
 -- Инициализация
 -- ═══════════════════════════════════════════════════════════
 
--- ProjectileManager.init() будет вызван при первом ranged-запросе,
--- или явно после создания модуля (Шаг 10).
--- Пока что пытаемся инициализировать если модуль существует.
-local pm = getProjectileManager()
-if pm and pm.init then
-    pm.init()
-end
+ProjectileManager.init()
 
 -- ═══════════════════════════════════════════════════════════
 -- Основная атака (LMB)
@@ -65,13 +29,8 @@ Remotes.AttackRequest.OnServerEvent:Connect(function(player, mousePos, comboInde
         return
     end
 
-    local wType = WeaponUtil.getType(weaponConfig)
-
-    if wType == "Ranged" then
-        local rh = getRangedHandler()
-        if rh then
-            rh.attack(player, mousePos, weaponConfig)
-        end
+    if WeaponUtil.isRanged(weaponConfig) then
+        RangedHandler.attack(player, mousePos, weaponConfig)
     else
         MeleeHandler.attack(player, mousePos, comboIndex, weaponConfig)
     end
@@ -86,10 +45,7 @@ Remotes.RangedRelease.OnServerEvent:Connect(function(player, mousePosition)
         return
     end
 
-    local rh = getRangedHandler()
-    if rh then
-        rh.onRelease(player, mousePosition)
-    end
+    RangedHandler.onRelease(player, mousePosition)
 end)
 
 -- ═══════════════════════════════════════════════════════════
@@ -113,11 +69,7 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
     MeleeHandler.cleanup(player)
-
-    local rh = getRangedHandler()
-    if rh then
-        rh.cleanup(player)
-    end
+    RangedHandler.cleanup(player)
 end)
 
 print("[CombatManager] Initialized")

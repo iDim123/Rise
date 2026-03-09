@@ -63,6 +63,7 @@ local function onPlayerAdded(player)
     if isEmpty then
         InventoryManager.addItemFromConfig(player, "blood_essence", 150)
         InventoryManager.addItemFromConfig(player, "Sword", 1)
+        InventoryManager.addItemFromConfig(player, "Bow", 1)
         InventoryManager.addItemFromConfig(player, "iron_helmet", 1)
         InventoryManager.addItemFromConfig(player, "debug_servant_egg", 10)
         InventoryManager.addItemFromConfig(player, "Axe", 1)
@@ -71,6 +72,7 @@ local function onPlayerAdded(player)
         InventoryManager.addItemFromConfig(player, "small_bag", 1)
         InventoryManager.addItemFromConfig(player, "blood_vial_warrior", 5)
         InventoryManager.addItemFromConfig(player, "blood_vial_creature", 5)
+
     end
 
     -- 3. CharacterAdded (fires for current + future spawns)
