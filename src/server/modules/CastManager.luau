@@ -167,6 +167,7 @@ function CastManager.start(player, params)
         CancelKey       = params.CancelKey or "MMB",
         CancelOnStun    = params.CancelOnStun ~= false,
         CancelOnDamage  = params.CancelOnDamage or false,
+        BaseSpeed       = baseSpeed,
     })
 
     -- Авто-завершение по таймеру

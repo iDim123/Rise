@@ -186,7 +186,7 @@ end
 -- ════════════════════════════════════════════════════════════
 -- Движение
 -- ════════════════════════════════════════════════════════════
-local function applyMovementMode(mode, speedMult)
+local function applyMovementMode(mode, speedMult, baseSpeed)
     local hum = getHumanoid()
     if not hum then
         return
@@ -195,10 +195,9 @@ local function applyMovementMode(mode, speedMult)
     if mode == "Locked" then
         hum.WalkSpeed = 0
     elseif mode == "Slowed" then
-        local baseSpeed = 16
-        hum.WalkSpeed = math.max(0, baseSpeed * (speedMult or 0.5))
+        local speed = baseSpeed or hum.WalkSpeed or 16
+        hum.WalkSpeed = math.max(0, speed * (speedMult or 0.5))
     end
-    -- Free / CancelOnMove — не трогаем
 end
 
 local function restoreMovement()
@@ -206,7 +205,7 @@ local function restoreMovement()
     if not hum then
         return
     end
-    hum.WalkSpeed = 16
+    hum.WalkSpeed = castState.baseSpeed or 16
 end
 
 -- ════════════════════════════════════════════════════════════
@@ -301,6 +300,7 @@ local function startCast(params)
     castState.cancelKey = params.CancelKey or "MMB"
     castState.cancelOnStun = params.CancelOnStun ~= false
     castState.cancelOnDamage = params.CancelOnDamage or false
+    castState.baseSpeed = params.BaseSpeed or 16
 
     -- Иконка
     local hasIcon = params.Icon and params.Icon ~= ""
@@ -324,7 +324,7 @@ local function startCast(params)
     castState.fillTween:Play()
 
     -- Применяем движение
-    applyMovementMode(castState.movementMode, castState.speedMult)
+    applyMovementMode(castState.movementMode, castState.speedMult, params.BaseSpeed)
 
     -- Heartbeat: обновляем таймер + CancelOnMove
     local startPos = nil

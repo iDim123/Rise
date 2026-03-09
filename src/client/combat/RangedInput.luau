@@ -21,9 +21,11 @@ local state = STATE_IDLE
 local earlyReleasePos = nil
 local castCompleteConn = nil
 local castCancelConn = nil
-local stuckTimeoutTask = nil -- таймаут для зависшего Casting
+local stuckTimeoutTask = nil
+local isHolding = false -- LMB зажат
 
-local STUCK_TIMEOUT = 3.0 -- макс. время в Casting без CastComplete
+local STUCK_TIMEOUT = 3.0
+local REFIRE_DELAY = 0.05 -- задержка перед повторным выстрелом
 
 -- ═══════════════════════════════════════════════════════════
 -- Хелперы
@@ -69,7 +71,7 @@ local function cleanup()
         castCancelConn = nil
     end
     if stuckTimeoutTask then
-        task.cancel(stuckTimeoutTask)
+        pcall(task.cancel, stuckTimeoutTask)
         stuckTimeoutTask = nil
     end
     state = STATE_IDLE
@@ -77,54 +79,28 @@ local function cleanup()
 end
 
 -- ═══════════════════════════════════════════════════════════
--- Отправка RangedRelease
+-- Отправка RangedRelease и автоперезапуск
 -- ═══════════════════════════════════════════════════════════
+local beginCast
+local sendReleaseAndRefire
 
-local function sendRelease(mousePos)
+sendReleaseAndRefire = function(mousePos)
+    cleanup()
     if mousePos then
         Remotes.RangedRelease:FireServer(mousePos)
     end
-    cleanup()
-end
 
--- ═══════════════════════════════════════════════════════════
--- Обработка CastComplete
--- ═══════════════════════════════════════════════════════════
-
-local function onCastComplete()
-    -- Отключаем подписку сразу
-    if castCompleteConn then
-        castCompleteConn:Disconnect()
-        castCompleteConn = nil
-    end
-
-    -- Убираем stuck таймаут — каст завершился нормально
-    if stuckTimeoutTask then
-        task.cancel(stuckTimeoutTask)
-        stuckTimeoutTask = nil
-    end
-
-    if state == STATE_CASTING then
-        if earlyReleasePos then
-            -- Игрок уже отпустил LMB → отправляем запомненную позицию
-            sendRelease(earlyReleasePos)
-        else
-            -- LMB ещё зажат → ждём отпускания
-            state = STATE_READY
-        end
+    -- Если LMB ещё зажат → начать новый каст
+    if isHolding then
+        task.delay(REFIRE_DELAY, function()
+            if isHolding then
+                beginCast()
+            end
+        end)
     end
 end
 
--- ═══════════════════════════════════════════════════════════
--- Публичное API
--- ═══════════════════════════════════════════════════════════
-
-function RangedInput.start()
-    -- Если застряли в Casting — принудительно сбросить
-    if state == STATE_CASTING then
-        cleanup()
-    end
-
+beginCast = function()
     if state ~= STATE_IDLE then
         return
     end
@@ -137,25 +113,47 @@ function RangedInput.start()
     state = STATE_CASTING
     earlyReleasePos = nil
 
-    -- Отправляем AttackRequest → сервер начнёт каст
     Remotes.AttackRequest:FireServer(mousePos)
 
-    -- ── Подписка на CastComplete ──
+    -- Подписка на CastComplete
     local playerGui = player:WaitForChild("PlayerGui")
     local castBarUI = playerGui:FindFirstChild("CastBarUI")
     if castBarUI then
         local completeEvent = castBarUI:FindFirstChild("CastComplete")
         if completeEvent then
-            castCompleteConn = completeEvent.Event:Connect(onCastComplete)
+            castCompleteConn = completeEvent.Event:Connect(function()
+                if castCompleteConn then
+                    castCompleteConn:Disconnect()
+                    castCompleteConn = nil
+                end
+
+                if stuckTimeoutTask then
+                    pcall(task.cancel, stuckTimeoutTask)
+                    stuckTimeoutTask = nil
+                end
+
+                if state == STATE_CASTING then
+                    if earlyReleasePos then
+                        local pos = earlyReleasePos
+                        cleanup()
+                        Remotes.RangedRelease:FireServer(pos)
+                    elseif isHolding then
+                        local currentPos = getMouseWorldPosition()
+                        sendReleaseAndRefire(currentPos)
+                    else
+                        state = STATE_READY
+                    end
+                end
+            end)
         end
     end
 
-    -- ── Подписка на CastCancel от сервера ──
+    -- Подписка на CastCancel
     castCancelConn = Remotes.CastCancel.OnClientEvent:Connect(function()
         cleanup()
     end)
 
-    -- ── Таймаут на случай зависания в Casting ──
+    -- Таймаут
     stuckTimeoutTask = task.delay(STUCK_TIMEOUT, function()
         if state == STATE_CASTING then
             cleanup()
@@ -163,15 +161,29 @@ function RangedInput.start()
     end)
 end
 
-function RangedInput.stop()
+-- ═══════════════════════════════════════════════════════════
+-- Публичное API
+-- ═══════════════════════════════════════════════════════════
+
+function RangedInput.start()
+    isHolding = true
+
     if state == STATE_CASTING then
-        -- Каст ещё идёт → запоминаем позицию, НЕ отправляем RangedRelease
+        cleanup()
+    end
+
+    beginCast()
+end
+
+function RangedInput.stop()
+    isHolding = false
+
+    if state == STATE_CASTING then
         earlyReleasePos = getMouseWorldPosition()
 
     elseif state == STATE_READY then
-        -- Каст завершён, ожидали отпускания → отправляем текущую позицию
         local mousePos = getMouseWorldPosition()
-        sendRelease(mousePos)
+        sendReleaseAndRefire(mousePos)
     end
 end
 
