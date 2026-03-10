@@ -198,7 +198,7 @@ return {
             CastTime = 0.4,
             CastMovementMode = "Slowed",
             CastSpeedMult = 0.3,
-            Cooldown = 25,
+            Cooldown = 3,
             DamageType = "Magic",
             CanCrit = false,
             Effects = {{

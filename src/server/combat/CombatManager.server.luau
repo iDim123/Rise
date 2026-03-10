@@ -114,6 +114,33 @@ Remotes.UnequipSpell.OnServerEvent:Connect(function(player, slotKey)
     SpellProgressManager.unequipSpell(player, slotKey)
 end)
 
+-- ═══════════════════════════════════════════════════════════
+-- Beam: обновление направления луча (клиент → сервер, ~10/сек)
+-- ═══════════════════════════════════════════════════════════
+
+Remotes.BeamUpdate.OnServerEvent:Connect(function(player, mousePosition)
+    if typeof(mousePosition) ~= "Vector3" then
+        return
+    end
+    local activeChannels = SpellCastManager.getActiveChannels()
+    local channel = activeChannels[player.UserId]
+    if not channel then
+        return
+    end
+    local character = player.Character
+    if not character then
+        return
+    end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        return
+    end
+    local newDir = Vector3.new(mousePosition.X - rootPart.Position.X, 0, mousePosition.Z - rootPart.Position.Z)
+    if newDir.Magnitude > 0.001 then
+        channel.direction = newDir.Unit
+    end
+end)
+
 Remotes.GetSpellData.OnServerInvoke = function(player)
     return SpellProgressManager._getPlayerData(player)
 end

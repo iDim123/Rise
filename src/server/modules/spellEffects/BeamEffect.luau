@@ -1,5 +1,6 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local modules = ServerScriptService:WaitForChild("modules")
@@ -10,7 +11,6 @@ local DamageCalc = require(ServerScriptService:WaitForChild("combat"):WaitForChi
 local TargetFinder = require(ServerScriptService:WaitForChild("combat"):WaitForChild("TargetFinder"))
 
 return function(ctx, effect, spellConfig)
-    -- Get channel registry from SpellCastManager
     local SpellCastManager = require(modules:WaitForChild("SpellCastManager"))
     local activeChannels = SpellCastManager.getActiveChannels()
     local userId = ctx.player.UserId
@@ -20,6 +20,7 @@ return function(ctx, effect, spellConfig)
         return
     end
 
+    -- Initial direction
     local dir = Vector3.new(ctx.mousePosition.X - ctx.rootPart.Position.X, 0,
         ctx.mousePosition.Z - ctx.rootPart.Position.Z)
     if dir.Magnitude < 0.001 then
@@ -30,31 +31,37 @@ return function(ctx, effect, spellConfig)
 
     local duration = effect.Duration or 3
     local tickRate = effect.TickRate or 0.25
-    local range = effect.Range or 30
+    local range = effect.Range or effect.Length or 30
     local width = effect.Width or 3
+    local followCursor = effect.FollowCursor ~= false -- default true
 
-    print("[BeamEffect] start: duration =", duration, "range =", range, "width =", width, "dir =", dir)
+    print("[BeamEffect] start: duration=", duration, "range=", range, "width=", width)
 
     -- Slow caster
+    local originalSpeed = ctx.humanoid.WalkSpeed
     if effect.MovementMode == "Slowed" then
-        ctx.humanoid.WalkSpeed = ctx.humanoid.WalkSpeed * (effect.SpeedMult or 0.3)
-        print("[BeamEffect] slowed to", ctx.humanoid.WalkSpeed)
+        ctx.humanoid.WalkSpeed = originalSpeed * (effect.SpeedMult or 0.3)
     end
 
+    -- Register channel with mutable direction
+    activeChannels[userId] = {
+        spellId = spellConfig.Id,
+        startTime = tick(),
+        direction = dir,  -- mutable: updated by BeamUpdate
+    }
+
+    -- Notify clients to start beam visual
     Remotes.BeamStart:FireAllClients(userId, ctx.rootPart.Position, dir, {
         Range = range,
         Width = width,
-        Duration = duration
+        Duration = duration,
+        School = spellConfig.School,
     })
-
-    activeChannels[userId] = {
-        spellId = spellConfig.Id,
-        startTime = tick()
-    }
 
     local channelTask = task.spawn(function()
         local elapsed = 0
         local tickCount = 0
+
         while elapsed < duration do
             task.wait(tickRate)
             elapsed = elapsed + tickRate
@@ -69,50 +76,94 @@ return function(ctx, effect, spellConfig)
                 break
             end
 
-            local targets = TargetFinder.inRadius(rp.Position, range, character)
+            -- Check channel still active
+            if not activeChannels[userId] then
+                break
+            end
+
+            -- Use latest direction (updated by BeamUpdate remote)
+            local currentDir = activeChannels[userId].direction or dir
+
+            -- Broadcast updated beam position to all clients
+            Remotes.SpellEffect:FireAllClients("BeamTick", {
+                CasterId = userId,
+                Origin = rp.Position,
+                Direction = currentDir,
+                Range = range,
+                Width = width,
+            })
+
+            -- Find all entities in range
+            local allTargets = TargetFinder.inRadius(rp.Position, range, character)
+
+            -- Per-tick damage = total damage * (tickRate / duration)
             local baseDamage = math.floor(ctx.spellPower * (effect.DamageMult or 1.0) * 100 * tickRate / duration)
-            local hitCount = 0
+            local hitEnemies = 0
+            local hitAllies = 0
 
-            for _, target in targets do
+            for _, target in allTargets do
                 local targetRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso")
-                if targetRoot then
-                    local toTarget = targetRoot.Position - rp.Position
-                    local projection = toTarget:Dot(dir)
-                    if projection > 0 and projection < range then
-                        local perpDist = (toTarget - dir * projection).Magnitude
-                        if perpDist <= width then
-                            local finalDamage = DamageCalc.calculate({
-                                player = ctx.player,
-                                target = target,
-                                baseDamage = baseDamage,
-                                damageType = spellConfig.DamageType or "Magic"
-                            })
-                            HealthManager.takeDamage(target, finalDamage, character)
-                            hitCount = hitCount + 1
+                if not targetRoot then
+                    continue
+                end
 
-                            -- Apply passive
-                            if effect.ApplyPassive then
-                                local passive = SpellProgressManager.getEffectivePassive(ctx.player, spellConfig.School)
-                                target:SetAttribute("Passive_" .. effect.ApplyPassive, true)
-                                target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Owner", userId)
-                                target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Expire",
-                                    tick() + (passive and passive.Duration or 5))
-                            end
+                -- Check if target is in beam cone
+                local toTarget = targetRoot.Position - rp.Position
+                local projection = toTarget:Dot(currentDir)
+                if projection <= 0 or projection > range then
+                    continue
+                end
+                local perpDist = (toTarget - currentDir * projection).Magnitude
+                if perpDist > width then
+                    continue
+                end
 
-                            -- Self heal
-                            if effect.SelfHealPerHit then
-                                local selfHeal = math.floor(ctx.spellPower * effect.SelfHealPerHit * 10)
-                                HealthManager.heal(character, selfHeal)
-                            end
-                        end
+                -- Determine if enemy or ally
+                local isPlayer = Players:GetPlayerFromCharacter(target)
+                local isAlly = isPlayer ~= nil
+
+                if isAlly then
+                    -- Heal ally
+                    if effect.HealAllyMult then
+                        local healAmount = math.floor(ctx.spellPower * effect.HealAllyMult * 100 * tickRate / duration)
+                        HealthManager.heal(target, healAmount)
+                        hitAllies = hitAllies + 1
+                    end
+                else
+                    -- Damage enemy
+                    local finalDamage = DamageCalc.calculate({
+                        player = ctx.player,
+                        target = target,
+                        baseDamage = baseDamage,
+                        damageType = spellConfig.DamageType or "Magic"
+                    })
+                    HealthManager.takeDamage(target, finalDamage, character)
+                    hitEnemies = hitEnemies + 1
+
+                    -- Apply passive (Leech)
+                    if effect.ApplyPassive then
+                        local passive = SpellProgressManager.getEffectivePassive(ctx.player, spellConfig.School)
+                        target:SetAttribute("Passive_" .. effect.ApplyPassive, true)
+                        target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Owner", userId)
+                        target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Expire",
+                            tick() + (passive and passive.Duration or 5))
+                    end
+
+                    -- Self heal per enemy hit
+                    if effect.SelfHealPerHit then
+                        local selfHeal = math.floor(ctx.spellPower * effect.SelfHealPerHit * 10)
+                        HealthManager.heal(character, selfHeal)
                     end
                 end
             end
 
-            print("[BeamEffect] tick", tickCount, "elapsed =", string.format("%.2f", elapsed), "hits =", hitCount)
+            if tickCount % 4 == 0 then
+                print("[BeamEffect] tick", tickCount, "enemies=", hitEnemies, "allies=", hitAllies)
+            end
         end
 
-        print("[BeamEffect] channel ended")
+        -- Channel ended
+        print("[BeamEffect] channel ended after", tickCount, "ticks")
         activeChannels[userId] = nil
         Remotes.BeamEnd:FireAllClients(userId)
         StatsManager.recalculate(ctx.player)
