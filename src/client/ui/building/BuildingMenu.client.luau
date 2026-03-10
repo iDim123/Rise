@@ -261,20 +261,18 @@ closeBtn.MouseButton1Click:Connect(function()
 end)
 
 heartBtn.MouseButton1Click:Connect(function()
-    -- Режим размещения Castle Heart:
-    -- Закрываем меню, клиент посылает позицию через PlaceCastleHeart
-    -- Используем упрощённый подход: ставим по позиции курсора (как PlaceBlock но без ghost)
-    -- В полной реализации — отдельный ghost для Castle Heart
-    -- Пока: одиночный клик через BuildingPlacer не подходит (Castle Heart не в BlockTypes)
-    -- → Простое решение: серверный fire
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    -- Если у игрока уже есть замок — не даём ставить повторно
+    -- (кнопка уже изменена через BuildingSync, но на всякий случай)
+    local info = Remotes.GetCastleHeartInfo:InvokeServer()
+    if info then
+        -- Уже есть замок — ничего не делаем (или открываем CastleHeartUI)
+        return
+    end
 
-    -- Ставим Castle Heart перед игроком
-    local pos = hrp.Position + hrp.CFrame.LookVector * 8
-    Remotes.PlaceCastleHeart:FireServer(pos)
+    -- Запускаем ghost-режим размещения Castle Heart
+    BuildingPlacer.startPlacingHeart()
+
+    -- Закрываем меню чтобы не мешало
     window.Visible = false
 end)
 

@@ -6,10 +6,12 @@
     
     API:
       BuildingPlacer.startPlacing(blockTypeId)
+      BuildingPlacer.startPlacingHeart()       -- NEW
       BuildingPlacer.stopPlacing()
       BuildingPlacer.startDeleteMode()
       BuildingPlacer.stopDeleteMode()
       BuildingPlacer.isActive() → boolean
+      BuildingPlacer.isPlacingHeart() → boolean  -- NEW
       BuildingPlacer.cleanup()
 ]] local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,14 +28,16 @@ local mouse = player:GetMouse()
 local BuildingPlacer = {}
 
 -- ═══ Состояние ═══
-local placingBlockTypeId = nil -- текущий выбранный тип блока
-local ghostPart = nil -- Part-призрак
-local ghostHighlight = nil -- SelectionBox / Highlight
-local currentRotation = 0 -- 0, 90, 180, 270
+local placingBlockTypeId = nil
+local placingHeart = false -- NEW: режим размещения Castle Heart
+local ghostPart = nil -- Part-призрак (обычные блоки)
+local ghostModel = nil -- Model-призрак (Castle Heart)  NEW
+local ghostHighlight = nil
+local currentRotation = 0
 local deleteMode = false
-local deleteHighlight = nil -- Highlight для режима удаления
-local hoveredBlock = nil -- Part под курсором в режиме удаления
-local renderConn = nil -- RenderStepped connection
+local deleteHighlight = nil
+local hoveredBlock = nil
+local renderConn = nil
 
 -- ═══ Helpers ═══
 
@@ -61,6 +65,9 @@ local function getMouseRayHit()
     if ghostPart then
         table.insert(filterList, ghostPart)
     end
+    if ghostModel then
+        table.insert(filterList, ghostModel)
+    end
     if player.Character then
         table.insert(filterList, player.Character)
     end
@@ -70,7 +77,7 @@ local function getMouseRayHit()
     return result
 end
 
--- ═══ Ghost Part ═══
+-- ═══ Ghost Part (обычные блоки) ═══
 
 local function createGhost(blockTypeId)
     local bt = Config.Building.BlockTypes[blockTypeId]
@@ -91,7 +98,6 @@ local function createGhost(blockTypeId)
     part.CastShadow = false
     part.Parent = workspace
 
-    -- Highlight (SelectionBox)
     local highlight = Instance.new("SelectionBox")
     highlight.Adornee = part
     highlight.Color3 = BC.GHOST_VALID_BORDER
@@ -111,6 +117,160 @@ local function destroyGhost()
         ghostHighlight = nil
     end
 end
+
+-- ═══ Ghost Model (Castle Heart) ═══  NEW
+
+local function createHeartGhost()
+    local heartCfg = Config.Building.CastleHeart
+    local vis = heartCfg.Visual
+
+    local model = Instance.new("Model")
+    model.Name = "CastleHeartGhost"
+
+    -- Platform
+    local platform = Instance.new("Part")
+    platform.Name = "Platform"
+    platform.Size = vis.Platform.Size
+    platform.Material = vis.Platform.Material
+    platform.Color = vis.Platform.Color
+    platform.Transparency = BC.GHOST_TRANSPARENCY
+    platform.Anchored = true
+    platform.CanCollide = false
+    platform.CastShadow = false
+    platform.Parent = model
+
+    model.PrimaryPart = platform
+
+    -- Pedestal
+    local pedestal = Instance.new("Part")
+    pedestal.Name = "Pedestal"
+    pedestal.Shape = Enum.PartType.Cylinder
+    pedestal.Size = Vector3.new(vis.Pedestal.Height, vis.Pedestal.Diameter, vis.Pedestal.Diameter)
+    pedestal.Material = vis.Pedestal.Material
+    pedestal.Color = vis.Pedestal.Color
+    pedestal.Transparency = BC.GHOST_TRANSPARENCY
+    pedestal.Anchored = true
+    pedestal.CanCollide = false
+    pedestal.CastShadow = false
+    pedestal.Orientation = Vector3.new(0, 0, 90)
+    pedestal.Position = platform.Position + Vector3.new(0, vis.Platform.Size.Y / 2 + vis.Pedestal.Height / 2, 0)
+    pedestal.Parent = model
+
+    -- Orb (минимальный размер — пустое сердце)
+    local orbDiameter = vis.Orb.MinDiameter
+    local orb = Instance.new("Part")
+    orb.Name = "Orb"
+    orb.Shape = Enum.PartType.Ball
+    orb.Size = Vector3.new(orbDiameter, orbDiameter, orbDiameter)
+    orb.Material = vis.Orb.Material
+    orb.Color = vis.Orb.EmptyColor
+    orb.Transparency = BC.GHOST_TRANSPARENCY
+    orb.Anchored = true
+    orb.CanCollide = false
+    orb.CastShadow = false
+    orb.Position = pedestal.Position + Vector3.new(0, vis.Pedestal.Height / 2 + orbDiameter / 2, 0)
+    orb.Parent = model
+
+    -- PointLight (слабый, декоративный)
+    local light = Instance.new("PointLight")
+    light.Color = vis.Orb.Light.Color
+    light.Brightness = vis.Orb.Light.MinBrightness
+    light.Range = vis.Orb.Light.MinRange
+    light.Shadows = false
+    light.Parent = orb
+
+    -- SelectionBox на Platform для индикации валидности
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = BC.GHOST_VALID_BORDER
+    highlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
+    highlight.SurfaceTransparency = 0.8
+    highlight.LineThickness = BC.GHOST_BORDER_THICKNESS
+    highlight.Parent = platform
+
+    model.Parent = workspace
+    ghostModel = model
+    ghostHighlight = highlight
+end
+
+local function destroyHeartGhost()
+    if ghostModel then
+        ghostModel:Destroy()
+        ghostModel = nil
+        ghostHighlight = nil
+    end
+end
+
+local function updateHeartGhostPosition()
+    if not ghostModel then
+        return
+    end
+
+    local vis = Config.Building.CastleHeart.Visual
+    local platform = ghostModel.PrimaryPart
+    if not platform then
+        return
+    end
+
+    local rayResult = getMouseRayHit()
+    if not rayResult then
+        -- Прячем ghost за пределами экрана
+        for _, child in ghostModel:GetChildren() do
+            if child:IsA("BasePart") then
+                child.Transparency = 1
+            end
+        end
+        return
+    end
+
+    -- Показываем ghost
+    for _, child in ghostModel:GetChildren() do
+        if child:IsA("BasePart") then
+            child.Transparency = BC.GHOST_TRANSPARENCY
+        end
+    end
+
+    local hitPos = rayResult.Position
+    local snappedX = snapToGrid(hitPos.X)
+    local snappedZ = snapToGrid(hitPos.Z)
+    local surfaceY = hitPos.Y
+
+    local platformPos = Vector3.new(snappedX, surfaceY + vis.Platform.Size.Y / 2, snappedZ)
+    platform.Position = platformPos
+
+    -- Обновляем позиции дочерних частей относительно платформы
+    local pedestal = ghostModel:FindFirstChild("Pedestal")
+    if pedestal then
+        pedestal.Position = platformPos + Vector3.new(0, vis.Platform.Size.Y / 2 + vis.Pedestal.Height / 2, 0)
+    end
+
+    local orb = ghostModel:FindFirstChild("Orb")
+    if orb and pedestal then
+        local orbDiameter = vis.Orb.MinDiameter
+        orb.Position = pedestal.Position + Vector3.new(0, vis.Pedestal.Height / 2 + orbDiameter / 2, 0)
+    end
+
+    -- Валидация (клиентская — грубая)
+    local isValid = true
+
+    -- Проверка: только на Ground (нормаль вверх)
+    if rayResult.Normal.Y < 0.8 then
+        isValid = false
+    end
+
+    -- Обновляем цвет
+    if ghostHighlight then
+        if isValid then
+            ghostHighlight.Color3 = BC.GHOST_VALID_BORDER
+            ghostHighlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
+        else
+            ghostHighlight.Color3 = BC.GHOST_INVALID_BORDER
+            ghostHighlight.SurfaceColor3 = BC.GHOST_INVALID_COLOR
+        end
+    end
+end
+
+-- ═══ Ghost для обычных блоков ═══
 
 local function updateGhostPosition()
     if not ghostPart or not placingBlockTypeId then
@@ -141,19 +301,15 @@ local function updateGhostPosition()
     ghostPart.Position = finalPos
     ghostPart.Orientation = Vector3.new(0, currentRotation, 0)
 
-    -- Проверки валидности (клиентская превалидация)
     local isValid = true
-
-    -- Проверка: внутри ClaimRadius (примерная — полная валидация на сервере)
     local hrp = getCharacterRoot()
     if hrp then
         local dist = (Vector2.new(finalPos.X, finalPos.Z) - Vector2.new(hrp.Position.X, hrp.Position.Z)).Magnitude
-        if dist > 100 then -- грубый лимит, точную проверку делает сервер
+        if dist > 100 then
             isValid = false
         end
     end
 
-    -- Цвет ghost
     if ghostHighlight then
         if isValid then
             ghostHighlight.Color3 = BC.GHOST_VALID_BORDER
@@ -190,7 +346,6 @@ local function updateDeleteMode()
     if rayResult and rayResult.Instance then
         local hit = rayResult.Instance
         if hit:IsA("BasePart") and hit:GetAttribute("IsStructure") and hit:GetAttribute("BlockId") then
-            -- Не Castle Heart
             if not hit:GetAttribute("IsCastleHeart") then
                 hoveredBlock = hit
                 deleteHighlight.Adornee = hit
@@ -215,7 +370,9 @@ end
 -- ═══ Render Loop ═══
 
 local function onRenderStepped()
-    if placingBlockTypeId then
+    if placingHeart then
+        updateHeartGhostPosition()
+    elseif placingBlockTypeId then
         updateGhostPosition()
     elseif deleteMode then
         updateDeleteMode()
@@ -249,7 +406,7 @@ local function connectInput()
             return
         end
 
-        -- Поворот
+        -- Поворот (только для обычных блоков, Castle Heart не вращается)
         if input.KeyCode == BC.KEY_ROTATE and placingBlockTypeId then
             local bt = Config.Building.BlockTypes[placingBlockTypeId]
             if bt and bt.CanRotate then
@@ -260,7 +417,9 @@ local function connectInput()
 
         -- Отмена
         if input.KeyCode == BC.KEY_CANCEL then
-            if placingBlockTypeId then
+            if placingHeart then
+                BuildingPlacer.stopPlacing()
+            elseif placingBlockTypeId then
                 BuildingPlacer.stopPlacing()
             elseif deleteMode then
                 BuildingPlacer.stopDeleteMode()
@@ -270,12 +429,23 @@ local function connectInput()
 
         -- Размещение (LMB)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if placingBlockTypeId and ghostPart then
-                Remotes.PlaceBlock:FireServer(placingBlockTypeId, ghostPart.Position, currentRotation)
-                -- Не останавливаем — можно ставить блоки подряд
+            -- Castle Heart placement
+            if placingHeart and ghostModel then
+                local platform = ghostModel.PrimaryPart
+                if platform then
+                    Remotes.PlaceCastleHeart:FireServer(platform.Position)
+                    BuildingPlacer.stopPlacing()
+                end
                 return
             end
 
+            -- Обычный блок
+            if placingBlockTypeId and ghostPart then
+                Remotes.PlaceBlock:FireServer(placingBlockTypeId, ghostPart.Position, currentRotation)
+                return
+            end
+
+            -- Удаление
             if deleteMode and hoveredBlock then
                 local blockId = hoveredBlock:GetAttribute("BlockId")
                 if blockId then
@@ -296,17 +466,32 @@ end
 
 -- ═══ Публичное API ═══
 
+--- Начать размещение Castle Heart (ghost-модель на курсоре)
+function BuildingPlacer.startPlacingHeart()
+    -- Остановить всё предыдущее
+    BuildingPlacer.stopPlacing()
+    BuildingPlacer.stopDeleteMode()
+
+    placingHeart = true
+    placingBlockTypeId = nil
+    currentRotation = 0
+
+    createHeartGhost()
+    connectRender()
+    connectInput()
+end
+
 function BuildingPlacer.startPlacing(blockTypeId)
     local bt = Config.Building.BlockTypes[blockTypeId]
     if not bt then
         return
     end
 
-    -- Остановить предыдущее
     BuildingPlacer.stopPlacing()
     BuildingPlacer.stopDeleteMode()
 
     placingBlockTypeId = blockTypeId
+    placingHeart = false
     currentRotation = 0
 
     createGhost(blockTypeId)
@@ -316,8 +501,10 @@ end
 
 function BuildingPlacer.stopPlacing()
     placingBlockTypeId = nil
+    placingHeart = false
     currentRotation = 0
     destroyGhost()
+    destroyHeartGhost()
 
     if not deleteMode then
         disconnectRender()
@@ -337,14 +524,18 @@ function BuildingPlacer.stopDeleteMode()
     deleteMode = false
     destroyDeleteHighlight()
 
-    if not placingBlockTypeId then
+    if not placingBlockTypeId and not placingHeart then
         disconnectRender()
         disconnectInput()
     end
 end
 
 function BuildingPlacer.isActive()
-    return placingBlockTypeId ~= nil or deleteMode
+    return placingBlockTypeId ~= nil or placingHeart or deleteMode
+end
+
+function BuildingPlacer.isPlacingHeart()
+    return placingHeart
 end
 
 function BuildingPlacer.getPlacingType()
