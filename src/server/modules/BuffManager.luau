@@ -23,13 +23,13 @@ function BuffManager.applyBuff(entity, buffId, duration, source)
 
     if existing and not buffConfig.Stackable then
         -- Обновляем длительность (refresh)
-        existing.startTime = tick()
+        existing.startTime = os.clock()
         existing.duration = duration
         existing.source = source
     else
         activeBuffs[entity][buffId] = {
             config = buffConfig,
-            startTime = tick(),
+            startTime = os.clock(),
             duration = duration,
             source = source,
         }
@@ -85,7 +85,7 @@ function BuffManager.getActiveBuffs(entity)
     local buffs = activeBuffs[entity]
     if not buffs then return result end
 
-    local now = tick()
+    local now = os.clock()
     for buffId, data in buffs do
         local remaining = data.duration - (now - data.startTime)
         if remaining > 0 then
@@ -109,7 +109,7 @@ function BuffManager.getStatModifier(entity, statName)
     if not buffs then return 0 end
 
     local total = 0
-    local now = tick()
+    local now = os.clock()
 
     for buffId, data in buffs do
         local remaining = data.duration - (now - data.startTime)
@@ -126,7 +126,7 @@ function BuffManager.getAllStatModifiers(entity)
 	local buffs = activeBuffs[entity]
 	if not buffs then return result end
 
-	local now = tick()
+	local now = os.clock()
 	for buffId, data in buffs do
 		local remaining = data.duration - (now - data.startTime)
 		if remaining > 0 and data.config.Stat then
@@ -182,7 +182,7 @@ end
 
 -- Тик — проверка истёкших баффов
 function BuffManager.tick()
-    local now = tick()
+    local now = os.clock()
 
     for entity, buffs in activeBuffs do
         -- Проверяем что entity ещё существует

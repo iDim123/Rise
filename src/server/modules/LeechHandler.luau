@@ -24,7 +24,7 @@ local function hasLeech(target)
         return false
     end
     local expire = target:GetAttribute("Passive_Leech_Expire") or 0
-    if tick() > expire then
+    if os.clock() > expire then
         target:SetAttribute("Passive_Leech", false)
         return false
     end

@@ -111,7 +111,7 @@ function BossBehaviors.update(enemy)
         humanoid:MoveTo(spawnPos)
         if distToSpawn < 3 then
             state.State = STATE.IDLE
-            state.IdleTimer = tick()
+            state.IdleTimer = os.clock()
             state.AggroTarget = nil
             humanoid.WalkSpeed = bossConfig.WalkSpeed
             -- Full heal on reset
@@ -141,7 +141,7 @@ function BossBehaviors.update(enemy)
             end
 
             -- ═══ Normal attack ═══
-            local now = tick()
+            local now = os.clock()
             if now - state.LastAttack >= bossConfig.AttackCooldown then
                 state.LastAttack = now
 
@@ -180,7 +180,7 @@ function BossBehaviors.update(enemy)
 
     else
         state.State = STATE.IDLE
-        state.IdleTimer = tick()
+        state.IdleTimer = os.clock()
     end
 end
 

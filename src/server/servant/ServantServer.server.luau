@@ -65,7 +65,7 @@ Remotes.CaptureRequest.OnServerEvent:Connect(function(player, action)
 
         captureCooldowns[player.UserId] = {
             enemy = bestEnemy,
-            startTime = tick(),
+            startTime = os.clock(),
             cancelled = false,
         }
 

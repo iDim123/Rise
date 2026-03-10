@@ -102,7 +102,7 @@ function ProjectileManager._processHit(proj, target)
                 local passiveId = onHit.PassiveId
                 target:SetAttribute("Passive_" .. passiveId, true)
                 target:SetAttribute("Passive_" .. passiveId .. "_Owner", proj.owner.UserId)
-                target:SetAttribute("Passive_" .. passiveId .. "_Expire", tick() + (onHit.Duration or 5))
+                target:SetAttribute("Passive_" .. passiveId .. "_Expire", os.clock() + (onHit.Duration or 5))
                 print("[ProjectileManager] Applied passive", passiveId, "to", target.Name)
 
             elseif onHit.Type == "HealCaster" then
@@ -228,7 +228,7 @@ function ProjectileManager.fire(params)
         distanceTraveled = 0,
         elapsed = 0,
         velocityY = 0,
-        spawnTime = tick(),
+        spawnTime = os.clock(),
         hitList = {},
         onHitEffects = params.onHitEffects,
         spellSchool = params.spellSchool

@@ -104,7 +104,7 @@ local function updateServant(servant)
                 rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + Vector3.new(dir.X, 0, dir.Z))
 
                 -- Кулдаун
-                local now = tick()
+                local now = os.clock()
                 local lastAttack = lastAttackTimes[servant] or 0
                 if now - lastAttack >= Config.Servants.AttackCooldown then
                    lastAttackTimes[servant] = now

@@ -33,7 +33,7 @@ function BossAbilities.pickAbility(entity, bossConfig, target)
     if not rootPart or not targetRoot then return nil end
     local dist = (targetRoot.Position - rootPart.Position).Magnitude
 
-    local now = tick()
+    local now = os.clock()
     if not cooldowns[entity] then cooldowns[entity] = {} end
 
     -- Collect available abilities
@@ -72,7 +72,7 @@ end
 -- Execute ability
 function BossAbilities.execute(entity, abilityId, ability, bossConfig, target)
     if not cooldowns[entity] then cooldowns[entity] = {} end
-    cooldowns[entity][abilityId] = tick()
+    cooldowns[entity][abilityId] = os.clock()
 
     local rootPart = entity:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end

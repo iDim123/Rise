@@ -159,7 +159,7 @@ function EnemyBehaviors.update(enemy)
 
     else
         state.State = STATE.IDLE
-        state.IdleTimer = tick()
+        state.IdleTimer = os.clock()
     end
 end
 

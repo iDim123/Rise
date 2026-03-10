@@ -15,7 +15,7 @@
 | CombatManager.server.luau | Роутер: принимает AttackRequest, RangedRelease, UseAbility, направляет в нужный обработчик |
 | WeaponUtil.luau | getConfig(player), getType(cfg), isRanged(cfg) — общий доступ к конфигу оружия |
 | DamageCalc.luau | Единый расчёт урона: power scaling, crit, resist, level modifier |
-| TargetFinder.luau | Поиск целей: inRadius, inCone, closestInCone, sphereOverlap |
+| TargetFinder.luau | Поиск целей: spatial hash grid (CELL_SIZE=50), inRadius, inCone, closestInCone, sphereOverlap, raycast |
 | ResourceHit.luau | Удар по ресурсным нодам: hitInCone (мили), hitInRadius (AoE) |
 | MeleeHandler.luau | Мили-атака: cooldown, комбо, поиск целей, урон, ресурсы |
 | RangedHandler.luau | Дальняя атака: каст → ожидание RangedRelease → выстрел снаряда |
@@ -228,12 +228,16 @@ AoEProjectile	Дождь снарядов в область	Bow E (arrow_rain)
 WeaponUtil
 Единая точка доступа к конфигу оружия. Ленивая загрузка InventoryManager. getConfig(player) возвращает конфиг и предмет из активного слота. getType(cfg) возвращает "Melee" по умолчанию для обратной совместимости.
 
-TargetFinder
+TargetFinder (v1.8: spatial hash grid)
+Использует пространственный хэш-грид (CELL_SIZE=50 studs, обновление каждые 0.2с) для быстрого поиска целей. Запросы читают только ячейки, пересекающие AABB запроса → O(K) вместо O(N), где K — количество entity в релевантных ячейках. При 100 врагах на карте запрос inRadius(30) проверяет ~4 ячейки вместо всех 100+ entity.
+
 Метод	Описание
-inRadius(pos, radius, ignore)	Все враги/игроки в радиусе
-inCone(pos, dir, range, dotMin, ignore)	Все цели в конусе (dot product ≥ dotMin)
+inRadius(pos, radius, ignore)	Все враги/игроки в радиусе (spatial hash)
+inCone(pos, dir, range, dotMin, ignore)	Все цели в конусе (spatial hash + dot product ≥ dotMin)
 closestInCone(pos, dir, range, dotMin, ignore)	Ближайшая цель в конусе
-sphereOverlap(pos, radius)	Все Humanoid в радиусе (для снарядов)
+sphereOverlap(pos, radius, hitList)	Все Humanoid в радиусе для снарядов (spatial hash)
+refreshGrid()	Принудительное обновление грида
+getGridStats()	Диагностика: количество ячеек и entity
 ResourceHit
 Метод	Описание
 hitInCone(player, rootPart, dir, range, cfg)	Удар по первой ноде в конусе (мили)

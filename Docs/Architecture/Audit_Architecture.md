@@ -59,7 +59,7 @@
 | 18 | Нет rate-limit SpellAim | **P2 Low** | Низкая | SpellCastManager |
 | 19 | HP врагов не скалируется | **P2 Medium** | Низкая | EnemySpawner |
 | 5 | EnemyAI O(N) spawn storm | **P3 Deferred** | Средняя | EnemyAI |
-| 6 | TargetFinder full scan | **P3 Deferred** | Высокая | TargetFinder |
+| 6 | TargetFinder full scan | **CLOSED (v1.8)** | Высокая | TargetFinder — spatial hash grid |
 | 7 | Projectile hit каждый кадр | **P3 Deferred** | Средняя | ProjectileManager |
 | 10 | FireAllClients overhead | **P3 Deferred** | Средняя | HealthManager, ProjectileManager |
 
@@ -506,7 +506,7 @@ Per-player throttle 40мс минимум между обработкой. Пр�
 | # | Проблема | Почему снято |
 |---|---------|-------------|
 | 5 | EnemyAI O(N) spawn storm | 100 врагов x 5/сек = 500 spawn/сек, нормально |
-| 6 | TargetFinder full scan | 100 врагов + 4 игрока = мгновенно |
+| 6 | TargetFinder full scan | **CLOSED**: spatial hash grid (v1.8) — O(K) вместо O(N) |
 | 7 | Projectile hit каждый кадр | При 4 игроках макс ~10 снарядов одновременно |
 | 10 | FireAllClients overhead | 4 клиента = копейки |
 

@@ -11,7 +11,7 @@ local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("Ser
 
 local UseItemHandler = {}
 
-local useCooldowns = {} -- [UserId] = { [ItemId] = tick() }
+local useCooldowns = {} -- [UserId] = { [ItemId] = os.clock() }
 
 function UseItemHandler.onUseItem(player, slotIndex)
     if type(slotIndex) ~= "number" then
@@ -45,7 +45,7 @@ function UseItemHandler.onUseItem(player, slotIndex)
         useCooldowns[userId] = {}
     end
     local lastUse = useCooldowns[userId][item.Id] or 0
-    local now = tick()
+    local now = os.clock()
     if now - lastUse < (effect.Cooldown or 0) then
         return
     end

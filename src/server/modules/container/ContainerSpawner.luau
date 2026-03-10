@@ -8,7 +8,7 @@ local ContainerLoot = require(script.Parent:WaitForChild("ContainerLoot"))
 local ContainerSpawner = {}
 
 function ContainerSpawner.makeId()
-    return tostring(math.floor(tick() * 1000)) .. "_" .. tostring(math.random(1, 99999))
+    return tostring(math.floor(os.clock() * 1000)) .. "_" .. tostring(math.random(1, 99999))
 end
 
 -- Попытка заспавнить контейнер (поставить модель, сгенерировать лут)
