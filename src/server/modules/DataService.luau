@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")
+Copylocal Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -19,6 +19,7 @@ local playerLoaded = {} -- [userId] = true when data is loaded
 local saving = {} -- [userId] = true while saving (prevent double save)
 
 local SAVE_ENABLED = not RunService:IsStudio()
+
 -- ═══ Default data template ═══
 local function getDefaultData()
     return {
@@ -30,8 +31,8 @@ local function getDefaultData()
 
         -- Inventory
         Inventory = {
-            Slots = {}, -- [index] = item or false
-            Equipment = {}, -- [slotId] = item or false
+            Slots = {},
+            Equipment = {},
             ActiveWeaponSlot = nil,
             UnlockedSlots = Config.Inventory.DefaultRows * Config.Inventory.Columns
         },
@@ -44,26 +45,31 @@ local function getDefaultData()
         },
 
         -- Boss progression
-        BossEssence = {}, -- [bossId] = { Kills = n, Captured = bool }
-        UnlockedTechs = {}, -- [bossId] = true
+        BossEssence = {},
+        UnlockedTechs = {},
 
         -- Servants
         Servants = {
-            Captured = {}, -- array of servant data tables
+            Captured = {},
             ActiveId = nil
         },
+
+        -- Spells
         SpellData = {
-            SpellPoints = {}, -- [school] = { [tier] = count }
-            LearnedSpells = {}, -- { [spellId] = true }
-            EquippedSlots = {}, -- { R = spellId|nil, G = spellId|nil, Z = spellId|nil }
-            SchoolProgress = {} -- { [school] = { CompletedTiers = {} } }
-        }
+            SpellPoints = {},
+            LearnedSpells = {},
+            EquippedSlots = {},
+            SchoolProgress = {}
+        },
+
+        -- v1.9: Building (Castle)
+        -- nil = нет замка, table = данные от BuildingSerializer.serialize
+        BuildingData = nil,
     }
 end
 
 -- ═══ Serialize helpers ═══
 
--- Inventory slots: convert false to JSON-safe nil marker
 local function serializeSlots(slots)
     local result = {}
     for i, slot in slots do
@@ -118,14 +124,12 @@ end
 local function serializeServants(captured)
     local result = {}
     for _, servant in captured do
-        -- Strip entity reference (can't save instances)
         local s = {}
         for k, v in servant do
             if k ~= "entity" then
                 s[k] = v
             end
         end
-        -- Serialize servant equipment
         if s.equipment then
             s.equipment = serializeEquipment(s.equipment)
         end
@@ -140,7 +144,6 @@ local function deserializeServants(saved)
     end
     local result = {}
     for _, s in saved do
-        -- Rebuild servant equipment
         if s.equipment then
             local eq = {}
             for _, slotConfig in Config.Servants.EquipmentSlots do
@@ -194,7 +197,6 @@ function DataService.load(player)
         print("[DataService] Loaded data for " .. player.Name .. " (v" .. (data.Version or 0) .. ")")
     end
 
-    -- Apply to modules
     DataService._applyData(player, data)
     playerLoaded[userId] = true
 end
@@ -206,7 +208,8 @@ function DataService._applyData(player, data)
     local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
     local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
     local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
-    -- Level (init first, then override)
+
+    -- Level
     LevelManager.initPlayer(player)
     LevelManager._setPlayerData(player, data.Level or 1, data.XP or 0)
 
@@ -219,7 +222,6 @@ function DataService._applyData(player, data)
         inv.equipment = deserializeEquipment(data.Inventory.Equipment)
         inv.activeWeaponSlot = data.Inventory.ActiveWeaponSlot
         inv.unlockedSlots = data.Inventory.UnlockedSlots or (Config.Inventory.DefaultRows * Config.Inventory.Columns)
-        -- Recalc bag slots
         InventoryManager.recalcUnlockedSlots(player)
     end
 
@@ -254,6 +256,13 @@ function DataService._applyData(player, data)
     if data.SpellData then
         SpellProgressManager._setPlayerData(player, data.SpellData)
     end
+
+    -- v1.9: Building (Castle)
+    -- BuildingManager.initPlayer восстанавливает замок из сохранённых данных.
+    -- Вызывается ПОСЛЕ InventoryManager.create (для возможных проверок ресурсов).
+    -- savedData может быть nil (нет замка) — initPlayer это обрабатывает.
+    local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
+    BuildingManager.initPlayer(player, data.BuildingData)
 end
 
 -- ═══ Collect ═══
@@ -303,6 +312,12 @@ function DataService.collect(player)
     -- Spell data
     data.SpellData = SpellProgressManager._getPlayerData(player)
 
+    -- v1.9: Building (Castle)
+    -- BuildingManager.collect возвращает nil если замка нет,
+    -- или таблицу от BuildingSerializer.serialize
+    local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
+    data.BuildingData = BuildingManager.collect(player)
+
     return data
 end
 
@@ -330,14 +345,12 @@ function DataService.save(player)
     for attempt = 1, MAX_RETRIES do
         success, err = pcall(function()
             dataStore:UpdateAsync(key, function(oldData)
-                -- Version guard: don't overwrite newer data
                 if oldData and type(oldData) == "table" then
                     local oldVersion = oldData.Version or 0
                     if oldVersion >= data.Version then
-                        -- Remote data is newer or equal — skip
                         warn("[DataService] Version conflict for " .. (player.Name or tostring(userId))
                             .. ": remote v" .. oldVersion .. " >= local v" .. data.Version .. ", skip")
-                        return nil -- returning nil cancels the update
+                        return nil
                     end
                 end
                 return data
@@ -385,6 +398,7 @@ end
 function DataService.isSaveEnabled()
     return SAVE_ENABLED
 end
+
 -- ═══ Autosave loop ═══
 task.spawn(function()
     while true do

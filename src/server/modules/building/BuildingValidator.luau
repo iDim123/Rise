@@ -285,9 +285,10 @@ function BuildingValidator.validate(params)
         return false, "Неизвестный тип блока"
     end
 
-    -- 2. Лимит блоков
-    if params.blockCount >= cfg.MaxBlocks then
-        return false, "Достигнут лимит блоков (" .. cfg.MaxBlocks .. ")"
+    -- 2. Лимит блоков (FIX: из params, не из глобального конфига)
+    local maxBlocks = params.maxBlocks or 200
+    if params.blockCount >= maxBlocks then
+        return false, "Достигнут лимит блоков (" .. maxBlocks .. ")"
     end
 
     -- 3. Поворот
@@ -319,13 +320,20 @@ function BuildingValidator.validate(params)
         end
     end
 
-    -- 7. Functional: MaxPerCastle (гроб — один на замок)
-    if bt.Functional and bt.FunctionalData and bt.FunctionalData.MaxPerCastle then
-        local funcType = bt.Functional
-        local maxCount = bt.FunctionalData.MaxPerCastle
-        local currentCount = params.coffinCount or 0
-        if funcType == "Coffin" and currentCount >= maxCount then
-            return false, "Максимум " .. maxCount .. " гроб(ов) на замок"
+    -- 7. FIX: Коллизия с Castle Heart
+    if params.heartPosition and params.heartSize then
+        local minH, maxH = makeAABB(params.heartPosition, params.heartSize)
+        if aabbOverlap(minA, maxA, minH, maxH) then
+            return false, "Пересечение с Сердцем замка"
+        end
+    end
+
+    -- 8. FIX: Лимит гробов (из уровня Castle Heart, через params)
+    if bt.Functional == "Coffin" then
+        local maxCoffins = params.maxCoffins or 1
+        local currentCoffins = params.coffinCount or 0
+        if currentCoffins >= maxCoffins then
+            return false, "Максимум " .. maxCoffins .. " гроб(ов) на замок"
         end
     end
 

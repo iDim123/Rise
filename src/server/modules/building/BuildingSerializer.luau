@@ -90,13 +90,11 @@ end
 function BuildingSerializer.serialize(castleData, permissions, containerSerializer)
     local result = {
         CenterPos = vec3ToTable(castleData.centerPos),
-        Claim = claimData,     -- включает HeartLevel + permissions
+        Claim = permissions,  -- FIX: было claimData (неопределённая переменная)
         Blocks = {},
         Containers = {},
     }
 
-    -- Сериализуем блоки
-    -- blockIndex нужен для привязки контейнеров к блокам
     local blockIndex = 0
     for blockId, block in castleData.blocks do
         blockIndex += 1
@@ -109,7 +107,6 @@ function BuildingSerializer.serialize(castleData, permissions, containerSerializ
 
         table.insert(result.Blocks, entry)
 
-        -- Контейнер привязан к блоку (Phase 2: castle_chest)
         if block.containerId and containerSerializer then
             local containerData = containerSerializer(block.containerId)
             if containerData then

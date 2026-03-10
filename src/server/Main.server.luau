@@ -10,6 +10,10 @@ require(modules:WaitForChild("EnemySpawner"))
 require(modules:WaitForChild("LevelManager"))
 local BuffManager = require(modules:WaitForChild("BuffManager"))
 
+-- v1.9: Building system
+local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
+BuildingManager.init()
+
 local buffTickAccumulator = 0
 local BUFF_TICK_RATE = 1
 
@@ -23,7 +27,6 @@ end)
 
 DayNightManager.init()
 
--- HealthRegen: tick every 10 seconds
 task.spawn(function()
     while true do
         task.wait(10)

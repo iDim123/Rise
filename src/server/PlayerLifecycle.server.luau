@@ -12,13 +12,16 @@ local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("Ser
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local StatsManager = require(modules:WaitForChild("StatsManager"))
 local EventBus = require(modules:WaitForChild("EventBus"))
-local CraftHandler -- lazy require (it's not a module in modules/)
+
+-- v1.9: Building
+local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
+
+local CraftHandler -- lazy require
 
 -- ═══ Character spawned ═══
 local function onCharacterAdded(player, character)
     character:WaitForChild("Humanoid")
 
-    -- HP from level
     local maxHP = LevelManager.getPlayerMaxHP(player)
     HealthManager.init(character, maxHP)
 
@@ -28,7 +31,6 @@ local function onCharacterAdded(player, character)
         humanoid.Health = maxHP
     end
 
-    -- Restore blood attributes on character
     local bData = BloodManager.getData(player)
     if bData then
         character:SetAttribute("BloodType", bData.Type)
@@ -36,17 +38,13 @@ local function onCharacterAdded(player, character)
         character:SetAttribute("BloodAmount", bData.Amount)
     end
 
-    -- Dismiss active servant on respawn
     ServantManager.dismiss(player)
-
-    -- Recalculate all stats
     StatsManager.recalculate(player)
 end
 
 -- ═══ Player joined ═══
 local function onPlayerAdded(player)
-    -- 1. Load all saved data (or create defaults)
-    --    This calls init on ALL modules internally
+    -- 1. Load all saved data (incl. BuildingData via DataService._applyData)
     DataService.load(player)
 
     -- 2. Starter items for new players
@@ -73,15 +71,13 @@ local function onPlayerAdded(player)
         InventoryManager.addItemFromConfig(player, "small_bag", 1)
         InventoryManager.addItemFromConfig(player, "blood_vial_warrior", 5)
         InventoryManager.addItemFromConfig(player, "blood_vial_creature", 5)
-
     end
 
-    -- 3. CharacterAdded (fires for current + future spawns)
+    -- 3. CharacterAdded
     player.CharacterAdded:Connect(function(character)
         onCharacterAdded(player, character)
     end)
 
-    -- If character already exists (late join)
     if player.Character then
         onCharacterAdded(player, player.Character)
     end
@@ -89,11 +85,11 @@ end
 
 -- ═══ Player leaving ═══
 local function onPlayerRemoving(player)
-    -- 1. Save FIRST (while data still exists)
+    -- 1. Save FIRST (while all module data still exists)
+    --    DataService.collect → BuildingManager.collect (сериализует замок)
     DataService.save(player)
 
-    -- 2. Fire centralized cleanup event for all modules
-    --    Modules should listen to EventBus:"PlayerCleanup" instead of Players.PlayerRemoving
+    -- 2. Centralized cleanup event
     EventBus.fire("PlayerCleanup", player)
 
     -- 3. Core cleanup (ordered: data-dependent modules first)
@@ -103,7 +99,10 @@ local function onPlayerRemoving(player)
     InventoryManager.remove(player)
     StatsManager.cleanup(player)
 
-    -- Cleanup health data for the character to prevent memory leaks
+    -- v1.9: Building cleanup (уничтожает Parts, folder, claim)
+    -- ПОСЛЕ save, чтобы collect успел сериализовать данные
+    BuildingManager.cleanup(player)
+
     if player.Character then
         HealthManager.cleanup(player.Character)
     end
@@ -115,7 +114,6 @@ end
 Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
 
--- Handle players who joined before this script ran
 for _, player in Players:GetPlayers() do
     task.spawn(onPlayerAdded, player)
 end
@@ -126,7 +124,7 @@ game:BindToClose(function()
         return
     end
 
-    local SHUTDOWN_TIMEOUT = 25 -- Roblox gives max 30 s; leave 5 s margin
+    local SHUTDOWN_TIMEOUT = 25
     local players = Players:GetPlayers()
     local remaining = #players
     if remaining == 0 then
@@ -148,7 +146,6 @@ game:BindToClose(function()
         end)
     end
 
-    -- Wait until all saves finish OR timeout
     local waitThread = task.delay(SHUTDOWN_TIMEOUT, function()
         if remaining > 0 then
             warn("[BindToClose] Timeout! " .. remaining .. " player(s) not saved")
