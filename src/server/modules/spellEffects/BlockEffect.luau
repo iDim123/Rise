@@ -1,5 +1,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local modules = ServerScriptService:WaitForChild("modules")
 local StatsManager = require(modules:WaitForChild("StatsManager"))
 
@@ -14,7 +16,6 @@ return function(ctx, effect, spellConfig)
     character:SetAttribute("BlockProjectile", effect.BlockProjectile or false)
     character:SetAttribute("BlockSpellId", spellConfig.Id)
 
-    -- Slow during block
     if effect.MovementMode == "Slowed" then
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
@@ -23,18 +24,26 @@ return function(ctx, effect, spellConfig)
         end
     end
 
-    -- Listen for block trigger
+    Remotes.SpellEffect:FireAllClients("BlockStart", ctx.rootPart.Position, {
+        CasterId = ctx.player.UserId,
+        Duration = effect.Duration or 1.5,
+        School = spellConfig.School
+    })
+
     local triggered = false
     local blockConn
     blockConn = character:GetAttributeChangedSignal("BlockTriggered"):Connect(function()
         if character:GetAttribute("BlockTriggered") and not triggered then
             triggered = true
             character:SetAttribute("BlockTriggered", false)
-            print("[BlockEffect] BLOCK TRIGGERED! executing", effect.OnBlockTriggered and #effect.OnBlockTriggered or 0,
-                "sub-effects")
+            print("[BlockEffect] BLOCK TRIGGERED!")
+
+            Remotes.SpellEffect:FireAllClients("BlockTriggered", ctx.rootPart.Position, {
+                CasterId = ctx.player.UserId,
+                School = spellConfig.School
+            })
 
             if effect.OnBlockTriggered then
-                -- Dynamically load sub-effect handlers
                 local effectsFolder = modules:WaitForChild("spellEffects")
                 for _, subEffect in effect.OnBlockTriggered do
                     local subModule = effectsFolder:FindFirstChild(subEffect.Type .. "Effect")

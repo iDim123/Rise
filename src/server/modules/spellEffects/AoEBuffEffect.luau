@@ -1,6 +1,8 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local BuffManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("BuffManager"))
 
 return function(ctx, effect, spellConfig)
@@ -28,4 +30,9 @@ return function(ctx, effect, spellConfig)
             print("[AoEBuffEffect] applied", buff.BuffId, "to", target.Name)
         end
     end
+
+    Remotes.SpellEffect:FireAllClients("AoEBuff", ctx.rootPart.Position, {
+        Radius = radius,
+        School = spellConfig.School,
+    })
 end

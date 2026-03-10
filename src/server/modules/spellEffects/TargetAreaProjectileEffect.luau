@@ -101,7 +101,8 @@ return function(ctx, effect, spellConfig)
         end
 
         Remotes.SpellEffect:FireAllClients("AreaExplosion", targetPos, {
-            Radius = explosionRadius
+            Radius = explosionRadius,
+            School = spellConfig.School
         })
     end)
 end

@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
@@ -7,12 +8,13 @@ local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local AbilityTooltip = require(script.Parent:WaitForChild("AbilityTooltip"))
 local AbilityCooldowns = require(script.Parent:WaitForChild("AbilityCooldowns"))
 local MouseUtil = require(script.Parent:WaitForChild("MouseUtil"))
+local SpellAimSender = require(script.Parent:WaitForChild("SpellAimSender"))
 
 local SpellSection = {}
 
 local slots = {}
-local equippedSpells = {} -- { R = spellId, G = spellId }
-local spellConfigs = {} -- { R = spellConfig, G = spellConfig }
+local equippedSpells = {}
+local spellConfigs = {}
 
 local STYLE = {
     bg = C.SPELL_SLOT_BG,
@@ -20,7 +22,41 @@ local STYLE = {
     borderEmpty = C.SPELL_SLOT_BORDER_EMPTY
 }
 
+-- Listen for cast end to stop aim sender
+local player = Players.LocalPlayer
+local castEndConnected = false
+
+local function ensureCastEndListeners()
+    if castEndConnected then
+        return
+    end
+    castEndConnected = true
+
+    -- CastComplete comes from CastBar UI BindableEvent
+    task.spawn(function()
+        local playerGui = player:WaitForChild("PlayerGui")
+        local castBarUI = playerGui:WaitForChild("CastBarUI", 5)
+        if castBarUI then
+            local completeEvent = castBarUI:FindFirstChild("CastComplete")
+            if completeEvent then
+                completeEvent.Event:Connect(function()
+                    SpellAimSender.stop()
+                end)
+            end
+        end
+    end)
+
+    -- CastCancel from server
+    if Remotes.CastCancel then
+        Remotes.CastCancel.OnClientEvent:Connect(function()
+            SpellAimSender.stop()
+        end)
+    end
+end
+
 function SpellSection.build(barFrame, screenGui, startCol)
+    ensureCastEndListeners()
+
     for i, key in C.SPELL_KEYS do
         local col = startCol + (i - 1)
         local slotData = SlotFactory.create(barFrame, key, col, STYLE)
@@ -76,6 +112,11 @@ function SpellSection.handleInput(keyCode)
             end
             if AbilityCooldowns.isOnCooldown(key) then
                 return true
+            end
+            -- Start sending aim updates for cast-time spells
+            local spellCfg = spellConfigs[key]
+            if spellCfg and spellCfg.CastTime and spellCfg.CastTime > 0.05 then
+                SpellAimSender.start()
             end
             Remotes.CastSpell:FireServer(spellId, MouseUtil.getWorldPosition())
             return true

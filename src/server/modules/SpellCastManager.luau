@@ -16,7 +16,8 @@ local SpellCastManager = {}
 -- ═══ State ═══
 local spellCooldowns = {}   -- [userId] = { [spellId] = lastUseTime }
 local spellCharges = {}     -- [userId] = { [spellId] = { charges, lastRecharge } }
-local activeChannels = {}   -- [userId] = { spellId, task }
+local activeChannels = {}   -- [userId] = { spellId, task, direction }
+local lastMousePosition = {} -- [userId] = Vector3 (updated by SpellAim remote)
 
 -- ═══ Auto-load effect handlers from spellEffects/ ═══
 local effectHandlers = {}
@@ -124,6 +125,13 @@ task.spawn(function()
     end
 end)
 
+-- ═══ SpellAim: client sends cursor position during cast ═══
+
+Remotes.SpellAim.OnServerEvent:Connect(function(player, mousePosition)
+    if typeof(mousePosition) ~= "Vector3" then return end
+    lastMousePosition[player.UserId] = mousePosition
+end)
+
 -- ═══ Main entry ═══
 
 function SpellCastManager.castSpell(player, spellId, mousePosition)
@@ -134,7 +142,10 @@ function SpellCastManager.castSpell(player, spellId, mousePosition)
         print("[SpellCastManager] BLOCKED — invalid caster")
         return
     end
-    ctx.mousePosition = mousePosition
+
+    -- Store initial mouse position
+    local userId = player.UserId
+    lastMousePosition[userId] = mousePosition
 
     -- Equipped?
     local slots = SpellProgressManager.getEquippedSlots(player)
@@ -158,7 +169,7 @@ function SpellCastManager.castSpell(player, spellId, mousePosition)
         return
     end
 
-    if activeChannels[player.UserId] then
+    if activeChannels[userId] then
         print("[SpellCastManager] BLOCKED — already channelling")
         return
     end
@@ -179,7 +190,9 @@ function SpellCastManager.castSpell(player, spellId, mousePosition)
             CancelOnDamage = false,
             OnComplete = function()
                 print("[SpellCastManager] cast complete, executing:", spellConfig.Name)
-                SpellCastManager._execute(player, spellConfig, mousePosition)
+                -- Use latest mouse position from SpellAim, fallback to initial
+                local finalMousePos = lastMousePosition[userId] or mousePosition
+                SpellCastManager._execute(player, spellConfig, finalMousePos)
             end,
             OnCancel = function(_, reason)
                 print("[SpellCastManager] cast cancelled:", spellConfig.Name, "reason =", reason)
@@ -190,6 +203,7 @@ function SpellCastManager.castSpell(player, spellId, mousePosition)
             return
         end
     else
+        -- Instant cast — use current mouse position as-is
         SpellCastManager._execute(player, spellConfig, mousePosition)
     end
 end
@@ -242,6 +256,7 @@ Players.PlayerRemoving:Connect(function(player)
     SpellCastManager.cancelChannel(player)
     spellCooldowns[player.UserId] = nil
     spellCharges[player.UserId] = nil
+    lastMousePosition[player.UserId] = nil
 end)
 
 return SpellCastManager

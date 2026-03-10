@@ -15,7 +15,7 @@ local events = {"AttackRequest", "DamageEvent", "EntityDied", "HealEvent", "Upda
                 "ContainerOpened", "ContainerUpdate", "ContainerClosed", "CastStart", "CastCancel", "CastCancelRequest",
                 "DayNightSync", "PlayerRespawn", "RangedRelease", "ProjectileFired", "ProjectileHit",
                 "ProjectileRemoved", "CastSpell", "LearnSpell", "EquipSpell", "UnequipSpell", "SpellCooldown",
-                "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect", "UpdateSpellData"}
+                "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect", "UpdateSpellData", "SpellAim"}
 
 -- RemoteFunctions
 local functions = {"GetInventory", "GetServants", "GetPlayerStats", "GetBossData", "GetSpellData"}

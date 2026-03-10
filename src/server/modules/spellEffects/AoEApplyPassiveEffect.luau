@@ -1,5 +1,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local combat = ServerScriptService:WaitForChild("combat")
 local modules = ServerScriptService:WaitForChild("modules")
 local TargetFinder = require(combat:WaitForChild("TargetFinder"))
@@ -20,4 +22,10 @@ return function(ctx, effect, spellConfig)
         target:SetAttribute("Passive_" .. effect.PassiveId .. "_Expire", tick() + duration)
         print("[AoEApplyPassiveEffect] applied", effect.PassiveId, "to", target.Name)
     end
+
+    Remotes.SpellEffect:FireAllClients("AoEPassive", ctx.rootPart.Position, {
+        Radius = radius,
+        PassiveId = effect.PassiveId,
+        School = spellConfig.School
+    })
 end

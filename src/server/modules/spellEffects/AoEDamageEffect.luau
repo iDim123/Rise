@@ -25,6 +25,7 @@ return function(ctx, effect, spellConfig)
     end
 
     Remotes.SpellEffect:FireAllClients("AoEDamage", ctx.rootPart.Position, {
-        Radius = radius
+        Radius = radius,
+        School = spellConfig.School
     })
 end

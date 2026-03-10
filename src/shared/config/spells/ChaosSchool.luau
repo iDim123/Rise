@@ -56,7 +56,7 @@ return {
             CastTime = 0.6,
             CastMovementMode = "Slowed",
             CastSpeedMult = 0.6,
-            Cooldown = 8,
+            Cooldown = 3,
             DamageType = "Magic",
             CanCrit = true,
             Effects = {{
@@ -85,7 +85,7 @@ return {
             Tags = {"TargetArea", "CanCrit"},
             CastTime = 0.4,
             CastMovementMode = "Free",
-            Cooldown = 9,
+            Cooldown = 3,
             MaxCharges = 2,
             ChargeRechargeTime = 9,
             DamageType = "Magic",
@@ -120,7 +120,7 @@ return {
             CastTime = 0.1,
             CastMovementMode = "Slowed",
             CastSpeedMult = 0.5,
-            Cooldown = 11,
+            Cooldown = 3,
             DamageType = "Magic",
             CanCrit = false,
             Effects = {{
@@ -149,7 +149,7 @@ return {
             CastTime = 1.0,
             CastMovementMode = "Slowed",
             CastSpeedMult = 0.4,
-            Cooldown = 120,
+            Cooldown = 34,
             DamageType = "Magic",
             CanCrit = false,
             Effects = {{

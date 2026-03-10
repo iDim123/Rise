@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
@@ -7,11 +8,12 @@ local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
 local AbilityTooltip = require(script.Parent:WaitForChild("AbilityTooltip"))
 local AbilityCooldowns = require(script.Parent:WaitForChild("AbilityCooldowns"))
 local MouseUtil = require(script.Parent:WaitForChild("MouseUtil"))
+local SpellAimSender = require(script.Parent:WaitForChild("SpellAimSender"))
 
 local UltimateSection = {}
 
 local slots = {}
-local equippedSpell = nil -- spellId for Z
+local equippedSpell = nil
 local spellConfig = nil
 
 local STYLE = {
@@ -71,6 +73,10 @@ function UltimateSection.handleInput(keyCode)
         end
         if AbilityCooldowns.isOnCooldown("Z") then
             return true
+        end
+        -- Start sending aim updates for cast-time spells
+        if spellConfig and spellConfig.CastTime and spellConfig.CastTime > 0.05 then
+            SpellAimSender.start()
         end
         Remotes.CastSpell:FireServer(equippedSpell, MouseUtil.getWorldPosition())
         return true

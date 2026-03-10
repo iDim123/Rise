@@ -26,6 +26,13 @@ return function(ctx, effect, spellConfig)
         end
     end
 
+    Remotes.SpellEffect:FireAllClients("FrontalBlockStart", ctx.rootPart.Position, {
+        CasterId = ctx.player.UserId,
+        Duration = effect.Duration or 2,
+        Angle = effect.BlockAngle or 120,
+        School = spellConfig.School
+    })
+
     task.delay(effect.Duration or 2, function()
         local absorbed = character:GetAttribute("FrontalBlockDamageAbsorbed") or 0
         print("[FrontalBlockEffect] expired, absorbed =", absorbed)
@@ -37,7 +44,6 @@ return function(ctx, effect, spellConfig)
 
         StatsManager.recalculate(ctx.player)
 
-        -- Reflect on expire
         if absorbed > 0 and (effect.ReflectPercent or 0) > 0 then
             local reflectDmg = math.floor(absorbed * effect.ReflectPercent)
             local targets = TargetFinder.inRadius(ctx.rootPart.Position, 8, character)
@@ -46,7 +52,8 @@ return function(ctx, effect, spellConfig)
                 HealthManager.takeDamage(target, reflectDmg, character)
             end
             Remotes.SpellEffect:FireAllClients("Reflect", ctx.rootPart.Position, {
-                Damage = reflectDmg
+                Damage = reflectDmg,
+                School = spellConfig.School
             })
         end
     end)
