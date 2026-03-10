@@ -97,6 +97,12 @@ local function onPlayerRemoving(player)
     BossManager.removePlayer(player)
     InventoryManager.remove(player)
     StatsManager.cleanup(player)
+
+    -- Cleanup health data for the character to prevent memory leaks
+    if player.Character then
+        HealthManager.cleanup(player.Character)
+    end
+
     DataService.cleanup(player)
     -- LevelManager cleanup happens in its own PlayerRemoving
 end
@@ -116,10 +122,37 @@ game:BindToClose(function()
         return
     end
 
-    for _, player in Players:GetPlayers() do
+    local SHUTDOWN_TIMEOUT = 25 -- Roblox gives max 30 s; leave 5 s margin
+    local players = Players:GetPlayers()
+    local remaining = #players
+    if remaining == 0 then
+        return
+    end
+
+    local allDone = Instance.new("BindableEvent")
+
+    for _, player in players do
         task.spawn(function()
-            DataService.save(player)
+            local ok, err = pcall(DataService.save, player)
+            if not ok then
+                warn("[BindToClose] save failed for " .. player.Name .. ": " .. tostring(err))
+            end
+            remaining -= 1
+            if remaining <= 0 then
+                allDone:Fire()
+            end
         end)
     end
-    task.wait(4)
+
+    -- Wait until all saves finish OR timeout
+    local waitThread = task.delay(SHUTDOWN_TIMEOUT, function()
+        if remaining > 0 then
+            warn("[BindToClose] Timeout! " .. remaining .. " player(s) not saved")
+            allDone:Fire()
+        end
+    end)
+
+    allDone.Event:Wait()
+    pcall(task.cancel, waitThread)
+    allDone:Destroy()
 end)

@@ -101,7 +101,7 @@ function EnemyBehaviors.update(enemy)
         humanoid:MoveTo(spawnPos)
         if distToSpawn < 3 then
             state.State = STATE.IDLE
-            state.IdleTimer = tick()
+            state.IdleTimer = os.clock()
             state.AggroTarget = nil
         end
 
@@ -116,7 +116,7 @@ function EnemyBehaviors.update(enemy)
             humanoid:MoveTo(rootPart.Position)
             local dir = (targetRoot.Position - rootPart.Position).Unit
             rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + Vector3.new(dir.X, 0, dir.Z))
-            local now = tick()
+            local now = os.clock()
             if now - state.LastAttack >= config.AttackCooldown then
                 state.LastAttack = now
 
@@ -137,7 +137,7 @@ function EnemyBehaviors.update(enemy)
 
     elseif state.State == STATE.IDLE then
         humanoid.WalkSpeed = 0
-        if tick() - state.IdleTimer > math.random(2, 5) then
+        if os.clock() - state.IdleTimer > math.random(2, 5) then
             state.State = STATE.PATROL
             local patrolRadius = config.AggroRange * 0.4
             state.PatrolTarget = EnemyStateManager.getRandomPatrolPoint(spawnPos, patrolRadius)
@@ -150,11 +150,11 @@ function EnemyBehaviors.update(enemy)
             local distToPatrol = (position - state.PatrolTarget).Magnitude
             if distToPatrol < 3 then
                 state.State = STATE.IDLE
-                state.IdleTimer = tick()
+                state.IdleTimer = os.clock()
             end
         else
             state.State = STATE.IDLE
-            state.IdleTimer = tick()
+            state.IdleTimer = os.clock()
         end
 
     else

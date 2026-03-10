@@ -10,6 +10,19 @@ local EventBus = require(script.Parent:WaitForChild("EventBus"))
 local HealthManager = {}
 local healthData = {}
 
+-- Periodic GC: remove entries for destroyed entities
+local GC_INTERVAL = 30
+task.spawn(function()
+    while true do
+        task.wait(GC_INTERVAL)
+        for entity, _ in healthData do
+            if not entity or not entity.Parent then
+                healthData[entity] = nil
+            end
+        end
+    end
+end)
+
 function HealthManager.init(entity, maxHP)
     healthData[entity] = {
         CurrentHP = maxHP,
@@ -38,9 +51,12 @@ function HealthManager.takeDamage(entity, damage, attacker)
     local attackerName = attacker and attacker.Name or "Unknown"
     Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
 
-    -- Mark combat for regen timer
+    -- Mark combat for regen timer (both attacker and target)
     local StatsManager = require(modules:WaitForChild("StatsManager"))
     StatsManager.markCombat(entity)
+    if attacker then
+        StatsManager.markCombat(attacker)
+    end
 
     if data.CurrentHP <= 0 then
         local bossId = entity:GetAttribute("BossId")
@@ -148,6 +164,11 @@ end)
 EventBus.on("EntityDying", function(entity, attacker)
     Remotes.EntityDied:FireAllClients(entity)
 end)
+
+-- Explicit cleanup for an entity (call when entity is removed/player leaves)
+function HealthManager.cleanup(entity)
+    healthData[entity] = nil
+end
 
 function HealthManager.setMaxHP(entity, newMaxHP)
     local data = healthData[entity]

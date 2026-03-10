@@ -126,10 +126,20 @@ task.spawn(function()
 end)
 
 -- ═══ SpellAim: client sends cursor position during cast ═══
+-- Rate-limited: max 20 updates per second per player (50 ms interval)
+
+local SPELL_AIM_MIN_INTERVAL = 0.05
+local lastSpellAimTime = {} -- [userId] = os.clock()
 
 Remotes.SpellAim.OnServerEvent:Connect(function(player, mousePosition)
     if typeof(mousePosition) ~= "Vector3" then return end
-    lastMousePosition[player.UserId] = mousePosition
+    local userId = player.UserId
+    local now = os.clock()
+    if lastSpellAimTime[userId] and (now - lastSpellAimTime[userId]) < SPELL_AIM_MIN_INTERVAL then
+        return -- throttled
+    end
+    lastSpellAimTime[userId] = now
+    lastMousePosition[userId] = mousePosition
 end)
 
 -- ═══ Main entry ═══
@@ -257,6 +267,7 @@ Players.PlayerRemoving:Connect(function(player)
     spellCooldowns[player.UserId] = nil
     spellCharges[player.UserId] = nil
     lastMousePosition[player.UserId] = nil
+    lastSpellAimTime[player.UserId] = nil
 end)
 
 return SpellCastManager
