@@ -94,6 +94,7 @@ end
 
 local function createBlockPart(typeId, position, rotation, folder)
     local bt = Config.Building.BlockTypes[typeId]
+    -- Поворот через swap Size, БЕЗ Orientation
     local size = bt.Size
     if rotation == 90 or rotation == 270 then
         size = Vector3.new(size.Z, size.Y, size.X)
@@ -107,7 +108,7 @@ local function createBlockPart(typeId, position, rotation, folder)
     part.Anchored = true
     part.CanCollide = true
     part.Position = position
-    part.Orientation = Vector3.new(0, rotation, 0)
+    -- НЕ ставим Orientation — поворот уже в Size
 
     if bt.IsShelter then
         part:SetAttribute("IsShelter", true)

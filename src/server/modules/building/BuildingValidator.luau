@@ -84,8 +84,8 @@ end
 --- @param maxB Vector3
 --- @return boolean
 local function aabbOverlap(minA, maxA, minB, maxB)
-    -- Небольшой допуск чтобы соседние блоки не считались пересекающимися
-    local EPSILON = 0.05
+    -- Допуск = толщина стены (2 studs), чтобы стены могли стыковаться в углах
+    local EPSILON = 1.0
     return minA.X < maxB.X - EPSILON and maxA.X > minB.X + EPSILON and minA.Y < maxB.Y - EPSILON and maxA.Y > minB.Y +
                EPSILON and minA.Z < maxB.Z - EPSILON and maxA.Z > minB.Z + EPSILON
 end

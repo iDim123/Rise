@@ -98,7 +98,7 @@ local function createGhost(blockTypeId)
     part.CastShadow = false
     part.Parent = workspace
 
-    -- FIX: Highlight вместо SelectionBox — точный размер, без раздувания
+    -- Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "GhostHighlight"
     highlight.Adornee = part
@@ -108,6 +108,15 @@ local function createGhost(blockTypeId)
     highlight.OutlineTransparency = 0
     highlight.DepthMode = Enum.HighlightDepthMode.Occluded
     highlight.Parent = part
+
+    -- SelectionBox для рёбер
+    local selBox = Instance.new("SelectionBox")
+    selBox.Name = "GhostEdges"
+    selBox.Adornee = part
+    selBox.Color3 = BC.GHOST_VALID_BORDER
+    selBox.SurfaceTransparency = 1
+    selBox.LineThickness = BC.GHOST_BORDER_THICKNESS
+    selBox.Parent = part
 
     ghostPart = part
     ghostHighlight = highlight
@@ -185,6 +194,18 @@ local function createHeartGhost()
     highlight.OutlineTransparency = 0
     highlight.DepthMode = Enum.HighlightDepthMode.Occluded
     highlight.Parent = model
+
+    for _, child in model:GetChildren() do
+        if child:IsA("BasePart") then
+            local selBox = Instance.new("SelectionBox")
+            selBox.Name = "GhostEdges"
+            selBox.Adornee = child
+            selBox.Color3 = BC.GHOST_VALID_BORDER
+            selBox.SurfaceTransparency = 1
+            selBox.LineThickness = BC.GHOST_BORDER_THICKNESS
+            selBox.Parent = child
+        end
+    end
 
     model.Parent = workspace
     ghostModel = model
@@ -265,11 +286,19 @@ local function updateHeartGhostPosition()
             ghostHighlight.FillColor = BC.GHOST_INVALID_COLOR
             ghostHighlight.OutlineColor = BC.GHOST_INVALID_BORDER
         end
+        -- Обновить SelectionBox на всех частях
+        for _, child in ghostModel:GetChildren() do
+            if child:IsA("BasePart") then
+                local edgesBox = child:FindFirstChild("GhostEdges")
+                if edgesBox then
+                    edgesBox.Color3 = isValid and BC.GHOST_VALID_BORDER or BC.GHOST_INVALID_BORDER
+                end
+            end
+        end
     end
 end
 
 -- ═══ Ghost для обычных блоков ═══
-
 local function updateGhostPosition()
     if not ghostPart or not placingBlockTypeId then
         return
@@ -287,6 +316,8 @@ local function updateGhostPosition()
     end
 
     ghostPart.Transparency = BC.GHOST_TRANSPARENCY
+
+    -- Size с учётом поворота (swap X/Z)
     local size = getRotatedSize(bt.Size, currentRotation)
     ghostPart.Size = size
 
@@ -304,20 +335,18 @@ local function updateGhostPosition()
 
         local hitTypeId = hitPart:GetAttribute("BlockTypeId")
         if hitTypeId then
-            local hitCat = nil
             local hitBt = Config.Building.BlockTypes[hitTypeId]
-            if hitBt then
-                hitCat = hitBt.Category
-            end
+            local hitCat = hitBt and hitBt.Category
 
             if hitCat == "Foundation" then
                 local fPos = hitPart.Position
-                local fSize = hitPart.Size
+                local fSize = hitPart.Size -- уже swapped если повёрнут
                 local halfFX = fSize.X / 2
                 local halfFZ = fSize.Z / 2
                 local fSurfaceY = fPos.Y + fSize.Y / 2
 
                 if currentRotation == 0 or currentRotation == 180 then
+                    -- Стена вдоль X (широкая сторона по X), тонкая по Z
                     local northEdge = fPos.Z - halfFZ
                     local southEdge = fPos.Z + halfFZ
                     local dN = math.abs(snappedZ - northEdge)
@@ -325,6 +354,7 @@ local function updateGhostPosition()
                     local edgeZ = dN <= dS and northEdge or southEdge
                     finalPos = Vector3.new(fPos.X, fSurfaceY + size.Y / 2, edgeZ)
                 else
+                    -- Стена вдоль Z (широкая сторона по Z), тонкая по X
                     local westEdge = fPos.X - halfFX
                     local eastEdge = fPos.X + halfFX
                     local dW = math.abs(snappedX - westEdge)
@@ -337,7 +367,7 @@ local function updateGhostPosition()
     end
 
     ghostPart.Position = finalPos
-    ghostPart.Orientation = Vector3.new(0, currentRotation, 0)
+    -- НЕ ставим Orientation — поворот уже через Size
 
     -- Валидация
     local isValid = true
@@ -350,16 +380,22 @@ local function updateGhostPosition()
     end
 
     if ghostHighlight then
+        local edgesBox = ghostPart:FindFirstChild("GhostEdges")
         if isValid then
             ghostHighlight.FillColor = BC.GHOST_VALID_COLOR
             ghostHighlight.OutlineColor = BC.GHOST_VALID_BORDER
+            if edgesBox then
+                edgesBox.Color3 = BC.GHOST_VALID_BORDER
+            end
         else
             ghostHighlight.FillColor = BC.GHOST_INVALID_COLOR
             ghostHighlight.OutlineColor = BC.GHOST_INVALID_BORDER
+            if edgesBox then
+                edgesBox.Color3 = BC.GHOST_INVALID_BORDER
+            end
         end
     end
 end
-
 -- ═══ Delete Mode ═══
 
 local function createDeleteHighlight()
