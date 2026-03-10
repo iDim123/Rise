@@ -48,7 +48,7 @@ local containers = {}
 
 -- Генерация уникального ID для экземпляра контейнера
 local function makeId()
-    return tostring(math.floor(tick() * 1000)) .. "_" .. tostring(math.random(1, 99999))
+    return tostring(math.floor(os.clock() * 1000)) .. "_" .. tostring(math.random(1, 99999))
 end
 
 -- Генерация лута по LootTable конфига

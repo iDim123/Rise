@@ -84,7 +84,7 @@ function ServantManager.captureEnemy(player, enemyEntity)
 
     local equipment = ServantEquipment.initSlots()
 
-    local servantId = tostring(tick()) .. "_" .. math.random(1000, 9999)
+    local servantId = tostring(os.clock()) .. "_" .. math.random(1000, 9999)
     local servant = {
         id = servantId,
         name = enemyType .. " Servant",
@@ -144,7 +144,7 @@ function ServantManager.createFromEgg(player, enemyType, bloodQuality)
 
     local equipment = ServantEquipment.initSlots()
 
-    local servantId = tostring(tick()) .. "_" .. math.random(1000, 9999)
+    local servantId = tostring(os.clock()) .. "_" .. math.random(1000, 9999)
     local servant = {
         id = servantId,
         name = enemyType .. " Servant",

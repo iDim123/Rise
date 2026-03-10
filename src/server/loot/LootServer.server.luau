@@ -8,7 +8,7 @@ local LootManager = require(modules:WaitForChild("LootManager"))
 local InventorySync = require(modules:WaitForChild("InventorySync"))
 local InventoryManager = require(modules:WaitForChild("InventoryManager"))
 
-local dropCooldowns = {} -- [UserId] = tick()
+local dropCooldowns = {} -- [UserId] = os.clock()
 local DROP_COOLDOWN = 0.3 -- секунд между дропами
 
 Remotes.PickupLoot.OnServerEvent:Connect(function(player, lootPart)
@@ -25,7 +25,7 @@ Remotes.PickupLoot.OnServerEvent:Connect(function(player, lootPart)
 end)
 
 Remotes.DropItem.OnServerEvent:Connect(function(player, slotIndex)
-    local now = tick()
+    local now = os.clock()
     local last = dropCooldowns[player.UserId] or 0
     if now - last < DROP_COOLDOWN then return end
     dropCooldowns[player.UserId] = now

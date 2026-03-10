@@ -19,7 +19,7 @@ return function(ctx, effect, spellConfig)
     for _, target in targets do
         target:SetAttribute("Passive_" .. effect.PassiveId, true)
         target:SetAttribute("Passive_" .. effect.PassiveId .. "_Owner", ctx.player.UserId)
-        target:SetAttribute("Passive_" .. effect.PassiveId .. "_Expire", tick() + duration)
+        target:SetAttribute("Passive_" .. effect.PassiveId .. "_Expire", os.clock() + duration)
         print("[AoEApplyPassiveEffect] applied", effect.PassiveId, "to", target.Name)
     end
 

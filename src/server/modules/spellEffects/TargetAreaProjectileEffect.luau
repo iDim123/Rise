@@ -32,7 +32,7 @@ return function(ctx, effect, spellConfig)
     end
 
     Remotes.ProjectileFired:FireAllClients({
-        id = tick(),
+        id = os.clock(),
         origin = origin,
         direction = direction,
         projectileId = effect.ProjectileId,
@@ -68,7 +68,7 @@ return function(ctx, effect, spellConfig)
                     if onHit.Type == "ApplyPassive" then
                         target:SetAttribute("Passive_" .. onHit.PassiveId, true)
                         target:SetAttribute("Passive_" .. onHit.PassiveId .. "_Owner", ctx.player.UserId)
-                        target:SetAttribute("Passive_" .. onHit.PassiveId .. "_Expire", tick() + (onHit.Duration or 5))
+                        target:SetAttribute("Passive_" .. onHit.PassiveId .. "_Expire", os.clock() + (onHit.Duration or 5))
                         print("[TargetAreaProjectileEffect] applied", onHit.PassiveId, "to", target.Name)
                     end
                 end

@@ -9,7 +9,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local StatsManager = {}
 
 local playerStats = {}   -- [player] = { StatId = finalValue }
-local lastDamageTime = {} -- [character] = tick()  (для HealthRegen)
+local lastDamageTime = {} -- [character] = os.clock()  (для HealthRegen)
 
 -- ══════════════════════════════════
 --  Lazy requires (avoid circular)
@@ -157,13 +157,13 @@ end
 -- ══════════════════════════════════
 
 function StatsManager.markCombat(character)
-	lastDamageTime[character] = tick()
+	lastDamageTime[character] = os.clock()
 end
 
 function StatsManager.isInCombat(character)
 	local last = lastDamageTime[character]
 	if not last then return false end
-	return (tick() - last) < (Config.Stats and Config.Stats.CombatTimeout or 5)
+	return (os.clock() - last) < (Config.Stats and Config.Stats.CombatTimeout or 5)
 end
 
 -- ══════════════════════════════════

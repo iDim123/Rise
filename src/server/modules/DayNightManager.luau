@@ -189,7 +189,7 @@ local function updateSunlightDebuff(dt)
     if sunCheckTimer < DNC.SunlightDebuff.CheckInterval then return end
     sunCheckTimer = 0
 
-    local now = tick()
+    local now = os.clock()
 
     for _, player in Players:GetPlayers() do
         local char = player.Character

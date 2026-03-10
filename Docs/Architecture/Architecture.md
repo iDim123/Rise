@@ -8,6 +8,8 @@
 | Файл | Содержание |
 |---|---|
 | Architecture.md | Структура проекта, конвенции, версии (этот файл) |
+| Game_Overview.md | Дизайн-документ игры (в Docs/) |
+| Audit_Architecture.md | Архитектурный аудит (P0-P2 проблемы и решения) |
 | Systems_Combat.md | Боевая система: мили, дальний бой, снаряды, способности, каст, магия |
 | Systems_Inventory.md | Инвентарь, предметы, крафт, экипировка |
 | Systems_Entities.md | Враги, боссы, слуги, AI |
@@ -37,13 +39,15 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Колл�
 
 ## EventBus
 
-Серверная event-шина для развязки модулей. Модули подписываются через `EventBus.on(eventName, callback)`, события вызываются через `EventBus.fire(eventName, ...)`.
+Серверная event-шина для развязки модулей. Модули подписываются через `EventBus.on(eventName, callback)`, события вызываются через `EventBus.fire(eventName, ...)`. Для отписки: `EventBus.off(eventName, callback)` (v1.8).
 
 | Событие | Аргументы | Кто вызывает | Кто слушает |
 |---|---|---|---|
 | EntityDying | entity, attacker | HealthManager.die() | LootManager, LevelManager, HealthManager, LeechHandler, IgniteHandler |
+| EntityTookDamage | entity, damage, attacker | HealthManager.takeDamage() | LeechHandler, IgniteHandler |
 | EntityRemoved | enemyType, spawnPos, spawnLevel | HealthManager.die(), ServantManager | EnemySpawner |
 | PlayerDied | player, entity, attacker | HealthManager.die() | HealthManager |
+| PlayerCleanup | player | PlayerLifecycle (v1.8) | Все модули с per-player данными |
 
 ---
 
@@ -86,11 +90,11 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Колл�
 
 ### DataStore (v1.7)
 
-DataService централизует save/load. DATASTORE_NAME = "RisePlayerData_v1". Сохраняет: Level, XP, Inventory, Blood, BossEssence, UnlockedTechs, Servants, Magic (SpellPoints, LearnedSpells, EquippedSpells, ClaimedBossRewards). Autosave каждые 120с. PlayerLifecycle координирует load → init → CharacterAdded; save → cleanup при выходе.
+DataService централизует save/load. DATASTORE_NAME = "RisePlayerData_v1". Сохраняет: Level, XP, Inventory, Blood, BossEssence, UnlockedTechs, Servants, Magic (SpellPoints, LearnedSpells, EquippedSpells, ClaimedBossRewards). Autosave каждые 120с. Использует `UpdateAsync` с version guard для защиты от конкурентной перезаписи (v1.8). `SAVE_ENABLED = not RunService:IsStudio()` — автоматически включается в production. PlayerLifecycle координирует load → init → CharacterAdded; save → cleanup при выходе. BindToClose отслеживает все потоки сохранений с таймаутом 25 сек (v1.8).
 
 ### Безопасность
 
-Серверные модули в ServerScriptService, не реплицируются клиенту. DropItem remote имеет rate-limit (0.3с). Все боевые расчёты авторитетны на сервере. SpellCastManager валидирует все входящие данные (cooldown, charges, IsDead, слот).
+Серверные модули в ServerScriptService, не реплицируются клиенту. DropItem remote имеет rate-limit (0.3с). SpellAim remote имеет rate-limit (50ms per player, v1.8). Все боевые расчёты авторитетны на сервере. SpellCastManager валидирует все входящие данные (cooldown, charges, IsDead, слот).
 
 ### Горячие клавиши
 
@@ -153,3 +157,4 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | 1.5 | develop_1.5 | Модульный Config, Level/XP, Wolf, крафт брони, Target Info, LevelColorUtil |
 | 1.6 | develop_1.6 | Stats (20 статов), Blood Tiers, Boss System, Minimap, Death System, DataStore, Debug |
 | 1.7 | develop_1.7 | Рефакторинг: ItemConfig → items/, BossManager → boss/, ServantManager → servant/, WeaponConfig → weapons/, боевая система → combat/ (CombatManager, DamageCalc, TargetFinder, MeleeHandler, RangedHandler, ProjectileManager), дальний бой (Bow, снаряды, каст). **Система магии**: SpellConfig (Blood/Chaos школы), SpellProgressManager (spell points, тиры), SpellCastManager (каст, charges, channelling, SpellAim), 14 модульных spellEffects, LeechHandler/IgniteHandler пассивки, Beam система (BeamEffect + BeamVisual), SpellVFX (клиентские эффекты), Spellbook UI (Journal интеграция, 12 модулей), AbilitiesBar секционная архитектура (Weapon/Spell/Ultimate/Class секции), DataService + Magic данные |
+| 1.8 | develop_1.8 | **Архитектурный аудит и фиксы**: DataService: SetAsync → UpdateAsync + version guard; SAVE_ENABLED по RunService:IsStudio(); BindToClose race condition fix (thread tracking + 25s timeout); HealthManager GC + cleanup(); EnemyAI activation distance (100 studs) + batch processing; EventBus.off(); SpellAim rate-limit; tick() → os.clock() (все серверные файлы); CharacterUtil shared module; PlayerCleanup EventBus event; LootManager periodic cleanup; TargetFinder spatial hash grid (CELL_SIZE=50, обновление 0.2с); Game Overview document; Roadmap 1.9 |
