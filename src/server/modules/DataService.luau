@@ -18,7 +18,7 @@ local dataStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local playerLoaded = {} -- [userId] = true when data is loaded
 local saving = {} -- [userId] = true while saving (prevent double save)
 
-local SAVE_ENABLED = false
+local SAVE_ENABLED = not RunService:IsStudio()
 -- ═══ Default data template ═══
 local function getDefaultData()
     return {
@@ -323,12 +323,25 @@ function DataService.save(player)
     saving[userId] = true
 
     local data = DataService.collect(player)
+    data.Version = (data.Version or 0) + 1
     local key = "player_" .. userId
 
     local success, err
     for attempt = 1, MAX_RETRIES do
         success, err = pcall(function()
-            dataStore:SetAsync(key, data)
+            dataStore:UpdateAsync(key, function(oldData)
+                -- Version guard: don't overwrite newer data
+                if oldData and type(oldData) == "table" then
+                    local oldVersion = oldData.Version or 0
+                    if oldVersion >= data.Version then
+                        -- Remote data is newer or equal — skip
+                        warn("[DataService] Version conflict for " .. (player.Name or tostring(userId))
+                            .. ": remote v" .. oldVersion .. " >= local v" .. data.Version .. ", skip")
+                        return nil -- returning nil cancels the update
+                    end
+                end
+                return data
+            end)
         end)
         if success then
             break
@@ -343,7 +356,7 @@ function DataService.save(player)
     saving[userId] = nil
 
     if success then
-        print("[DataService] Saved data for " .. (player.Name or tostring(userId)))
+        print("[DataService] Saved data for " .. (player.Name or tostring(userId)) .. " (v" .. data.Version .. ")")
     else
         warn(
             "[DataService] FAILED to save data for " .. (player.Name or tostring(userId)) .. " after " .. MAX_RETRIES ..

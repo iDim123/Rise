@@ -73,7 +73,7 @@ function LootManager.dropLoot(enemyEntity, customLoot)
 			itemId = lootEntry.ItemId,
 			itemName = itemConfig.Name,
 			amount = amount,
-			spawnTime = tick(),
+			spawnTime = os.clock(),
 		}
 
 		dropIndex += 1
@@ -125,7 +125,7 @@ end
 
 -- Очистка старого лута
 function LootManager.cleanup()
-	local now = tick()
+	local now = os.clock()
 	for lootPart, data in activeLoot do
 		if now - data.spawnTime > Config.Loot.DropLifetime then
 			activeLoot[lootPart] = nil
@@ -192,7 +192,7 @@ function LootManager.dropItemFromPlayer(player, slotIndex, itemData, amount)
         itemId = itemData.Id,
         itemName = itemData.Name,
         amount = amount,
-        spawnTime = tick(),
+        spawnTime = os.clock(),
     }
 
     print("[LootManager] " .. player.Name .. " dropped " .. itemData.Name .. " x" .. amount)
@@ -202,6 +202,14 @@ end
 
 EventBus.on("EntityDying", function(entity, attacker)
     LootManager.dropLoot(entity)
+end)
+
+-- Periodic loot cleanup (every 30 s)
+task.spawn(function()
+    while true do
+        task.wait(30)
+        LootManager.cleanup()
+    end
 end)
 
 return LootManager
