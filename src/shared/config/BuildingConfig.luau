@@ -105,8 +105,8 @@
 
         -- ═══ Permissions (кооперативное строительство) ═══
         DefaultPermissions = {
-            AllowCoopBuild = false,
-            AllowCoopRemove = false,
+            AllowCoopBuild = true,
+            AllowCoopRemove = true,
             AllowCoopInteract = true
         },
 

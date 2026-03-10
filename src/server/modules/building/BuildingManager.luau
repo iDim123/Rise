@@ -654,7 +654,7 @@ function BuildingManager.placeBlock(player, blockTypeId, rawPosition, rotation)
         castleFolder = folder,
         hitPart = hitPart,
         coffinCount = countFunctional(castle, "Coffin"),
-        heartPosition = castle.heartPart and castle.heartPart.Position or nil,
+        heartPosition = castle.heartPart and castle.heartPart.PrimaryPart and castle.heartPart.PrimaryPart.Position or nil,
         heartSize = heartCfg.Size,
     })
     if not valid then

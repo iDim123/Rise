@@ -98,12 +98,15 @@ local function createGhost(blockTypeId)
     part.CastShadow = false
     part.Parent = workspace
 
-    local highlight = Instance.new("SelectionBox")
+    -- FIX: Highlight вместо SelectionBox — точный размер, без раздувания
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "GhostHighlight"
     highlight.Adornee = part
-    highlight.Color3 = BC.GHOST_VALID_BORDER
-    highlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
-    highlight.SurfaceTransparency = 0.8
-    highlight.LineThickness = BC.GHOST_BORDER_THICKNESS
+    highlight.FillTransparency = 0.7
+    highlight.FillColor = BC.GHOST_VALID_COLOR
+    highlight.OutlineColor = BC.GHOST_VALID_BORDER
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
     highlight.Parent = part
 
     ghostPart = part
@@ -307,11 +310,11 @@ local function updateGhostPosition()
 
     if ghostHighlight then
         if isValid then
-            ghostHighlight.Color3 = BC.GHOST_VALID_BORDER
-            ghostHighlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
+            ghostHighlight.FillColor = BC.GHOST_VALID_COLOR
+            ghostHighlight.OutlineColor = BC.GHOST_VALID_BORDER
         else
-            ghostHighlight.Color3 = BC.GHOST_INVALID_BORDER
-            ghostHighlight.SurfaceColor3 = BC.GHOST_INVALID_COLOR
+            ghostHighlight.FillColor = BC.GHOST_INVALID_COLOR
+            ghostHighlight.OutlineColor = BC.GHOST_INVALID_BORDER
         end
     end
 end
