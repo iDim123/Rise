@@ -13,6 +13,7 @@ function SpellCard.build(parent, spellConfig, isLearned, isSelected, layoutOrder
     card.AutoButtonColor = false
     card.Image = ""
     card.LayoutOrder = layoutOrder or 0
+    card.ClipsDescendants = true
     card.Parent = parent
 
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -36,14 +37,13 @@ function SpellCard.build(parent, spellConfig, isLearned, isSelected, layoutOrder
     -- Icon — fills entire card
     local icon = Instance.new("ImageLabel")
     icon.Name = "Icon"
-    icon.Size = UDim2.new(1, -6, 1, -6)
-    icon.AnchorPoint = Vector2.new(0.5, 0.5)
-    icon.Position = UDim2.new(0.5, 0, 0.5, 0)
+    icon.Size = UDim2.new(1, 0, 1, 0)
     icon.BackgroundTransparency = 1
     icon.Image = spellConfig.Icon or ""
     icon.ImageTransparency = isLearned and 0 or 0.5
-    icon.ScaleType = Enum.ScaleType.Fit
+    icon.ScaleType = Enum.ScaleType.Stretch
     icon.Parent = card
+    Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 8)
 
     -- Fallback text (when no icon)
     if not spellConfig.Icon or spellConfig.Icon == "" or spellConfig.Icon == "rbxassetid://0" then

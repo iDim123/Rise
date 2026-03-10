@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
@@ -61,6 +60,7 @@ function SpellSlotBar.build(parent)
         slot.BackgroundColor3 = C.SLOT_BG
         slot.AutoButtonColor = false
         slot.Image = ""
+        slot.ClipsDescendants = true
         slot.Parent = slotContainer
 
         Instance.new("UICorner", slot).CornerRadius = UDim.new(0, 6)
@@ -72,13 +72,12 @@ function SpellSlotBar.build(parent)
 
         local iconImg = Instance.new("ImageLabel")
         iconImg.Name = "Icon"
-        iconImg.Size = UDim2.new(0.75, 0, 0.75, 0)
-        iconImg.AnchorPoint = Vector2.new(0.5, 0.5)
-        iconImg.Position = UDim2.new(0.5, 0, 0.5, 0)
+        iconImg.Size = UDim2.new(1, 0, 1, 0)
         iconImg.BackgroundTransparency = 1
-        iconImg.ScaleType = Enum.ScaleType.Fit
+        iconImg.ScaleType = Enum.ScaleType.Stretch
         iconImg.Visible = false
         iconImg.Parent = slot
+        Instance.new("UICorner", iconImg).CornerRadius = UDim.new(0, 6)
 
         local fallback = Instance.new("TextLabel")
         fallback.Name = "Fallback"
@@ -108,14 +107,12 @@ function SpellSlotBar.build(parent)
             fallback = fallback
         }
 
-        -- Left click: equip selected spell to this slot
         slot.Activated:Connect(function()
             if onSlotClickCallback then
                 onSlotClickCallback(slotKey)
             end
         end)
 
-        -- Right click: unequip spell from this slot
         slot.MouseButton2Click:Connect(function()
             if equippedSlots[slotKey] then
                 Remotes.UnequipSpell:FireServer(slotKey)

@@ -63,17 +63,21 @@ function SpellbookPage.build(contentParent, screenGui)
 
     -- ═══ Callbacks ═══
 
+    -- School change → full reset (clear selection, rebuild grid)
     SchoolTabs.onSelect(function(schoolId)
         SpellbookPage._onSchoolChanged(schoolId)
     end)
 
+    -- Spell selected in grid → show detail, rebuild grid to update highlights
     SpellGrid.onSelect(function(spellId)
         SpellDetailPanel.refresh(spellId, spellData)
+        -- Rebuild grid to update card visuals (selection highlight)
         local currentSchool = SchoolTabs.getSelected()
         local learned = spellData and spellData.LearnedSpells or {}
         SpellGrid.rebuild(currentSchool, learned, spellData)
     end)
 
+    -- Slot bar click → equip from detail panel
     SpellSlotBar.onSlotClick(function(slotKey)
         local selectedSpell = SpellGrid.getSelected()
         if not selectedSpell then
@@ -82,16 +86,22 @@ function SpellbookPage.build(contentParent, screenGui)
         Remotes.EquipSpell:FireServer(selectedSpell, slotKey)
     end)
 
+    -- Learn callback → do NOT reset selection
+    SpellDetailPanel.onLearned(function(learnedSpellId)
+        -- Server will send UpdateSpellData, which triggers _refreshKeepSelection
+        -- Nothing else needed here
+    end)
+
     -- ═══ Remote listeners ═══
     Remotes.UpdateSpellData.OnClientEvent:Connect(function(data)
         if data then
             spellData = data
-            SpellbookPage._refreshAll()
+            SpellbookPage._refreshKeepSelection()
         end
     end)
 end
 
--- ═══ School change ═══
+-- ═══ School change (full reset) ═══
 function SpellbookPage._onSchoolChanged(schoolId)
     SchoolInfoPanel.refresh(schoolId, spellData)
 
@@ -103,7 +113,33 @@ function SpellbookPage._onSchoolChanged(schoolId)
     TierProgressBar.refresh(schoolId, learned)
 end
 
--- ═══ Refresh all ═══
+-- ═══ Refresh keeping current selection (for UpdateSpellData) ═══
+function SpellbookPage._refreshKeepSelection()
+    local currentSchool = SchoolTabs.getSelected()
+    if not currentSchool then
+        return
+    end
+
+    -- Refresh side panels
+    SchoolInfoPanel.refresh(currentSchool, spellData)
+
+    local learned = spellData and spellData.LearnedSpells or {}
+
+    -- Rebuild grid preserving selected spell
+    SpellGrid.rebuild(currentSchool, learned, spellData)
+
+    -- Refresh tier bar
+    TierProgressBar.refresh(currentSchool, learned)
+
+    -- Refresh detail panel with current selection but updated data
+    SpellDetailPanel.refreshState(spellData)
+
+    -- Refresh slot bar
+    local equipped = spellData and spellData.EquippedSlots or {}
+    SpellSlotBar.refresh(equipped)
+end
+
+-- ═══ Full refresh (initial load, page activation) ═══
 function SpellbookPage._refreshAll()
     local currentSchool = SchoolTabs.getSelected()
     if currentSchool then
