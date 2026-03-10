@@ -158,37 +158,87 @@ local function updateGhostPosition()
 
     -- Edge-snap для стен на фундаменте
     local hitPart = rayResult.Instance
-    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" and hitPart and hitPart:IsA("BasePart") and
-        hitPart:GetAttribute("IsStructure") then
+    local foundationPart = nil
 
-        local hitTypeId = hitPart:GetAttribute("BlockTypeId")
-        if hitTypeId then
-            local hitBt = Config.Building.BlockTypes[hitTypeId]
-            local hitCat = hitBt and hitBt.Category
-
-            if hitCat == "Foundation" then
-                local fPos = hitPart.Position
-                local fSize = hitPart.Size
-                local halfFX = fSize.X / 2
-                local halfFZ = fSize.Z / 2
-                local fSurfaceY = fPos.Y + fSize.Y / 2
-
-                if currentRotation == 0 or currentRotation == 180 then
-                    local northEdge = fPos.Z - halfFZ
-                    local southEdge = fPos.Z + halfFZ
-                    local dN = math.abs(snappedZ - northEdge)
-                    local dS = math.abs(snappedZ - southEdge)
-                    local edgeZ = dN <= dS and northEdge or southEdge
-                    finalPos = Vector3.new(fPos.X, fSurfaceY + size.Y / 2, edgeZ)
-                else
-                    local westEdge = fPos.X - halfFX
-                    local eastEdge = fPos.X + halfFX
-                    local dW = math.abs(snappedX - westEdge)
-                    local dE = math.abs(snappedX - eastEdge)
-                    local edgeX = dW <= dE and westEdge or eastEdge
-                    finalPos = Vector3.new(edgeX, fSurfaceY + size.Y / 2, fPos.Z)
+    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" then
+        -- Сначала проверяем: попали ли на фундамент напрямую
+        if hitPart and hitPart:IsA("BasePart") and hitPart:GetAttribute("IsStructure") then
+            local hitTypeId = hitPart:GetAttribute("BlockTypeId")
+            if hitTypeId then
+                local hitBt = Config.Building.BlockTypes[hitTypeId]
+                if hitBt and hitBt.Category == "Foundation" then
+                    foundationPart = hitPart
                 end
             end
+            -- Castle Heart Platform
+            if hitPart:GetAttribute("IsCastleHeart") then
+                foundationPart = hitPart
+            end
+        end
+
+        -- Если не попали — ищем ближайший фундамент
+        if not foundationPart then
+            local castlesFolder = workspace:FindFirstChild("Castles")
+            if castlesFolder then
+                local bestDist = math.huge
+                for _, folder in castlesFolder:GetChildren() do
+                    for _, obj in folder:GetChildren() do
+                        local part = nil
+                        if obj:IsA("BasePart") and obj:GetAttribute("IsStructure") then
+                            local tid = obj:GetAttribute("BlockTypeId")
+                            if tid then
+                                local tbt = Config.Building.BlockTypes[tid]
+                                if tbt and tbt.Category == "Foundation" then
+                                    part = obj
+                                end
+                            end
+                        elseif obj:IsA("Model") and obj:GetAttribute("IsCastleHeart") then
+                            part = obj.PrimaryPart
+                        end
+
+                        if part then
+                            local fSize = part.Size
+                            local dx = math.abs(snappedX - part.Position.X) - fSize.X / 2
+                            local dz = math.abs(snappedZ - part.Position.Z) - fSize.Z / 2
+                            if dx <= 2 and dz <= 2 then
+                                local dist = (Vector2.new(snappedX, snappedZ) -
+                                                 Vector2.new(part.Position.X, part.Position.Z)).Magnitude
+                                if dist < bestDist then
+                                    bestDist = dist
+                                    foundationPart = part
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Если нашли фундамент — snap к краю
+        if foundationPart then
+            local fPos = foundationPart.Position
+            local fSize = foundationPart.Size
+            local halfFX = fSize.X / 2
+            local halfFZ = fSize.Z / 2
+            local fSurfaceY = fPos.Y + fSize.Y / 2
+
+            if currentRotation == 0 or currentRotation == 180 then
+                local northEdge = fPos.Z - halfFZ
+                local southEdge = fPos.Z + halfFZ
+                local dN = math.abs(snappedZ - northEdge)
+                local dS = math.abs(snappedZ - southEdge)
+                local edgeZ = dN <= dS and northEdge or southEdge
+                finalPos = Vector3.new(fPos.X, fSurfaceY + size.Y / 2, edgeZ)
+            else
+                local westEdge = fPos.X - halfFX
+                local eastEdge = fPos.X + halfFX
+                local dW = math.abs(snappedX - westEdge)
+                local dE = math.abs(snappedX - eastEdge)
+                local edgeX = dW <= dE and westEdge or eastEdge
+                finalPos = Vector3.new(edgeX, fSurfaceY + size.Y / 2, fPos.Z)
+            end
+
+            surfaceY = fPos.Y + fSize.Y / 2
         end
     end
 

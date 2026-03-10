@@ -285,6 +285,70 @@ local function snapWallToEdge(wallSnapped, wallSize, hitPart, rotation)
     return finalPos, surfaceY
 end
 
+--- Найти фундамент под или рядом с позицией (для стен на краю).
+--- @param position Vector3 — snap-позиция
+--- @param castleFolder Folder
+--- @return Instance | nil — часть фундамента
+local function findNearbyFoundation(position, castleFolder)
+    if not castleFolder then
+        return nil
+    end
+
+    local bestPart = nil
+    local bestDist = math.huge
+    -- FIX: допуск = половина сетки + толщина стены
+    local maxOverhang = getBuildingConfig().GridSize / 2 + 2 -- 4 + 2 = 6
+
+    for _, part in castleFolder:GetChildren() do
+        if part:IsA("BasePart") and part:GetAttribute("IsStructure") then
+            local typeId = part:GetAttribute("BlockTypeId")
+            if typeId then
+                local bt = getBuildingConfig().BlockTypes[typeId]
+                if bt and bt.Category == "Foundation" then
+                    local fPos = part.Position
+                    local fSize = part.Size
+                    local halfX = fSize.X / 2
+                    local halfZ = fSize.Z / 2
+
+                    local dx = math.abs(position.X - fPos.X) - halfX
+                    local dz = math.abs(position.Z - fPos.Z) - halfZ
+
+                    if dx <= maxOverhang and dz <= maxOverhang then
+                        local dist = (Vector2.new(position.X, position.Z) - Vector2.new(fPos.X, fPos.Z)).Magnitude
+                        if dist < bestDist then
+                            bestDist = dist
+                            bestPart = part
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Castle Heart
+    for _, obj in castleFolder:GetChildren() do
+        if obj:IsA("Model") and obj:GetAttribute("IsCastleHeart") then
+            local platform = obj.PrimaryPart
+            if platform then
+                local fPos = platform.Position
+                local fSize = platform.Size
+                local dx = math.abs(position.X - fPos.X) - fSize.X / 2
+                local dz = math.abs(position.Z - fPos.Z) - fSize.Z / 2
+
+                if dx <= maxOverhang and dz <= maxOverhang then
+                    local dist = (Vector2.new(position.X, position.Z) - Vector2.new(fPos.X, fPos.Z)).Magnitude
+                    if dist < bestDist then
+                        bestDist = dist
+                        bestPart = platform
+                    end
+                end
+            end
+        end
+    end
+
+    return bestPart
+end
+
 --- Рассчитать финальную позицию размещения блока.
 function BuildingValidator.calcPlacementPos(blockTypeId, rawPosition, rotation, castleFolder)
     local bt = getBuildingConfig().BlockTypes[blockTypeId]
@@ -302,19 +366,46 @@ function BuildingValidator.calcPlacementPos(blockTypeId, rawPosition, rotation, 
         surfaceY = 0
     end
 
-    -- Стены и функциональные блоки на фундаменте: привязка к краю
-    if bt.PlacementRule == "OnFoundation" and hitPart and hitPart:GetAttribute("IsStructure") then
+    -- Для OnFoundation: если raycast не попал на фундамент, ищем рядом
+    if bt.PlacementRule == "OnFoundation" then
+        local isFoundation = false
+        if hitPart and hitPart:GetAttribute("IsStructure") then
+            local hitTypeId = hitPart:GetAttribute("BlockTypeId")
+            if hitTypeId then
+                local hitCat = getBlockCategory(hitTypeId)
+                if hitCat == "Foundation" then
+                    isFoundation = true
+                end
+            end
+            -- Castle Heart Platform тоже фундамент
+            if hitPart:GetAttribute("IsCastleHeart") then
+                isFoundation = true
+            end
+        end
+
+        if not isFoundation then
+            -- FIX: ищем по rawPosition (позиция от клиента), а не по snapped
+            -- Клиент уже рассчитал edge-snap, rawPosition ближе к фундаменту
+            local nearbyFound = findNearbyFoundation(rawPosition, castleFolder)
+            if nearbyFound then
+                hitPart = nearbyFound
+                surfaceY = nearbyFound.Position.Y + nearbyFound.Size.Y / 2
+            end
+        end
+    end
+
+    -- Стены: snap к краю фундамента
+    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" and hitPart and hitPart:GetAttribute("IsStructure") then
         local hitTypeId = hitPart:GetAttribute("BlockTypeId")
         local hitCategory = hitTypeId and getBlockCategory(hitTypeId)
+        local isCastleHeartPlatform = hitPart:GetAttribute("IsCastleHeart")
 
-        if hitCategory == "Foundation" and bt.Category == "Wall" then
-            -- Стена → snap к краю фундамента
+        if hitCategory == "Foundation" or isCastleHeartPlatform then
             local edgePos, edgeSurfaceY = snapWallToEdge(snapped, size, hitPart, rot)
             return edgePos, edgeSurfaceY, hitPart
         end
     end
 
-    -- Стандартное размещение (фундамент на земле, крыша на стене и т.д.)
     local finalPos = calcPlacementPosition(snapped, size, surfaceY)
     return finalPos, surfaceY, hitPart
 end
@@ -354,8 +445,14 @@ function BuildingValidator.validate(params)
     end
 
     -- 4. PlacementRule
+    print("[Validator] validateSurface:", "rule:", bt.PlacementRule, "hitPart:",
+        params.hitPart and params.hitPart.Name or "nil", "hitIsStructure:",
+        params.hitPart and params.hitPart:GetAttribute("IsStructure") or false, "hitTypeId:",
+        params.hitPart and params.hitPart:GetAttribute("BlockTypeId") or "nil")
+
     local surfaceOk, surfaceErr = validateSurface(bt.PlacementRule, params.hitPart)
     if not surfaceOk then
+        print("[Validator] REJECTED:", surfaceErr)
         return false, surfaceErr
     end
 
