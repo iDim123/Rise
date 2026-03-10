@@ -11,8 +11,11 @@ local placeholderLabel = nil
 local iconFrame, nameLabel, classLabel, castLabel, cooldownLabel, descLabel
 local learnButton = nil
 local requireLabel = nil
+local equipSection = nil -- Frame: contains equip buttons
+local equippedLabel = nil -- "Экипировано в слот R"
 local currentSpellId = nil
 local onLearnedCallback = nil
+local cachedSpellData = nil
 
 function SpellDetailPanel.build(parent)
     panelFrame = Instance.new("Frame")
@@ -32,7 +35,7 @@ function SpellDetailPanel.build(parent)
     stroke.Thickness = 1
     stroke.Parent = panelFrame
 
-    -- ═══ Placeholder ═══
+    -- Placeholder
     placeholderLabel = Instance.new("TextLabel")
     placeholderLabel.Name = "Placeholder"
     placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -45,7 +48,7 @@ function SpellDetailPanel.build(parent)
     placeholderLabel.ZIndex = 2
     placeholderLabel.Parent = panelFrame
 
-    -- ═══ Content ═══
+    -- Content
     contentFrame = Instance.new("Frame")
     contentFrame.Name = "Content"
     contentFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -80,7 +83,6 @@ function SpellDetailPanel.build(parent)
     iconFrame.BackgroundColor3 = C.CARD_BG
     iconFrame.BorderSizePixel = 0
     iconFrame.Parent = headerRow
-
     Instance.new("UICorner", iconFrame).CornerRadius = UDim.new(0, 6)
 
     local iconStroke = Instance.new("UIStroke")
@@ -94,7 +96,6 @@ function SpellDetailPanel.build(parent)
     iconImage.BackgroundTransparency = 1
     iconImage.ScaleType = Enum.ScaleType.Crop
     iconImage.Parent = iconFrame
-
     Instance.new("UICorner", iconImage).CornerRadius = UDim.new(0, 6)
 
     local iconFallback = Instance.new("TextLabel")
@@ -130,7 +131,7 @@ function SpellDetailPanel.build(parent)
     classLabel.TextXAlignment = Enum.TextXAlignment.Left
     classLabel.Parent = headerRow
 
-    -- Separator 1
+    -- Sep 1
     local sep1 = Instance.new("Frame")
     sep1.Size = UDim2.new(1, 0, 0, 1)
     sep1.BackgroundColor3 = C.SEPARATOR
@@ -161,7 +162,7 @@ function SpellDetailPanel.build(parent)
     cooldownLabel.LayoutOrder = 4
     cooldownLabel.Parent = contentFrame
 
-    -- Separator 2
+    -- Sep 2
     local sep2 = Instance.new("Frame")
     sep2.Size = UDim2.new(1, 0, 0, 1)
     sep2.BackgroundColor3 = C.SEPARATOR
@@ -183,7 +184,7 @@ function SpellDetailPanel.build(parent)
     descLabel.LayoutOrder = 6
     descLabel.Parent = contentFrame
 
-    -- Separator 3
+    -- Sep 3
     local sep3 = Instance.new("Frame")
     sep3.Name = "Sep3"
     sep3.Size = UDim2.new(1, 0, 0, 1)
@@ -194,7 +195,7 @@ function SpellDetailPanel.build(parent)
     sep3.Visible = false
     sep3.Parent = contentFrame
 
-    -- Requirement text (not enough points)
+    -- Requirement text
     requireLabel = Instance.new("TextLabel")
     requireLabel.Name = "RequireLabel"
     requireLabel.Size = UDim2.new(1, 0, 0, 0)
@@ -222,23 +223,18 @@ function SpellDetailPanel.build(parent)
     learnButton.LayoutOrder = 9
     learnButton.Visible = false
     learnButton.Parent = contentFrame
-
     Instance.new("UICorner", learnButton).CornerRadius = UDim.new(0, 6)
-
     local learnStroke = Instance.new("UIStroke")
     learnStroke.Color = Color3.fromRGB(60, 140, 60)
     learnStroke.Thickness = 1
     learnStroke.Parent = learnButton
 
-    -- Hover effects
     learnButton.MouseEnter:Connect(function()
         learnButton.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
     end)
     learnButton.MouseLeave:Connect(function()
         learnButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
     end)
-
-    -- Click → learn
     learnButton.Activated:Connect(function()
         if currentSpellId then
             Remotes.LearnSpell:FireServer(currentSpellId)
@@ -247,6 +243,68 @@ function SpellDetailPanel.build(parent)
             end
         end
     end)
+
+    -- ═══ Equip section (for learned spells) ═══
+    equipSection = Instance.new("Frame")
+    equipSection.Name = "EquipSection"
+    equipSection.Size = UDim2.new(1, 0, 0, 0)
+    equipSection.AutomaticSize = Enum.AutomaticSize.Y
+    equipSection.BackgroundTransparency = 1
+    equipSection.LayoutOrder = 10
+    equipSection.Visible = false
+    equipSection.Parent = contentFrame
+
+    local equipLayout = Instance.new("UIListLayout")
+    equipLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    equipLayout.Padding = UDim.new(0, 6)
+    equipLayout.Parent = equipSection
+
+    -- "Equipped in slot X" label
+    equippedLabel = Instance.new("TextLabel")
+    equippedLabel.Name = "EquippedLabel"
+    equippedLabel.Size = UDim2.new(1, 0, 0, 18)
+    equippedLabel.BackgroundTransparency = 1
+    equippedLabel.Font = Enum.Font.GothamBold
+    equippedLabel.TextSize = 14
+    equippedLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
+    equippedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    equippedLabel.LayoutOrder = 1
+    equippedLabel.Visible = false
+    equippedLabel.Parent = equipSection
+
+    -- Equip slot buttons
+    local slotDefs = SpellConfig.SpellSlots -- { {Key="R", AllowedClass="Basic"}, ... }
+    for i, slotDef in slotDefs do
+        local btn = Instance.new("TextButton")
+        btn.Name = "EquipBtn_" .. slotDef.Key
+        btn.Size = UDim2.new(1, 0, 0, 30)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        btn.AutoButtonColor = false
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.TextColor3 = C.TEXT_COLOR
+        btn.Text = "Экипировать в " .. slotDef.Key .. " (" .. slotDef.AllowedClass .. ")"
+        btn.LayoutOrder = 10 + i
+        btn.Parent = equipSection
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        local btnStroke = Instance.new("UIStroke")
+        btnStroke.Color = C.STROKE_COLOR
+        btnStroke.Thickness = 1
+        btnStroke.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            btn.BackgroundColor3 = Color3.fromRGB(65, 65, 90)
+        end)
+        btn.MouseLeave:Connect(function()
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        end)
+
+        btn.Activated:Connect(function()
+            if currentSpellId then
+                Remotes.EquipSpell:FireServer(currentSpellId, slotDef.Key)
+            end
+        end)
+    end
 
     SpellDetailPanel._showPlaceholder()
     return panelFrame
@@ -264,6 +322,8 @@ function SpellDetailPanel._showContent()
 end
 
 function SpellDetailPanel.refresh(spellId, spellData)
+    cachedSpellData = spellData
+
     if not spellId then
         SpellDetailPanel._showPlaceholder()
         return
@@ -322,22 +382,81 @@ function SpellDetailPanel.refresh(spellId, spellData)
         end
     end
 
-    -- ═══ Learn / Requirement ═══
+    -- ═══ State: learned / not learned ═══
     local sep3 = contentFrame:FindFirstChild("Sep3")
     local isLearned = spellData and spellData.LearnedSpells and spellData.LearnedSpells[spellId]
 
     if isLearned then
+        -- Hide learn UI
         learnButton.Visible = false
         requireLabel.Visible = false
+
+        -- Show equip section
         if sep3 then
-            sep3.Visible = false
+            sep3.Visible = true
+        end
+        equipSection.Visible = true
+
+        -- Check where this spell is currently equipped
+        local equippedInSlot = nil
+        if spellData and spellData.EquippedSlots then
+            for slotKey, eqId in spellData.EquippedSlots do
+                if eqId == spellId then
+                    equippedInSlot = slotKey
+                    break
+                end
+            end
+        end
+
+        if equippedInSlot then
+            equippedLabel.Text = "✓ Экипировано в слот " .. equippedInSlot
+            equippedLabel.Visible = true
+        else
+            equippedLabel.Visible = false
+        end
+
+        -- Show/hide equip buttons based on class compatibility
+        for _, child in equipSection:GetChildren() do
+            if child:IsA("TextButton") and child.Name:match("^EquipBtn_") then
+                local slotKey = child.Name:gsub("EquipBtn_", "")
+                local slotDef = nil
+                for _, sd in SpellConfig.SpellSlots do
+                    if sd.Key == slotKey then
+                        slotDef = sd;
+                        break
+                    end
+                end
+
+                if slotDef and slotDef.AllowedClass == spell.Class then
+                    child.Visible = true
+                    -- Show what's currently in this slot
+                    local currentInSlot = spellData and spellData.EquippedSlots and spellData.EquippedSlots[slotKey]
+                    if currentInSlot == spellId then
+                        child.Text = "✓ Слот " .. slotKey .. " (экипировано)"
+                        child.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+                    elseif currentInSlot then
+                        local otherSpell = SpellConfig.Spells[currentInSlot]
+                        local otherName = otherSpell and otherSpell.Name or currentInSlot
+                        child.Text = "Слот " .. slotKey .. " (заменить " .. otherName .. ")"
+                        child.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                    else
+                        child.Text = "Слот " .. slotKey .. " (пусто)"
+                        child.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                    end
+                else
+                    child.Visible = false
+                end
+            end
         end
     else
+        -- Not learned: show learn/require UI, hide equip
+        equipSection.Visible = false
+
         local school = spell.School
         local tier = spell.Tier
         local isUlt = spell.Class == "Ultimate"
         local cost = spell.UnlockCost or 1
-        local pointsKey = spell.Class == "Ultimate" and "ULT" or tostring(tier)
+        local pointsKey = isUlt and "ULT" or tostring(tier)
 
         local available = 0
         if spellData and spellData.SpellPoints and spellData.SpellPoints[school] then
@@ -351,7 +470,6 @@ function SpellDetailPanel.refresh(spellId, spellData)
         if available >= cost then
             learnButton.Visible = true
             requireLabel.Visible = false
-            -- Tint button with school accent
             learnButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
             local btnStroke = learnButton:FindFirstChildOfClass("UIStroke")
             if btnStroke then

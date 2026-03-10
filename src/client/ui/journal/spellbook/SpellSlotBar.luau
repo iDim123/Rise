@@ -1,12 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local SpellConfig = require(ReplicatedStorage:WaitForChild("config"):WaitForChild("SpellConfig"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local C = require(script.Parent:WaitForChild("SpellbookConstants"))
 
 local SpellSlotBar = {}
 
 local barFrame = nil
-local slotFrames = {} -- { [slotKey] = { frame, iconImage, fallback, hotkey } }
-local equippedSlots = {} -- { R = spellId, G = spellId, Z = spellId }
+local slotFrames = {}
+local equippedSlots = {}
 local onSlotClickCallback = nil
 
 function SpellSlotBar.build(parent)
@@ -18,7 +20,6 @@ function SpellSlotBar.build(parent)
     barFrame.BackgroundTransparency = 1
     barFrame.Parent = parent
 
-    -- "Current Spells" label + separator
     local labelFrame = Instance.new("Frame")
     labelFrame.Size = UDim2.new(0.5, 0, 0, 1)
     labelFrame.AnchorPoint = Vector2.new(0.5, 0)
@@ -32,7 +33,7 @@ function SpellSlotBar.build(parent)
     slotsLabel.Size = UDim2.new(0, 120, 0, 16)
     slotsLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     slotsLabel.Position = UDim2.new(0.5, 0, 0, 0)
-    slotsLabel.BackgroundColor3 = Color3.fromRGB(10, 8, 14) -- match bg to "cut" the line
+    slotsLabel.BackgroundColor3 = Color3.fromRGB(10, 8, 14)
     slotsLabel.BackgroundTransparency = 0
     slotsLabel.Font = Enum.Font.Gotham
     slotsLabel.TextSize = 16
@@ -40,7 +41,6 @@ function SpellSlotBar.build(parent)
     slotsLabel.Text = "Current Spells"
     slotsLabel.Parent = barFrame
 
-    -- Slot container
     local slotContainer = Instance.new("Frame")
     slotContainer.Name = "SlotContainer"
     slotContainer.Size = UDim2.new(0, 3 * C.SLOT_SIZE + 2 * C.SLOT_GAP, 0, C.SLOT_SIZE + 20)
@@ -70,7 +70,6 @@ function SpellSlotBar.build(parent)
         slotStroke.Thickness = 1
         slotStroke.Parent = slot
 
-        -- Icon
         local iconImg = Instance.new("ImageLabel")
         iconImg.Name = "Icon"
         iconImg.Size = UDim2.new(0.75, 0, 0.75, 0)
@@ -93,7 +92,6 @@ function SpellSlotBar.build(parent)
         fallback.Visible = false
         fallback.Parent = slot
 
-        -- Hotkey label below
         local hotkeyLabel = Instance.new("TextLabel")
         hotkeyLabel.Size = UDim2.new(0, C.SLOT_SIZE, 0, 16)
         hotkeyLabel.Position = UDim2.new(0, x, 0, C.SLOT_SIZE + 2)
@@ -110,9 +108,17 @@ function SpellSlotBar.build(parent)
             fallback = fallback
         }
 
+        -- Left click: equip selected spell to this slot
         slot.Activated:Connect(function()
             if onSlotClickCallback then
                 onSlotClickCallback(slotKey)
+            end
+        end)
+
+        -- Right click: unequip spell from this slot
+        slot.MouseButton2Click:Connect(function()
+            if equippedSlots[slotKey] then
+                Remotes.UnequipSpell:FireServer(slotKey)
             end
         end)
 
