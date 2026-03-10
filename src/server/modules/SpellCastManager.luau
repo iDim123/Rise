@@ -11,6 +11,8 @@ local StatsManager = require(modules:WaitForChild("StatsManager"))
 local CastManager = require(modules:WaitForChild("CastManager"))
 local SpellProgressManager = require(modules:WaitForChild("SpellProgressManager"))
 
+local CharacterUtil = require(ReplicatedStorage:WaitForChild("CharacterUtil"))
+
 local SpellCastManager = {}
 
 -- ═══ State ═══
@@ -37,13 +39,9 @@ local function getSpellPower(player)
 end
 
 local function validateCaster(player)
+    local humanoid, rootPart = CharacterUtil.validatePlayer(player)
+    if not humanoid or not rootPart then return nil end
     local character = player.Character
-    if not character then return nil end
-    if character:GetAttribute("IsDead") then return nil end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then return nil end
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return nil end
     return {
         player = player,
         character = character,
@@ -67,7 +65,7 @@ local function isOnCooldown(player, spellConfig)
     local lastUse = spellCooldowns[userId][spellConfig.Id] or 0
     local cdSpeed = StatsManager.get(player, "MagicCDSpeed") or 1
     local actualCd = spellConfig.Cooldown / math.max(cdSpeed, 0.1)
-    return (tick() - lastUse) < actualCd
+    return (os.clock() - lastUse) < actualCd
 end
 
 local function applyCooldown(player, spellConfig)
@@ -78,7 +76,7 @@ local function applyCooldown(player, spellConfig)
         if not spellCharges[userId] then spellCharges[userId] = {} end
         local cd = spellCharges[userId][spellConfig.Id]
         if not cd then
-            cd = { charges = spellConfig.MaxCharges, lastRecharge = tick() }
+            cd = { charges = spellConfig.MaxCharges, lastRecharge = os.clock() }
             spellCharges[userId][spellConfig.Id] = cd
         end
         cd.charges = math.max(0, cd.charges - 1)
@@ -90,7 +88,7 @@ local function applyCooldown(player, spellConfig)
         print("[SpellCastManager] charge used:", spellConfig.Id, "remaining =", cd.charges)
     else
         if not spellCooldowns[userId] then spellCooldowns[userId] = {} end
-        spellCooldowns[userId][spellConfig.Id] = tick()
+        spellCooldowns[userId][spellConfig.Id] = os.clock()
         local actualCd = spellConfig.Cooldown / math.max(cdSpeed, 0.1)
         Remotes.SpellCooldown:FireClient(player, spellConfig.Id, actualCd)
         print("[SpellCastManager] cooldown applied:", spellConfig.Id, "duration =", actualCd)
@@ -111,9 +109,9 @@ task.spawn(function()
                 if cd.charges >= cfg.MaxCharges then continue end
                 local cdSpeed = StatsManager.get(player, "MagicCDSpeed") or 1
                 local rechargeTime = (cfg.ChargeRechargeTime or cfg.Cooldown) / math.max(cdSpeed, 0.1)
-                if (tick() - cd.lastRecharge) >= rechargeTime then
+                if (os.clock() - cd.lastRecharge) >= rechargeTime then
                     cd.charges = math.min(cd.charges + 1, cfg.MaxCharges)
-                    cd.lastRecharge = tick()
+                    cd.lastRecharge = os.clock()
                     Remotes.SpellChargeUpdate:FireClient(player, spellId, cd.charges, cfg.MaxCharges)
                     print("[SpellCastManager] charge recharged:", spellId, "charges =", cd.charges)
                     if cd.charges < cfg.MaxCharges then

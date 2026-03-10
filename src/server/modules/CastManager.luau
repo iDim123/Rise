@@ -34,7 +34,7 @@ local MOVEMENT_MODE = {
 local activeCasts = {}
 
 local function makeCastId()
-    return "cast_" .. tostring(math.floor(tick() * 10000)) .. "_" .. tostring(math.random(1000, 9999))
+    return "cast_" .. tostring(math.floor(os.clock() * 10000)) .. "_" .. tostring(math.random(1000, 9999))
 end
 
 local function getHumanoid(player)
@@ -105,7 +105,7 @@ function CastManager.start(player, params)
         castId        = castId,
         player        = player,
         params        = params,
-        startTime     = tick(),
+        startTime     = os.clock(),
         duration      = params.Duration,
         baseSpeed     = baseSpeed,
         startPosition = startPos,

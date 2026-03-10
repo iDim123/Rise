@@ -9,9 +9,9 @@
 
 ### Точки входа
 
-Main.server.luau └── require: HealthManager, LootManager, EnemySpawner (регистрация EventBus подписок)
+Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager
 
-PlayerLifecycle.server.luau └── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager, BossManager, ServantManager, HealthManager, StatsManager
+PlayerLifecycle.server.luau └── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager, BossManager, ServantManager, HealthManager, StatsManager, EventBus
 
 
 ### Боевые модули (`server/combat/`)
@@ -28,7 +28,7 @@ WeaponUtil └── InventoryManager (lazy)
 
 DamageCalc ├── StatsManager (lazy) └── LevelManager (lazy)
 
-TargetFinder └── (standalone, uses workspace queries)
+TargetFinder └── CharacterUtil (+ spatial hash grid, RunService)
 
 ResourceHit ├── ResourceManager (lazy) └── StatsManager (lazy)
 

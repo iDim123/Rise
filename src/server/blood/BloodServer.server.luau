@@ -49,9 +49,9 @@ Remotes.DrinkBloodRequest.OnServerEvent:Connect(function(player)
     end
 end)
 
-local lastTick = tick()
+local lastTick = os.clock()
 RunService.Heartbeat:Connect(function()
-    local now = tick()
+    local now = os.clock()
     local dt = now - lastTick
     lastTick = now
 

@@ -11,6 +11,7 @@ local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManag
 local ServantManager = require(modules:WaitForChild("servant"):WaitForChild("ServantManager"))
 local HealthManager = require(modules:WaitForChild("HealthManager"))
 local StatsManager = require(modules:WaitForChild("StatsManager"))
+local EventBus = require(modules:WaitForChild("EventBus"))
 local CraftHandler -- lazy require (it's not a module in modules/)
 
 -- ═══ Character spawned ═══
@@ -91,7 +92,11 @@ local function onPlayerRemoving(player)
     -- 1. Save FIRST (while data still exists)
     DataService.save(player)
 
-    -- 2. Cleanup all modules
+    -- 2. Fire centralized cleanup event for all modules
+    --    Modules should listen to EventBus:"PlayerCleanup" instead of Players.PlayerRemoving
+    EventBus.fire("PlayerCleanup", player)
+
+    -- 3. Core cleanup (ordered: data-dependent modules first)
     ServantManager.remove(player)
     BloodManager.remove(player)
     BossManager.removePlayer(player)
@@ -104,7 +109,6 @@ local function onPlayerRemoving(player)
     end
 
     DataService.cleanup(player)
-    -- LevelManager cleanup happens in its own PlayerRemoving
 end
 
 -- ═══ Connect ═══

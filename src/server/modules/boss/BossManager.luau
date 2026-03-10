@@ -126,7 +126,7 @@ function BossManager.onBossDowned(bossId, attacker)
 
     data.state = BOSS_STATE.DOWNED
     data.downedAttacker = attacker
-    data.downedTimer = tick()
+    data.downedTimer = os.clock()
 
     local entity = data.entity
     if entity then

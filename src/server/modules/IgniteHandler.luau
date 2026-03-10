@@ -44,12 +44,12 @@ function IgniteHandler.apply(target, ownerId, spellPower)
         totalDamage = totalDamage,
         damagePerTick = math.floor(totalDamage / ticks),
         remaining = dotDuration,
-        lastTick = tick(),
+        lastTick = os.clock(),
     }
 
     target:SetAttribute("Passive_Ignite", true)
     target:SetAttribute("Passive_Ignite_Owner", ownerId)
-    target:SetAttribute("Passive_Ignite_Expire", tick() + dotDuration)
+    target:SetAttribute("Passive_Ignite_Expire", os.clock() + dotDuration)
 
     print("[IgniteHandler] applied to", target.Name, "totalDmg =", totalDamage, "duration =", dotDuration)
 end
@@ -61,7 +61,7 @@ end
 function IgniteHandler.init()
     -- DoT tick loop
     RunService.Heartbeat:Connect(function()
-        local now = tick()
+        local now = os.clock()
         local toRemove = {}
 
         for target, data in activeIgnites do

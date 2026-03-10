@@ -46,7 +46,7 @@ return function(ctx, effect, spellConfig)
     -- Register channel with mutable direction
     activeChannels[userId] = {
         spellId = spellConfig.Id,
-        startTime = tick(),
+        startTime = os.clock(),
         direction = dir,  -- mutable: updated by BeamUpdate
     }
 
@@ -146,7 +146,7 @@ return function(ctx, effect, spellConfig)
                         target:SetAttribute("Passive_" .. effect.ApplyPassive, true)
                         target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Owner", userId)
                         target:SetAttribute("Passive_" .. effect.ApplyPassive .. "_Expire",
-                            tick() + (passive and passive.Duration or 5))
+                            os.clock() + (passive and passive.Duration or 5))
                     end
 
                     -- Self heal per enemy hit

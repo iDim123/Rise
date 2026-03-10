@@ -56,7 +56,7 @@ return function(ctx, effect, spellConfig)
 
     activeChannels[userId] = {
         spellId = spellConfig.Id,
-        startTime = tick()
+        startTime = os.clock()
     }
 
     local channelTask = task.spawn(function()

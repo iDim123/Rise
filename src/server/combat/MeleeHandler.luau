@@ -1,8 +1,10 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DamageCalc = require(script.Parent:WaitForChild("DamageCalc"))
 local TargetFinder = require(script.Parent:WaitForChild("TargetFinder"))
 local ResourceHit = require(script.Parent:WaitForChild("ResourceHit"))
+local CharacterUtil = require(ReplicatedStorage:WaitForChild("CharacterUtil"))
 
 local HealthManager
 local StatsManager
@@ -44,25 +46,12 @@ local attackCooldowns = {} -- [userId] = lastAttackTime
 --- @param weaponConfig table
 function MeleeHandler.attack(player, mousePosition, comboIndex, weaponConfig)
     -- ── 1. Валидация ──────────────────────────────────────
+    local humanoid, rootPart = CharacterUtil.validatePlayer(player)
+    if not humanoid or not rootPart then
+        return
+    end
+
     local character = player.Character
-    if not character then
-        return
-    end
-
-    if character:GetAttribute("IsDead") then
-        return
-    end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then
-        return
-    end
-
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then
-        return
-    end
-
     local tool = character:FindFirstChildOfClass("Tool")
     if not tool then
         return
@@ -70,7 +59,7 @@ function MeleeHandler.attack(player, mousePosition, comboIndex, weaponConfig)
 
     -- ── 2. Кулдаун ────────────────────────────────────────
     local SM = getStatsManager()
-    local now = tick()
+    local now = os.clock()
     local lastAttack = attackCooldowns[player.UserId] or 0
     local attackSpeed = SM.get(player, "AttackSpeed")
     local actualCooldown = weaponConfig.Cooldown / math.max(attackSpeed, 0.1)

@@ -86,7 +86,7 @@ function AbilityManager.useAbility(player, key, mousePosition)
         abilityCooldowns[userId] = {}
     end
     local lastUse = abilityCooldowns[userId][ability.Id] or 0
-    local now = tick()
+    local now = os.clock()
 
     local cdSpeed
     if ability.DamageType == "Magic" then

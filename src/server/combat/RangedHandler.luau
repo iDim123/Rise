@@ -1,6 +1,8 @@
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ProjectileManager = require(script.Parent:WaitForChild("ProjectileManager"))
+local CharacterUtil = require(ReplicatedStorage:WaitForChild("CharacterUtil"))
 
 local CastManager
 local StatsManager
@@ -47,7 +49,7 @@ local FALLBACK_TIMEOUT = 1.0 -- секунд ожидания RangedRelease по
 
 -- Проверить cooldown (без применения)
 local function isOnCooldown(player, weaponConfig)
-    local now = tick()
+    local now = os.clock()
     local lastAttack = attackCooldowns[player.UserId] or 0
     local attackSpeed = getStatsManager().get(player, "AttackSpeed")
     local actualCooldown = weaponConfig.Cooldown / math.max(attackSpeed, 0.1)
@@ -56,30 +58,16 @@ end
 
 -- Применить cooldown
 local function applyCooldown(player)
-    attackCooldowns[player.UserId] = tick()
+    attackCooldowns[player.UserId] = os.clock()
 end
 
 -- Базовая валидация персонажа
 local function validateCharacter(player)
-    local character = player.Character
-    if not character then
+    local humanoid, rootPart = CharacterUtil.validatePlayer(player)
+    if not humanoid or not rootPart then
         return nil, nil
     end
-    if character:GetAttribute("IsDead") then
-        return nil, nil
-    end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then
-        return nil, nil
-    end
-
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then
-        return nil, nil
-    end
-
-    return character, rootPart
+    return player.Character, rootPart
 end
 
 -- Выстрелить снарядом
@@ -172,7 +160,7 @@ function RangedHandler.attack(player, mousePosition, weaponConfig)
     pendingCasts[player] = {
         weaponConfig = weaponConfig,
         castId = castId,
-        timestamp = tick(),
+        timestamp = os.clock(),
         waitTask = nil
     }
 end
