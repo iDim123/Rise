@@ -1,17 +1,11 @@
 --[[
     BuildingConfig.luau
     Конфигурация системы строительства замков (v1.9).
-
-    Загружается автоматически через Config.luau → Config.Building.*
-
-    КОНТРАКТ СЕРИАЛИЗАЦИИ (BuildingSerializer):
-      Сохраняются в DataStore: CenterPos, HeartLevel, Permissions, Blocks[], Containers[]
-      НЕ сохраняются (из конфига): Size, Material, Color, HP, Cost, PlacementRule и т.д.
-      HP блоков НЕ персистится — полное HP при загрузке.
+    Загружается через Config.luau → Config.Building.*
 ]] return {
     Building = {
         -- ═══ Настройки сетки ═══
-        GridSize = 4,
+        GridSize = 8,
         SnapTolerance = 0.1,
 
         -- ═══ Глобальные лимиты ═══
@@ -21,63 +15,53 @@
         RemoveRefundRate = 0.5,
 
         -- ═══ Castle Heart ═══
-        -- Центральный элемент замка. Ставится первым, определяет территорию.
-        -- Уничтожить может ТОЛЬКО владелец → весь замок разрушается.
-        -- Не потребляет blood_essence (v1.9).
         CastleHeart = {
             Name = "Сердце замка",
             Description = "Основа вашего замка. Определяет территорию и лимиты.",
-            Size = Vector3.new(4, 4, 4), -- общий размер bounding box (для валидации)
-            Material = Enum.Material.Basalt,
-            Color = Color3.fromRGB(60, 15, 15),
+            Size = Vector3.new(8, 2, 8), -- bounding box для валидации коллизий
             PlacementRule = "Ground",
             CanRotate = false,
             Icon = "rbxassetid://0",
 
-            -- ═══ Визуальная модель ═══
             Visual = {
-                -- Платформа (нижняя часть)
+                -- Платформа = фундамент (сердце стоит прямо на нём)
                 Platform = {
-                    Size = Vector3.new(4, 0.6, 4),
-                    Material = Enum.Material.Basalt,
-                    Color = Color3.fromRGB(45, 12, 12)
+                    Size = Vector3.new(8, 2, 8),
+                    Material = Enum.Material.Slate,
+                    Color = Color3.fromRGB(90, 85, 85)
                 },
-                -- Цилиндр-пьедестал (по центру платформы)
+                -- Цилиндр-пьедестал
                 Pedestal = {
-                    Diameter = 1.2, -- ширина/глубина цилиндра
-                    Height = 1.8,
+                    Diameter = 2.4,
+                    Height = 3.6,
                     Material = Enum.Material.Basalt,
                     Color = Color3.fromRGB(55, 15, 15)
                 },
-                -- Сфера (на вершине пьедестала)
+                -- Сфера
                 Orb = {
-                    -- Размер и цвет зависят от BloodEssence, задаются диапазонами:
-                    MinDiameter = 0.8, -- пустое сердце
-                    MaxDiameter = 1.6, -- полностью заполненное
-                    EmptyColor = Color3.fromRGB(40, 10, 10), -- тусклый тёмно-красный
-                    FullColor = Color3.fromRGB(220, 30, 30), -- яркий красный
+                    MinDiameter = 1.6,
+                    MaxDiameter = 3.2,
+                    EmptyColor = Color3.fromRGB(40, 10, 10),
+                    FullColor = Color3.fromRGB(220, 30, 30),
                     Material = Enum.Material.Neon,
-                    -- Свечение (PointLight внутри сферы)
                     Light = {
                         MinBrightness = 0.2,
                         MaxBrightness = 1.5,
-                        MinRange = 4,
-                        MaxRange = 16,
+                        MinRange = 6,
+                        MaxRange = 24,
                         Color = Color3.fromRGB(200, 20, 20)
                     }
                 },
-                -- Максимальная ёмкость эссенции для расчёта заполненности
-                -- (привязано к стоимости улучшения уровня 3 как ориентир)
                 MaxEssenceCapacity = 500
             },
-            -- Уровни: 1 = базовый (при размещении), 2 и 3 = улучшения
+
             Levels = {
                 [1] = {
                     HP = 1000,
                     MaxBlocks = 200,
                     ClaimRadius = 48,
                     MaxCoffins = 1,
-                    UpgradeCost = nil -- бесплатно (начальный уровень)
+                    UpgradeCost = nil
                 },
                 [2] = {
                     HP = 2000,
@@ -103,14 +87,14 @@
             MaxLevel = 3
         },
 
-        -- ═══ Permissions (кооперативное строительство) ═══
+        -- ═══ Permissions ═══
         DefaultPermissions = {
-            AllowCoopBuild = true,
-            AllowCoopRemove = true,
+            AllowCoopBuild = false,
+            AllowCoopRemove = false,
             AllowCoopInteract = true
         },
 
-        -- ═══ Категории блоков (для UI) ═══
+        -- ═══ Категории блоков ═══
         BlockCategories = {{
             Id = "Foundation",
             Name = "Фундамент",
@@ -122,39 +106,25 @@
             Icon = "rbxassetid://0",
             Order = 2
         }, {
-            Id = "Floor",
-            Name = "Полы",
-            Icon = "rbxassetid://0",
-            Order = 3
-        }, {
             Id = "Roof",
             Name = "Крыша",
             Icon = "rbxassetid://0",
-            Order = 4
+            Order = 3
         }, {
             Id = "Functional",
             Name = "Интерьер",
             Icon = "rbxassetid://0",
-            Order = 5
+            Order = 4
         }},
 
-        -- ═══ Типы блоков ═══
-        -- PlacementRule:
-        --   "Ground"        — только на Baseplate / terrain
-        --   "OnFoundation"  — верхняя грань фундамента или пола
-        --   "OnWall"        — верхняя грань стены
-        --   "Any"           — без ограничений
-        --
-        -- Functional (Phase 2):
-        --   "Door", "Chest", "Workbench", "BloodAltar", "Coffin"
-
+        -- ═══ Типы блоков (все размеры ×2) ═══
         BlockTypes = {
             -- ═══ Foundation ═══
             stone_foundation = {
                 Name = "Каменный фундамент",
                 Description = "Прочное основание замка.",
                 Category = "Foundation",
-                Size = Vector3.new(4, 1, 4),
+                Size = Vector3.new(8, 2, 8),
                 Material = Enum.Material.Slate,
                 Color = Color3.fromRGB(120, 120, 120),
                 HP = 500,
@@ -171,7 +141,7 @@
                 Name = "Деревянный фундамент",
                 Description = "Лёгкое основание из дерева.",
                 Category = "Foundation",
-                Size = Vector3.new(4, 1, 4),
+                Size = Vector3.new(8, 2, 8),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(139, 90, 43),
                 HP = 300,
@@ -189,7 +159,7 @@
                 Name = "Каменная стена",
                 Description = "Крепкая стена из камня.",
                 Category = "Wall",
-                Size = Vector3.new(4, 4, 1),
+                Size = Vector3.new(8, 8, 2),
                 Material = Enum.Material.Slate,
                 Color = Color3.fromRGB(130, 130, 130),
                 HP = 400,
@@ -206,7 +176,7 @@
                 Name = "Деревянная стена",
                 Description = "Стена из досок.",
                 Category = "Wall",
-                Size = Vector3.new(4, 4, 1),
+                Size = Vector3.new(8, 8, 2),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(150, 100, 50),
                 HP = 250,
@@ -223,7 +193,7 @@
                 Name = "Каменная колонна",
                 Description = "Колонна для поддержки крыши.",
                 Category = "Wall",
-                Size = Vector3.new(1, 4, 1),
+                Size = Vector3.new(2, 8, 2),
                 Material = Enum.Material.Slate,
                 Color = Color3.fromRGB(140, 140, 140),
                 HP = 600,
@@ -236,47 +206,12 @@
                 Icon = "rbxassetid://0"
             },
 
-            -- ═══ Floor ═══
-            wooden_floor = {
-                Name = "Деревянный пол",
-                Description = "Пол из обработанных досок.",
-                Category = "Floor",
-                Size = Vector3.new(4, 0.5, 4),
-                Material = Enum.Material.WoodPlanks,
-                Color = Color3.fromRGB(160, 110, 60),
-                HP = 200,
-                Cost = {{
-                    ItemId = "wooden_plank",
-                    Amount = 3
-                }},
-                PlacementRule = "OnWall",
-                CanRotate = false,
-                Icon = "rbxassetid://0"
-            },
-
-            stone_floor = {
-                Name = "Каменный пол",
-                Description = "Холодный каменный пол.",
-                Category = "Floor",
-                Size = Vector3.new(4, 0.5, 4),
-                Material = Enum.Material.Slate,
-                Color = Color3.fromRGB(110, 110, 110),
-                HP = 350,
-                Cost = {{
-                    ItemId = "stone",
-                    Amount = 6
-                }},
-                PlacementRule = "OnWall",
-                CanRotate = false,
-                Icon = "rbxassetid://0"
-            },
-
             -- ═══ Roof ═══
             wooden_roof = {
                 Name = "Деревянная крыша",
                 Description = "Крыша из досок. Защищает от солнца.",
                 Category = "Roof",
-                Size = Vector3.new(4, 0.5, 4),
+                Size = Vector3.new(8, 1, 8),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(100, 65, 30),
                 HP = 200,
@@ -294,7 +229,7 @@
                 Name = "Каменная крыша",
                 Description = "Прочная каменная крыша.",
                 Category = "Roof",
-                Size = Vector3.new(4, 0.5, 4),
+                Size = Vector3.new(8, 1, 8),
                 Material = Enum.Material.Slate,
                 Color = Color3.fromRGB(100, 100, 100),
                 HP = 400,
@@ -308,12 +243,12 @@
                 Icon = "rbxassetid://0"
             },
 
-            -- ═══ Functional (Phase 2) ═══
+            -- ═══ Functional ═══
             wooden_door = {
                 Name = "Деревянная дверь",
                 Description = "Открывается нажатием F.",
                 Category = "Functional",
-                Size = Vector3.new(4, 4, 0.5),
+                Size = Vector3.new(8, 8, 1),
                 Material = Enum.Material.Wood,
                 Color = Color3.fromRGB(120, 80, 40),
                 HP = 150,
@@ -331,7 +266,7 @@
                 Name = "Сундук",
                 Description = "Хранилище для предметов. 12 слотов.",
                 Category = "Functional",
-                Size = Vector3.new(2, 2, 2),
+                Size = Vector3.new(4, 4, 4),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(140, 95, 45),
                 HP = 100,
@@ -347,7 +282,7 @@
                 Functional = "Chest",
                 FunctionalData = {
                     Slots = 12,
-                    InteractRange = 5
+                    InteractRange = 8
                 },
                 Icon = "rbxassetid://0"
             },
@@ -356,7 +291,7 @@
                 Name = "Верстак",
                 Description = "Позволяет создавать продвинутые предметы.",
                 Category = "Functional",
-                Size = Vector3.new(3, 2, 2),
+                Size = Vector3.new(6, 4, 4),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(130, 85, 40),
                 HP = 150,
@@ -377,7 +312,7 @@
                 Name = "Алтарь крови",
                 Description = "Используйте эссенцию крови для улучшения качества крови.",
                 Category = "Functional",
-                Size = Vector3.new(3, 3, 3),
+                Size = Vector3.new(6, 6, 6),
                 Material = Enum.Material.Basalt,
                 Color = Color3.fromRGB(80, 20, 20),
                 HP = 300,
@@ -398,7 +333,7 @@
                 Name = "Гроб",
                 Description = "Точка респавна. Лимит зависит от уровня сердца.",
                 Category = "Functional",
-                Size = Vector3.new(2, 1, 4),
+                Size = Vector3.new(4, 2, 8),
                 Material = Enum.Material.Wood,
                 Color = Color3.fromRGB(60, 40, 25),
                 HP = 200,
@@ -413,7 +348,6 @@
                 CanRotate = true,
                 Functional = "Coffin",
                 Icon = "rbxassetid://0"
-                -- MaxPerCastle теперь определяется CastleHeart.Levels[n].MaxCoffins
             }
         }
     }

@@ -103,35 +103,33 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 --- Выполнить Raycast вниз из центра позиции блока, чтобы определить
---- на что ставится блок (Baseplate, другой блок, ничего).
+--- на что ставится блок (Terrain, Baseplate, другой блок, ничего).
 --- @param position Vector3 — предполагаемый центр нового блока
 --- @param blockSize Vector3 — размер нового блока (с поворотом)
---- @param castleFolder Folder — папка workspace.Castles.<Owner> для фильтрации
+--- @param castleFolder Folder — папка workspace.Castles.<Owner>
 --- @return Instance | nil — объект под блоком
 --- @return Vector3 | nil — точка попадания
 --- @return number | nil — Y верхней поверхности объекта под блоком
 local function raycastDown(position, blockSize, castleFolder)
-    local rayOrigin = Vector3.new(position.X, position.Y + 50, position.Z)
-    local rayDirection = Vector3.new(0, -100, 0)
+    local rayOrigin = Vector3.new(position.X, position.Y + 500, position.Z)
+    local rayDirection = Vector3.new(0, -1000, 0)
 
+    -- FIX: Exclude вместо Include — чтобы Terrain попадал в raycast.
+    -- Исключаем только персонажей игроков.
     local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Include
-    -- Включаем Baseplate и папку замка
-    local filterList = {}
-    if castleFolder then
-        table.insert(filterList, castleFolder)
+    params.FilterType = Enum.RaycastFilterType.Exclude
+
+    local excludeList = {}
+    for _, plr in game:GetService("Players"):GetPlayers() do
+        if plr.Character then
+            table.insert(excludeList, plr.Character)
+        end
     end
-    local baseplate = workspace:FindFirstChild("Baseplate")
-    if baseplate then
-        table.insert(filterList, baseplate)
-    end
-    params.FilterDescendantsInstances = filterList
+    params.FilterDescendantsInstances = excludeList
 
     local result = workspace:Raycast(rayOrigin, rayDirection, params)
     if result and result.Instance then
-        local hitPart = result.Instance
-        local surfaceY = result.Position.Y
-        return hitPart, result.Position, surfaceY
+        return result.Instance, result.Position, result.Position.Y
     end
 
     return nil, nil, nil
@@ -143,15 +141,12 @@ end
 --- @return boolean, string?
 local function validateSurface(rule, hitPart)
     if rule == "Ground" then
-        -- Фундамент можно ставить только на Baseplate / terrain
         if not hitPart then
             return false, "Нет поверхности"
         end
-        -- Baseplate
         if hitPart.Name == "Baseplate" then
             return true
         end
-        -- Terrain
         if hitPart:IsA("Terrain") then
             return true
         end
@@ -159,25 +154,23 @@ local function validateSurface(rule, hitPart)
     end
 
     if rule == "OnFoundation" then
-        -- Стена/функциональный блок: на фундаменте или полу
         if not hitPart then
             return false, "Нет опоры"
         end
         if not hitPart:GetAttribute("IsStructure") then
-            return false, "Нужен фундамент или пол"
+            return false, "Нужен фундамент"
         end
         local typeId = hitPart:GetAttribute("BlockTypeId")
         if typeId then
             local category = getBlockCategory(typeId)
-            if category == "Foundation" or category == "Floor" then
+            if category == "Foundation" then
                 return true
             end
         end
-        return false, "Нужен фундамент или пол"
+        return false, "Нужен фундамент"
     end
 
     if rule == "OnWall" then
-        -- Крыша/пол второго этажа: на стене или колонне
         if not hitPart then
             return false, "Нет опоры"
         end
@@ -232,16 +225,67 @@ function BuildingValidator.getRotatedSize(blockTypeId, rotation)
     return getRotatedSize(bt.Size, normalizeRotation(rotation))
 end
 
+--- Найти ближайший край фундамента для размещения стены.
+--- Стена привязывается к одной из четырёх сторон фундамента.
+--- @param wallSnapped Vector3 — snap-позиция курсора (XZ)
+--- @param wallSize Vector3 — размер стены (с поворотом)
+--- @param hitPart Instance — фундамент, на который ставим
+--- @return Vector3 — скорректированная позиция центра стены
+--- @return number — surfaceY (верхняя грань фундамента)
+local function snapWallToEdge(wallSnapped, wallSize, hitPart, rotation)
+    local foundationPos = hitPart.Position
+    local foundationSize = hitPart.Size
+
+    local surfaceY = foundationPos.Y + foundationSize.Y / 2
+
+    -- Определяем ближайший край фундамента
+    -- Стена толщиной 1 (Size.Z при rotation=0, Size.X при rotation=90)
+    -- Смещаем к краю фундамента по направлению перпендикулярному стене
+
+    local wallX = wallSnapped.X
+    local wallZ = wallSnapped.Z
+    local fX = foundationPos.X
+    local fZ = foundationPos.Z
+    local halfFX = foundationSize.X / 2
+    local halfFZ = foundationSize.Z / 2
+
+    if rotation == 0 or rotation == 180 then
+        -- Стена идёт вдоль X, толщина по Z
+        -- Привязываем Z к ближнему краю фундамента
+        local northEdge = fZ - halfFZ -- ближний край
+        local southEdge = fZ + halfFZ -- дальний край
+        local distNorth = math.abs(wallZ - northEdge)
+        local distSouth = math.abs(wallZ - southEdge)
+
+        if distNorth <= distSouth then
+            wallZ = northEdge
+        else
+            wallZ = southEdge
+        end
+        -- X привязываем к центру фундамента
+        wallX = fX
+    else
+        -- rotation == 90 или 270
+        -- Стена идёт вдоль Z, толщина по X
+        local westEdge = fX - halfFX
+        local eastEdge = fX + halfFX
+        local distWest = math.abs(wallX - westEdge)
+        local distEast = math.abs(wallX - eastEdge)
+
+        if distWest <= distEast then
+            wallX = westEdge
+        else
+            wallX = eastEdge
+        end
+        -- Z привязываем к центру фундамента
+        wallZ = fZ
+    end
+
+    local finalPos = Vector3.new(wallX, surfaceY + wallSize.Y / 2, wallZ)
+    return finalPos, surfaceY
+end
+
 --- Рассчитать финальную позицию размещения блока.
---- Учитывает snap к сетке, Raycast вниз для определения surfaceY,
---- и высоту блока.
---- @param blockTypeId string
---- @param rawPosition Vector3 — «сырая» позиция от клиента
---- @param rotation number
---- @param castleFolder Folder — папка замка в workspace
---- @return Vector3 | nil — финальная позиция центра блока
---- @return number | nil — surfaceY
---- @return Instance | nil — hitPart (для validateSurface)
 function BuildingValidator.calcPlacementPos(blockTypeId, rawPosition, rotation, castleFolder)
     local bt = getBuildingConfig().BlockTypes[blockTypeId]
     if not bt then
@@ -255,10 +299,22 @@ function BuildingValidator.calcPlacementPos(blockTypeId, rawPosition, rotation, 
     local hitPart, hitPos, surfaceY = raycastDown(snapped, size, castleFolder)
 
     if not surfaceY then
-        -- Fallback: ставим на Y=0 (Baseplate surface)
         surfaceY = 0
     end
 
+    -- Стены и функциональные блоки на фундаменте: привязка к краю
+    if bt.PlacementRule == "OnFoundation" and hitPart and hitPart:GetAttribute("IsStructure") then
+        local hitTypeId = hitPart:GetAttribute("BlockTypeId")
+        local hitCategory = hitTypeId and getBlockCategory(hitTypeId)
+
+        if hitCategory == "Foundation" and bt.Category == "Wall" then
+            -- Стена → snap к краю фундамента
+            local edgePos, edgeSurfaceY = snapWallToEdge(snapped, size, hitPart, rot)
+            return edgePos, edgeSurfaceY, hitPart
+        end
+    end
+
+    -- Стандартное размещение (фундамент на земле, крыша на стене и т.д.)
     local finalPos = calcPlacementPosition(snapped, size, surfaceY)
     return finalPos, surfaceY, hitPart
 end

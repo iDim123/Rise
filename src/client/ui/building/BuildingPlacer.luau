@@ -296,9 +296,50 @@ local function updateGhostPosition()
     local surfaceY = hitPos.Y
 
     local finalPos = Vector3.new(snappedX, surfaceY + size.Y / 2, snappedZ)
+
+    -- Edge-snap для стен на фундаменте
+    local hitPart = rayResult.Instance
+    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" and hitPart and hitPart:IsA("BasePart") and
+        hitPart:GetAttribute("IsStructure") then
+
+        local hitTypeId = hitPart:GetAttribute("BlockTypeId")
+        if hitTypeId then
+            local hitCat = nil
+            local hitBt = Config.Building.BlockTypes[hitTypeId]
+            if hitBt then
+                hitCat = hitBt.Category
+            end
+
+            if hitCat == "Foundation" then
+                local fPos = hitPart.Position
+                local fSize = hitPart.Size
+                local halfFX = fSize.X / 2
+                local halfFZ = fSize.Z / 2
+                local fSurfaceY = fPos.Y + fSize.Y / 2
+
+                if currentRotation == 0 or currentRotation == 180 then
+                    local northEdge = fPos.Z - halfFZ
+                    local southEdge = fPos.Z + halfFZ
+                    local dN = math.abs(snappedZ - northEdge)
+                    local dS = math.abs(snappedZ - southEdge)
+                    local edgeZ = dN <= dS and northEdge or southEdge
+                    finalPos = Vector3.new(fPos.X, fSurfaceY + size.Y / 2, edgeZ)
+                else
+                    local westEdge = fPos.X - halfFX
+                    local eastEdge = fPos.X + halfFX
+                    local dW = math.abs(snappedX - westEdge)
+                    local dE = math.abs(snappedX - eastEdge)
+                    local edgeX = dW <= dE and westEdge or eastEdge
+                    finalPos = Vector3.new(edgeX, fSurfaceY + size.Y / 2, fPos.Z)
+                end
+            end
+        end
+    end
+
     ghostPart.Position = finalPos
     ghostPart.Orientation = Vector3.new(0, currentRotation, 0)
 
+    -- Валидация
     local isValid = true
     local hrp = getCharacterRoot()
     if hrp then
