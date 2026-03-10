@@ -115,14 +115,6 @@ function SpellProgressManager.canLearn(player, spellId)
     local tier = spellConfig.Tier
     local cost = spellConfig.UnlockCost or 1
 
-    -- Check previous tier spells are learned (except tier 1)
-    if spellConfig.Class == "Basic" and tier > 1 then
-        local prevTierComplete = SpellProgressManager._isTierComplete(player, school, tier - 1)
-        if not prevTierComplete then
-            return false, "prev_tier_incomplete"
-        end
-    end
-
     -- Check spell points
     local pointsKey = spellConfig.Class == "Ultimate" and "ULT" or tostring(tier)
     local available = SpellProgressManager.getSpellPoints(player, school, pointsKey)
