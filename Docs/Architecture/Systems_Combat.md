@@ -242,3 +242,64 @@ hitInRadius(player, rootPart, radius, cfg)	Удар по всем нодам в 
 
 flatDirection
 Все направления атак и снарядов рассчитываются без Y-компоненты: Vector3.new(dir.X, 0, dir.Z).Unit. Это обеспечивает горизонтальный полёт стрел и одинаковое направление для ЛКМ и Q/E. На клиенте (RangedInput, AbilitiesBar) позиция мыши вычисляется проекцией луча камеры на горизонтальную плоскость (groundY = rootPart.Y - 3).
+
+---
+
+## Система магии — заклинания
+
+### Архитектура
+
+Магия — отдельная боевая система, не привязанная к оружию. Заклинания экипируются в слоты R (Basic), G (Basic), Z (Ultimate) через Spellbook UI. Кастование обрабатывается `SpellCastManager`, эффекты — модульными обработчиками в `spellEffects/`.
+
+### Серверные модули
+
+| Модуль | Назначение |
+|---|---|
+| SpellProgressManager.luau | Spell Points, изучение, экипировка, тировые бонусы, синхронизация с UI |
+| SpellCastManager.luau | Кастование, cooldown, charges, channelling, SpellAim, делегирование в spellEffects |
+| LeechHandler.luau | Blood пассивка: heal on hit (10-12%), heal on kill (3-5%), slow (T3) |
+| IgniteHandler.luau | Chaos пассивка: DoT, explosion, chain ignite |
+
+### Обработчики эффектов (spellEffects/)
+
+| Модуль | Тип эффекта | Используется в |
+|---|---|---|
+| ProjectileEffect | Projectile | shadowbolt |
+| MultiProjectileEffect | MultiProjectile | chaos_volley, chaos_barrage |
+| ChannelledProjectileEffect | ChannelledProjectile | (расширение) |
+| TargetAreaProjectileEffect | TargetAreaProjectile | void |
+| AoEDamageEffect | AoEDamage | blood_rite (OnBlockTriggered) |
+| AoEHealEffect | AoEHeal | blood_rage |
+| AoEBuffEffect | AoEBuff | blood_rage |
+| AoEApplyPassiveEffect | AoEApplyPassive | blood_rage, blood_rite |
+| BeamEffect | Beam | crimson_beam |
+| BlockEffect | Block | blood_rite |
+| FrontalBlockEffect | FrontBlock | chaos_barrier |
+| ImmaterialEffect | Immaterial | blood_rite (OnBlockTriggered) |
+| HealCasterEffect | HealCaster | crimson_beam (OnHitEnemy) |
+| PullEffect | Pull | void (OnHitEffects) |
+
+### Поток данных — кастование заклинания
+
+Copy
+Client: R/G/Z key → SpellSection/UltimateSection → CastSpell:FireServer(slot, mousePos) → SpellAimSender.start() (отправляет SpellAim каждые 50мс)
+
+Server: CombatManager → SpellCastManager.castSpell(player, slot, mousePos) → Проверки: экипировано, cooldown, charges, IsDead, не в касте → CastManager.start(Duration, MovementMode) → CastStart → Client (CastBar) → SpellAim remote обновляет lastMousePosition[userId]
+
+Server: CastManager → OnComplete → SpellCastManager._execute(player, spell, lastMousePosition) → Для каждого Effect: загружает handler из spellEffects/ → handler.execute(player, effectCfg, mousePos, spellConfig) → SpellCooldown → Client → SpellChargeUpdate → Client (если charges)
+
+Client: CastBar → CastComplete → SpellAimSender.stop()
+
+
+### Beam — особый поток
+
+Client: Z key → CastSpell → Server: CastManager → OnComplete → BeamEffect.execute() → BeamStart → All Clients (BeamVisual создаёт Part) → Heartbeat loop: SpellAim → Server обновляет direction → BeamTick → All Clients (обновляют визуал) → TickRate (0.2s): damage enemies, heal allies в луче → По завершении Duration → BeamEnd → All Clients (cleanup)
+
+
+### Charges
+
+Заклинания с `Charges > 1` (void: 2 заряда) хранят массив таймеров в SpellCastManager. При использовании тратится 1 заряд, запускается независимый таймер `ChargeRechargeTime`. Клиент получает `SpellChargeUpdate` с количеством зарядов и временами восстановления.
+
+### SpellAim — прицеливание в конце каста
+
+Проблема: позиция курсора фиксировалась при начале каста. Решение: клиент отправляет `SpellAim` remote каждые 50мс через `SpellAimSender`. Сервер хранит `lastMousePosition[userId]` и использует его в `OnComplete`. Автоматически останавливается при завершении каста или `CastCancel`.

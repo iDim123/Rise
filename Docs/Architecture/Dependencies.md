@@ -153,3 +153,30 @@ ServantWindow.client.luau ├── ServantCollection ├── ServantStatsPane
 ### UI — Остальное
 
 PlayerHPBlock.client.luau ← Remotes, UIConstants ServantHPBlock.client.luau ← Remotes, UIConstants BloodPoolUI.client.luau ← Config, Remotes EnemyLabels.client.luau ← Config, EnemyUtil TargetInfo.client.luau ← LevelColorUtil EnemyHPBar.client.luau ← LevelColorUtil, EnemyUtil BuffBar.client.luau ← Remotes, Config ResourceNumbers.client.luau ← Remotes, Config CaptureUI.client.luau ← Config, Remotes CastBar.client.luau ← Remotes DeathScreen.client.luau ← Remotes Minimap.client.luau ← RunService, Players DayNightHUD.client.luau ← Config, Remotes ContainerUI.client.luau ← Config, Remotes ContainerAnimator.client.luau (standalone) IsometricCamera.client.luau (standalone) MouseLook.client.luau (standalone) MenuBar.luau ← BossJournal NotifyModule.luau (standalone) NotifyListener.client.luau ← Remotes, NotifyModule DebugKeys.client.luau ← Remotes CoreGuiSetup.client.luau (standalone) LootUI.client.luau ← Remotes
+
+### Магия — серверные модули
+
+SpellProgressManager ├── Config (SpellConfig) ├── Remotes └── (standalone data management)
+
+SpellCastManager ├── SpellProgressManager ├── CastManager ├── StatsManager (lazy) ├── DamageCalc ├── TargetFinder ├── HealthManager (lazy) ├── BuffManager (lazy) ├── ProjectileManager (lazy) ├── Remotes └── spellEffects/* (динамическая загрузка)
+
+LeechHandler ├── HealthManager ├── SpellProgressManager ├── EventBus └── Config
+
+IgniteHandler ├── HealthManager ├── SpellProgressManager ├── TargetFinder ├── EventBus └── Config
+
+
+### Магия — клиентские модули
+
+AbilitiesBar.client.luau ├── AbilitiesConstants ├── WeaponSection ├── SpellSection ├── UltimateSection └── ClassSection
+
+SpellSection ├── SpellConfig ├── Remotes ├── AbilitiesConstants ├── SlotFactory ├── AbilityTooltip ├── AbilityCooldowns ├── MouseUtil └── SpellAimSender
+
+UltimateSection ├── SpellConfig ├── Remotes ├── AbilitiesConstants ├── SlotFactory ├── AbilityTooltip ├── AbilityCooldowns ├── MouseUtil └── SpellAimSender
+
+SpellAimSender ├── Remotes └── MouseUtil
+
+SpellbookPage ├── SpellConfig ├── Remotes ├── SpellbookConstants ├── SchoolTabs ├── SchoolInfoPanel ├── TierProgressBar ├── SpellGrid ├── SpellDetailPanel └── SpellSlotBar
+
+SpellDetailPanel ├── SpellDetailBuilder ├── SpellDetailLearn └── SpellDetailEquip
+
+SpellGrid ← SpellCard BeamVisual.client.luau ← Remotes, MouseUtil SpellVFX.client.luau ← Remotes

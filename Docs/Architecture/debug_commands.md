@@ -49,3 +49,13 @@
 | `/buff sunlight_exposure 10` | Наложить бафф на 10 сек      |
 | `/buff damage_boost 30`     | +30% урон на 30 сек           |
 | `/clearbuffs`        | Снять все баффы с персонажа          |
+
+
+## Магия
+
+| Команда              | Что делает                          |
+|----------------------|-------------------------------------|
+| `/spellpoint Blood 1 1`  | Добавить 1 Blood Tier 1 spell point |
+| `/spellpoint Chaos 2 1`  | Добавить 1 Chaos Tier 2 spell point |
+| `/spellpoint Blood ULT 1`| Добавить 1 Blood Ultimate spell point |
+| `/spellpoint Chaos ULT 2`| Добавить 2 Chaos Ultimate spell points |

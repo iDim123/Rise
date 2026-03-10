@@ -111,19 +111,151 @@
 
 ---
 
-## Фаза 5 — Система магии 🔲
+## Фаза 5 — Система магии ✅
 
-Не начата. Запланирована в Roadmap_1.7.md.
+### 5.1 — SpellConfig (конфигурация заклинаний)
 
-- [ ] SpellConfig.luau (школы: Blood, Chaos)
-- [ ] SpellManager.luau (серверная логика заклинаний)
-- [ ] SpellbookUI (клиентское окно заклинаний)
-- [ ] Spell Points (получение с боссов)
-- [ ] Пассивные механики школ (Leech, Ignite)
-- [ ] Тировая прогрессия (I → II → III → ULT)
-- [ ] Новые типы эффектов (AoEHeal, AoEBuff, Block, Channelling, Beam)
-- [ ] Интеграция с ProjectileManager (shadowbolt и т.д.)
-- [ ] Слоты R, G, Z для заклинаний
+- [x] SpellConfig.luau — коллектор, собирает модули из `config/spells/`
+- [x] BloodSchool.luau — школа Blood: описание, пассивка Leech, TierBonuses, UltTierBonus
+- [x] ChaosSchool.luau — школа Chaos: описание, пассивка Ignite, TierBonuses, UltTierBonus
+- [x] SpellSlots: R (Basic), G (Basic), Z (Ultimate)
+- [x] Заклинания Blood: blood_rage (T1), sanguine_coil (T1, charges), shadowbolt (T2), blood_rite (T3), crimson_beam (ULT)
+- [x] Заклинания Chaos: chaos_volley (T1), void (T2, charges), chaos_barrier (T3), chaos_barrage (ULT)
+
+### 5.2 — BossConfig (награды Spell Points)
+
+- [x] BossConfig.luau: SpellPointRewards (массив) для каждого босса
+- [x] BossInteraction.luau: цикл по SpellPointRewards, обратная совместимость с SpellPointReward
+- [x] BloodWarrior: Blood T1 × 1
+- [x] SawmillBoss: Chaos T1 × 1, Blood T2 × 1
+
+### 5.3 — SpellProgressManager
+
+- [x] SpellProgressManager.luau — Spell Points, изучение, экипировка, прогресс
+- [x] addSpellPoints(player, school, tier, amount)
+- [x] canLearnSpell / learnSpell — проверка и трата поинтов
+- [x] equipSpell / unequipSpell — слоты R, G, Z с валидацией
+- [x] isTierComplete / getTierBonuses / getEffectivePassive — тировая прогрессия
+- [x] getProgressData — полные данные для UI
+- [x] Тиры независимы — можно изучать в любой последовательности
+- [x] pointsKey: "ULT" для Ultimate, строка тира для обычных
+
+### 5.4 — SpellCastManager
+
+- [x] SpellCastManager.luau — кастование, исполнение эффектов, channelling, charges
+- [x] castSpell(player, slot, mousePosition) — проверки cooldown, charges, IsDead, каст
+- [x] Динамическая загрузка обработчиков из `modules/spellEffects/`
+- [x] Charges-система (независимое восстановление, SpellChargeUpdate remote)
+- [x] SpellAim — позиция курсора обновляется во время каста, используется при завершении
+
+### 5.5 — Обработчики эффектов заклинаний (spellEffects/)
+
+- [x] ProjectileEffect.luau — одиночный снаряд
+- [x] MultiProjectileEffect.luau — последовательные снаряды (chaos_volley, chaos_barrage)
+- [x] ChannelledProjectileEffect.luau — каналируемые снаряды
+- [x] TargetAreaProjectileEffect.luau — снаряд в точку (void)
+- [x] AoEDamageEffect.luau — урон в радиусе
+- [x] AoEHealEffect.luau — лечение союзников
+- [x] AoEBuffEffect.luau — баффы союзникам
+- [x] AoEApplyPassiveEffect.luau — наложение Leech/Ignite
+- [x] BeamEffect.luau — каналируемый луч (crimson_beam), мутабельное направление
+- [x] BlockEffect.luau — полный блок (blood_rite)
+- [x] FrontalBlockEffect.luau — фронтальный блок (chaos_barrier)
+- [x] ImmaterialEffect.luau — неуязвимость
+- [x] HealCasterEffect.luau — лечение кастера
+- [x] PullEffect.luau — притягивание к центру
+
+### 5.6 — Пассивные механики
+
+- [x] LeechHandler.luau — Blood пассивка: heal on hit, heal on kill, учёт TierBonuses
+- [x] IgniteHandler.luau — Chaos пассивка: DoT, explosion, chain ignite, учёт TierBonuses
+
+### 5.7 — DataService интеграция
+
+- [x] DataService.luau: Magic в defaultData (SpellPoints, LearnedSpells, EquippedSpells, ClaimedBossRewards)
+- [x] SpellProgressManager: save/load интеграция
+
+### 5.8 — Spellbook UI
+
+- [x] SpellbookPage.luau — страница внутри JournalWindow (не отдельное окно)
+- [x] SpellbookConstants.luau — цвета, размеры, отступы
+- [x] SchoolTabs.luau — табы Blood / Chaos
+- [x] SchoolInfoPanel.luau — описание школы, пассивка, тир-бонусы
+- [x] TierProgressBar.luau — шкала прогресса тиров I → II → III → ULT
+- [x] SpellGrid.luau — сетка заклинаний по тирам
+- [x] SpellCard.luau — ячейка заклинания (иконка, замок, подсветка)
+- [x] SpellDetailPanel.luau — координатор правой панели (делегирует Builder/Learn/Equip)
+- [x] SpellDetailBuilder.luau — UI-конструкция (иконка, название, описание, теги)
+- [x] SpellDetailLearn.luau — кнопка изучения, проверка поинтов
+- [x] SpellDetailEquip.luau — кнопки экипировки в слоты, hover состояния
+- [x] SpellSlotBar.luau — слоты R, G, Z в нижней части окна
+- [x] Fix: изучение/экипировка не сбрасывает выбранное заклинание
+- [x] Fix: иконки растянуты на всю ширину
+- [x] Fix: hover цвета корректны (BTN_NORMAL/HOVER/EQUIPPED/EQUIPPED_HOVER)
+- [ ] ~~SpellDragManager~~ — отменено
+- [ ] ~~SpellLearnOverlay~~ — отменено
+
+### 5.9 — AbilitiesBar (слоты R, G, Z)
+
+- [x] AbilitiesBar.client.luau — обновлён, секционная архитектура
+- [x] AbilitiesConstants.luau — константы стилей
+- [x] SlotFactory.luau — фабрика слотов
+- [x] MouseUtil.luau — getMouseWorldPosition
+- [x] WeaponSection.luau — LMB, Q, E, Space (оружейные слоты)
+- [x] SpellSection.luau — R, G (Basic заклинания)
+- [x] UltimateSection.luau — Z (Ultimate заклинания)
+- [x] ClassSection.luau — X (зарезервирован)
+- [x] SpellAimSender.luau — отправка позиции курсора во время каста
+- [x] Интеграция SpellAimSender в SpellSection и UltimateSection
+
+### 5.10 — Remotes
+
+- [x] CastSpell (Client → Server)
+- [x] LearnSpell (Client → Server)
+- [x] EquipSpell (Client → Server)
+- [x] UnequipSpell (Client → Server)
+- [x] SpellCooldown (Server → Client)
+- [x] SpellChargeUpdate (Server → Client)
+- [x] BeamStart (Server → Client)
+- [x] BeamUpdate (Client → Server)
+- [x] BeamEnd (Server → Client)
+- [x] SpellEffect (Server → Client)
+- [x] UpdateSpellData (Server → Client)
+- [x] GetSpellData (RemoteFunction)
+- [x] SpellAim (Client → Server)
+
+### 5.11 — ProjectileConfig дополнения
+
+- [x] ProjectileConfig.luau: shadowbolt, chaos_bolt, void_orb, chaos_barrage_bolt
+
+### 5.12 — Beam система
+
+- [x] BeamEffect.luau — серверный луч с мутабельным направлением, ally heal
+- [x] BeamVisual.client.luau — клиентская визуализация (Neon Part + PointLight)
+- [x] CombatManager.server.luau — обработчик BeamUpdate remote
+
+### 5.13 — Spell VFX
+
+- [x] SpellVFX.client.luau — клиентские визуальные эффекты
+- [x] Обработчики: AoEDamage, AoEHeal, AoEBuff, AoEPassive, AreaExplosion, Reflect, BlockStart, FrontalBlockStart, BlockTriggered, Immaterial
+- [x] Цветовые палитры для Blood и Chaos школ
+- [x] SpellEffect broadcast из всех серверных эффектов (включая School)
+
+### 5.14 — Прицеливание в конце каста
+
+- [x] SpellAim remote — клиент отправляет позицию курсора каждые 50мс
+- [x] SpellCastManager — lastMousePosition, используется при завершении каста
+- [x] SpellAimSender.luau — клиентский модуль start/stop
+
+### 5.15 — Journal / Spellbook интеграция
+
+- [x] JournalWindow.luau — общее окно с табами (Bosses, Spellbook)
+- [x] JournalInit.client.luau — точка входа
+- [x] JournalConstants.luau — общие константы журнала
+
+### Debug команды (магия)
+
+- [x] /spellpoint School Tier Amount — добавить spell points (поддерживает ULT)
 
 ---
 
@@ -135,4 +267,4 @@
 | Фаза 2 | ✅ Завершена | Система контейнеров (сундуки, CastBar, CastManager) |
 | Фаза 3 | ✅ Завершена | День/Ночь, лунные циклы, солнечный дебафф |
 | Фаза 4 | ✅ Завершена | Дальний бой (Bow, снаряды, рефакторинг combat/) |
-| Фаза 5 | 🔲 Не начата | Система магии (Spellbook) |
+| Фаза 5 | ✅ Завершена | Система магии (Spellbook, заклинания, пассивки, VFX, beam) |

@@ -318,3 +318,55 @@ Event-driven через Remotes. Модули подписываются на `R
 ### ResetOnSpawn
 
 Все ScreenGui имеют `ResetOnSpawn = false` — UI не пересоздаётся при респавне персонажа
+
+---
+
+## Журнал (Journal)
+
+### JournalWindow
+
+Файл: `journal/JournalWindow.luau`
+
+Общее окно с табами: **Bosses** и **Spellbook**. Открывается через MenuBar (иконка книги) или горячую клавишу J. Каждый таб — отдельная страница (BossesPage, SpellbookPage) с методами `build`, `onActivate`, `onDeactivate`, `setVisible`.
+
+### Spellbook
+
+Файл: `journal/spellbook/SpellbookPage.luau`
+
+Страница книги заклинаний внутри JournalWindow. Оркестратор, объединяющий компоненты:
+
+| Компонент | Модуль | Описание |
+|---|---|---|
+| Табы школ | SchoolTabs.luau | Blood / Chaos — переключают содержимое |
+| Инфо школы | SchoolInfoPanel.luau | Описание, пассивка, тир-бонусы (с галочкой если закрыт) |
+| Прогресс | TierProgressBar.luau | Шкала I → II → III → ULT с заполнением |
+| Сетка | SpellGrid.luau | Ряды по тирам, SpellCard для каждого заклинания |
+| Детали | SpellDetailPanel.luau | Правая панель: иконка, название, описание, изучение/экипировка |
+| Слоты | SpellSlotBar.luau | R, G, Z — экипированные заклинания |
+
+SpellDetailPanel разбит на подмодули: SpellDetailBuilder (UI-конструкция), SpellDetailLearn (кнопка изучения с проверкой поинтов), SpellDetailEquip (кнопки экипировки в слоты с hover-состояниями). При изучении или экипировке выбранное заклинание не сбрасывается — обновляется только состояние кнопок.
+
+Данные загружаются через `GetSpellData` RemoteFunction при первом открытии и обновляются через `UpdateSpellData` RemoteEvent.
+
+### AbilitiesBar (обновлённая архитектура v1.7)
+
+Файл: `abilities/AbilitiesBar.client.luau`
+
+Секционная архитектура — 4 независимые секции:
+
+| Секция | Модуль | Слоты | Описание |
+|---|---|---|---|
+| Оружие | WeaponSection.luau | LMB, Q, E, Space | Обновляется при смене оружия |
+| Заклинания | SpellSection.luau | R, G | Basic заклинания, SpellAimSender |
+| Ультимейт | UltimateSection.luau | Z | Ultimate заклинания, SpellAimSender |
+| Класс | ClassSection.luau | X | Зарезервировано |
+
+Общие утилиты: AbilitiesConstants (стили), SlotFactory (фабрика слотов), MouseUtil (getMouseWorldPosition), AbilityTooltip, AbilityCooldowns, SpellAimSender.
+
+SpellAimSender автоматически запускается при касте заклинания с CastTime > 0.05 и останавливается при CastComplete или CastCancel.
+
+### ScreenGui (дополнения к DisplayOrder)
+
+| DisplayOrder | ScreenGui | Модуль |
+|---|---|---|
+| 950 | JournalGui | JournalWindow (Bosses + Spellbook) |

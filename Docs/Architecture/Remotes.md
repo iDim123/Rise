@@ -140,3 +140,21 @@
 | GetServants | Client → Server | { captured, activeId } | Данные слуг |
 | GetBossData | Client → Server | bossesTable | Данные боссов для журнала |
 | GetPlayerStats | Client → Server | statsTable | Все статы игрока |
+| GetSpellData | Client → Server | spellProgressData | Полные данные прогресса магии |
+
+### Система магии
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| CastSpell | Client → Server | slot: string, mousePosition: Vector3 | Использовать заклинание (R/G/Z) |
+| LearnSpell | Client → Server | spellId: string | Изучить заклинание (тратит Spell Point) |
+| EquipSpell | Client → Server | spellId: string, slot: string | Экипировать заклинание в слот |
+| UnequipSpell | Client → Server | slot: string | Снять заклинание из слота |
+| SpellCooldown | Server → Client | slot: string, cooldownTime: number | Кулдаун заклинания |
+| SpellChargeUpdate | Server → Client | slot: string, charges: number, rechargeTimes: table | Обновление зарядов |
+| SpellAim | Client → Server | mousePosition: Vector3 | Позиция курсора во время каста (~20/сек) |
+| BeamStart | Server → Client | casterId: number, origin: Vector3, direction: Vector3, width: number, length: number, duration: number | Начало Beam заклинания |
+| BeamUpdate | Client → Server | mousePosition: Vector3 | Обновление направления Beam (~10/сек) |
+| BeamEnd | Server → Client | casterId: number | Конец Beam заклинания |
+| SpellEffect | Server → Client | effectType: string, position: Vector3, data: table | VFX заклинания (School, radius, targets и т.д.) |
+| UpdateSpellData | Server → Client | spellData: table | Обновление прогресса магии |
