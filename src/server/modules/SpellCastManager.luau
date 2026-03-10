@@ -28,7 +28,7 @@ for _, module in effectsFolder:GetChildren() do
     if module:IsA("ModuleScript") then
         local effectType = module.Name:gsub("Effect$", "")
         effectHandlers[effectType] = require(module)
-        print("[SpellCastManager] loaded effect handler:", effectType)
+        -- print("[SpellCastManager] loaded effect handler:", effectType)
     end
 end
 

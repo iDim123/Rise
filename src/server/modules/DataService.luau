@@ -1,4 +1,4 @@
-Copylocal Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -64,7 +64,7 @@ local function getDefaultData()
 
         -- v1.9: Building (Castle)
         -- nil = нет замка, table = данные от BuildingSerializer.serialize
-        BuildingData = nil,
+        BuildingData = nil
     }
 end
 
@@ -348,8 +348,9 @@ function DataService.save(player)
                 if oldData and type(oldData) == "table" then
                     local oldVersion = oldData.Version or 0
                     if oldVersion >= data.Version then
-                        warn("[DataService] Version conflict for " .. (player.Name or tostring(userId))
-                            .. ": remote v" .. oldVersion .. " >= local v" .. data.Version .. ", skip")
+                        warn(
+                            "[DataService] Version conflict for " .. (player.Name or tostring(userId)) .. ": remote v" ..
+                                oldVersion .. " >= local v" .. data.Version .. ", skip")
                         return nil
                     end
                 end

@@ -32,8 +32,7 @@ function HealthManager.init(entity, maxHP)
     entity:SetAttribute("MaxHP", maxHP)
     entity:SetAttribute("CurrentHP", maxHP)
     entity:SetAttribute("IsDead", false)
-    print("[HealthManager] init:", entity.Name, "HP:", maxHP, "IsStructure:",
-        entity:GetAttribute("IsStructure") or false) -- DEBUG
+    -- print("[HealthManager] init:", entity.Name, "HP:", maxHP, "IsStructure:", entity:GetAttribute("IsStructure") or false) -- DEBUG
 end
 
 function HealthManager.takeDamage(entity, damage, attacker)

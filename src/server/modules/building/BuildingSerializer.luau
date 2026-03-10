@@ -6,12 +6,14 @@
     ║  КОНТРАКТ СЕРИАЛИЗАЦИИ                                          ║
     ║                                                                  ║
     ║  Сохраняются:                                                    ║
-    ║    CenterPos     — {x, y, z}                                     ║
-    ║    Permissions    — {AllowCoopBuild, AllowCoopRemove,            ║
-    ║                      AllowCoopInteract, AllowedPlayers: [id]}    ║
-    ║    Blocks[]       — {T=typeId, P={x,y,z}, R=rotation}           ║
-    ║    Containers[]   — {Id=containerId, Ref=blockIndex,            ║
-    ║                      Slots={[strIdx]={Id,Amount}}}               ║
+    ║    CenterPos      — {x, y, z}                                    ║
+    ║    Claim           — {HeartLevel, AllowCoopBuild,                ║
+    ║                       AllowCoopRemove, AllowCoopInteract,        ║
+    ║                       AllowedPlayers: [id]}                      ║
+    ║    BloodEssence    — number (кол-во эссенции в Castle Heart)     ║
+    ║    Blocks[]        — {T=typeId, P={x,y,z}, R=rotation}          ║
+    ║    Containers[]    — {Id=containerId, Ref=blockIndex,            ║
+    ║                       Slots={[strIdx]={Id,Amount}}}              ║
     ║                                                                  ║
     ║  НЕ сохраняются (берутся из Config при загрузке):                ║
     ║    Size, Material, Color, Cost, PlacementRule, CanRotate,        ║
@@ -34,7 +36,7 @@
     ╚══════════════════════════════════════════════════════════════════╝
 
     Используется: BuildingManager (collect/initPlayer), DataService
-    Зависимости: Config (Building.BlockTypes), CastleBorder (serializePermissions)
+    Зависимости: Config (Building.BlockTypes)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -79,18 +81,26 @@ end
 ---   {
 ---     ownerId: number,
 ---     centerPos: Vector3,
----     blocks: { [blockId] = { typeId, position: Vector3, rotation: number, containerId? } },
+---     blocks: { [blockId] = { typeId, position, rotation, containerId? } },
 ---     blockCount: number,
+---     heartPart: Model (Castle Heart model),
 ---   }
---- @param permissions table | nil — из CastleBorder.serializePermissions
+--- @param claimData table | nil — из CastleBorder.serializeClaim(ownerId)
+---   Содержит: { HeartLevel, AllowCoopBuild, AllowCoopRemove,
+---               AllowCoopInteract, AllowedPlayers }
 --- @param containerSerializer function? — function(containerId) → serialized | nil
----   Вызывается для каждого блока с containerId. Передаётся из BuildingManager
----   который делегирует ContainerManager.serializeContainer (Phase 2).
 --- @return table — данные для DataStore
-function BuildingSerializer.serialize(castleData, permissions, containerSerializer)
+function BuildingSerializer.serialize(castleData, claimData, containerSerializer)
+    -- BloodEssence: читаем атрибут с Model Castle Heart
+    local bloodEssence = 0
+    if castleData.heartPart and typeof(castleData.heartPart.GetAttribute) == "function" then
+        bloodEssence = castleData.heartPart:GetAttribute("BloodEssence") or 0
+    end
+
     local result = {
         CenterPos = vec3ToTable(castleData.centerPos),
-        Claim = permissions,  -- FIX: было claimData (неопределённая переменная)
+        Claim = claimData,
+        BloodEssence = bloodEssence,
         Blocks = {},
         Containers = {},
     }
@@ -119,15 +129,21 @@ function BuildingSerializer.serialize(castleData, permissions, containerSerializ
     return result
 end
 
+-- ═══════════════════════════════════════════════════════════
+-- Десериализация
+-- ═══════════════════════════════════════════════════════════
+
 --- Десериализовать данные замка из DataStore.
 ---
 --- @param saved table — данные из DataStore (результат serialize)
 --- @return table | nil — восстановленные данные:
 ---   {
 ---     centerPos: Vector3,
----     permissions: table (для CastleBorder.registerClaim),
----     blocks: { { typeId, position: Vector3, rotation: number, size: Vector3 } },
----     containers: { { Ref: number (1-based blockIndex), Id: string, Type: string, Slots: table } },
+---     heartLevel: number,
+---     bloodEssence: number,
+---     permissions: table (Claim data для CastleBorder.registerClaim),
+---     blocks: { { typeId, position, rotation, size } },
+---     containers: { { Ref, Id, Type, Slots } },
 ---   }
 function BuildingSerializer.deserialize(saved)
     if not saved or type(saved) ~= "table" then
@@ -142,8 +158,12 @@ function BuildingSerializer.deserialize(saved)
         return nil
     end
 
-    -- Permissions (передаются напрямую в CastleBorder.registerClaim)
-    local permissions = saved.Permissions -- может быть nil → дефолтные
+    -- Claim (содержит HeartLevel + permissions + AllowedPlayers)
+    local claim = saved.Claim
+    local heartLevel = claim and claim.HeartLevel or 1
+
+    -- BloodEssence
+    local bloodEssence = tonumber(saved.BloodEssence) or 0
 
     -- Blocks
     local blocks = {}
@@ -158,7 +178,7 @@ function BuildingSerializer.deserialize(saved)
                 warn("[BuildingSerializer] deserialize: unknown typeId '" .. tostring(typeId)
                     .. "' at index " .. i .. ", skipping")
                 skipped += 1
-                -- Вставляем nil-маркер чтобы не сбивать индексы для Containers.Ref
+                -- nil-маркер чтобы не сбивать индексы для Containers.Ref
                 table.insert(blocks, false)
                 continue
             end
@@ -200,7 +220,7 @@ function BuildingSerializer.deserialize(saved)
     if saved.Containers then
         for _, cData in saved.Containers do
             table.insert(containers, {
-                Ref = cData.Ref,      -- индекс блока в массиве blocks (1-based)
+                Ref = cData.Ref,
                 Id = cData.Id,
                 Type = cData.Type,
                 Slots = cData.Slots,
@@ -208,12 +228,10 @@ function BuildingSerializer.deserialize(saved)
         end
     end
 
-    local claim = saved.Claim -- { HeartLevel, AllowCoopBuild, ... AllowedPlayers }
-    local heartLevel = claim and claim.HeartLevel or 1
-
     return {
         centerPos = centerPos,
         heartLevel = heartLevel,
+        bloodEssence = bloodEssence,
         permissions = claim,
         blocks = blocks,
         containers = containers,
@@ -225,19 +243,16 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 --- Оценить размер сериализованных данных (приблизительно, в байтах).
---- Для диагностики и stress-тестов.
 --- @param serialized table — результат serialize
---- @return number — приблизительный размер в байтах
+--- @return number
 function BuildingSerializer.estimateSize(serialized)
-    -- Грубая оценка: ~60 байт на блок (JSON: {"T":"stone_wall","P":{"x":12,"y":2.5,"z":-8},"R":90})
-    -- + ~200 байт на контейнер + ~100 байт на заголовок
     local blockCount = serialized.Blocks and #serialized.Blocks or 0
     local containerCount = serialized.Containers and #serialized.Containers or 0
     return 100 + blockCount * 60 + containerCount * 200
 end
 
 --- Создать пустые данные замка (для нового игрока).
---- @return table
+--- @return nil
 function BuildingSerializer.getDefault()
     return nil -- nil = у игрока нет замка
 end

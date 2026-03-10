@@ -1,9 +1,12 @@
 --[[
     CastleHeartUI.client.luau
     UI при взаимодействии (F) с Castle Heart.
-    
-    Показывает: уровень, HP, блоки/лимит, гробы/лимит,
+
+    Показывает: уровень, HP, эссенцию, блоки/лимит, гробы/лимит,
     кнопка Upgrade, permissions, союзники, кнопка Destroy.
+
+    Castle Heart — Model с PrimaryPart = Platform.
+    Атрибуты IsCastleHeart, CastleOwnerId находятся на Model и на PrimaryPart.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,7 +29,7 @@ screenGui.Parent = playerGui
 
 -- ═══ Окно ═══
 local WINDOW_W = 320
-local WINDOW_H = 480
+local WINDOW_H = 580 -- увеличено: добавлены эссенция и союзники
 local PAD = BC.WINDOW_PAD
 
 local window = Instance.new("Frame")
@@ -47,7 +50,7 @@ winStroke.Parent = window
 
 -- Заголовок
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 0, BC.HEADER_H)
+titleLabel.Size = UDim2.new(1, -90, 0, BC.HEADER_H)
 titleLabel.Position = UDim2.new(0, PAD, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextColor3 = BC.textColor
@@ -84,7 +87,7 @@ Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, BC.SMALL_RADIUS)
 -- ═══ Контент ═══
 local contentY = BC.HEADER_H + 8
 
--- HP Bar
+-- ── HP Bar ──
 local hpFrame = Instance.new("Frame")
 hpFrame.Size = UDim2.new(1, -PAD * 2, 0, 24)
 hpFrame.Position = UDim2.new(0, PAD, 0, contentY)
@@ -113,7 +116,36 @@ hpText.Parent = hpFrame
 
 contentY += 32
 
--- Инфо-строки: Блоки, Гробы
+-- ── Essence Bar (новое) ──
+local essenceFrame = Instance.new("Frame")
+essenceFrame.Size = UDim2.new(1, -PAD * 2, 0, 20)
+essenceFrame.Position = UDim2.new(0, PAD, 0, contentY)
+essenceFrame.BackgroundColor3 = Color3.fromRGB(30, 12, 12)
+essenceFrame.BorderSizePixel = 0
+essenceFrame.Parent = window
+Instance.new("UICorner", essenceFrame).CornerRadius = UDim.new(0, 4)
+
+local essenceFill = Instance.new("Frame")
+essenceFill.Name = "EssenceFill"
+essenceFill.Size = UDim2.new(0, 0, 1, 0)
+essenceFill.BackgroundColor3 = Color3.fromRGB(180, 20, 20)
+essenceFill.BorderSizePixel = 0
+essenceFill.Parent = essenceFrame
+Instance.new("UICorner", essenceFill).CornerRadius = UDim.new(0, 4)
+
+local essenceText = Instance.new("TextLabel")
+essenceText.Size = UDim2.new(1, 0, 1, 0)
+essenceText.BackgroundTransparency = 1
+essenceText.TextColor3 = Color3.fromRGB(255, 200, 200)
+essenceText.TextSize = 11
+essenceText.Font = Enum.Font.GothamBold
+essenceText.Text = "Эссенция: 0 / 500"
+essenceText.ZIndex = 2
+essenceText.Parent = essenceFrame
+
+contentY += 28
+
+-- ── Инфо-строки ──
 local function createInfoLine(yPos, label)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -PAD * 2, 0, 22)
@@ -180,12 +212,17 @@ upgradeCostLabel.Parent = window
 contentY += BC.BUTTON_H + 22
 
 -- ═══ Разделитель ═══
-local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -PAD * 2, 0, 1)
-sep.Position = UDim2.new(0, PAD, 0, contentY)
-sep.BackgroundColor3 = BC.slotBorder
-sep.BorderSizePixel = 0
-sep.Parent = window
+local function createSeparator(yPos)
+    local sep = Instance.new("Frame")
+    sep.Size = UDim2.new(1, -PAD * 2, 0, 1)
+    sep.Position = UDim2.new(0, PAD, 0, yPos)
+    sep.BackgroundColor3 = BC.slotBorder
+    sep.BorderSizePixel = 0
+    sep.Parent = window
+    return sep
+end
+
+createSeparator(contentY)
 contentY += 10
 
 -- ═══ Permissions ═══
@@ -201,7 +238,7 @@ permLabel.TextXAlignment = Enum.TextXAlignment.Left
 permLabel.Parent = window
 contentY += 24
 
-local permToggles = {} -- { key = { btn, label } }
+local permToggles = {}
 
 local function createPermToggle(yPos, key, displayName)
     local frame = Instance.new("Frame")
@@ -245,7 +282,53 @@ contentY += 28
 createPermToggle(contentY, "AllowCoopRemove", "Совместное удаление")
 contentY += 28
 createPermToggle(contentY, "AllowCoopInteract", "Совместное взаимодействие")
-contentY += 36
+contentY += 34
+
+-- ═══ Разделитель ═══
+createSeparator(contentY)
+contentY += 10
+
+-- ═══ Союзники ═══
+local alliesLabel = Instance.new("TextLabel")
+alliesLabel.Size = UDim2.new(1, -PAD * 2, 0, 20)
+alliesLabel.Position = UDim2.new(0, PAD, 0, contentY)
+alliesLabel.BackgroundTransparency = 1
+alliesLabel.TextColor3 = BC.textColor
+alliesLabel.TextSize = 14
+alliesLabel.Font = Enum.Font.GothamBold
+alliesLabel.Text = "Союзники"
+alliesLabel.TextXAlignment = Enum.TextXAlignment.Left
+alliesLabel.Parent = window
+contentY += 24
+
+-- Скроллинг-контейнер для списка союзников
+local ALLIES_LIST_H = 60
+local alliesScroll = Instance.new("ScrollingFrame")
+alliesScroll.Size = UDim2.new(1, -PAD * 2, 0, ALLIES_LIST_H)
+alliesScroll.Position = UDim2.new(0, PAD, 0, contentY)
+alliesScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+alliesScroll.BorderSizePixel = 0
+alliesScroll.ScrollBarThickness = 4
+alliesScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+alliesScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+alliesScroll.Parent = window
+Instance.new("UICorner", alliesScroll).CornerRadius = UDim.new(0, 4)
+
+local alliesLayout = Instance.new("UIListLayout")
+alliesLayout.SortOrder = Enum.SortOrder.LayoutOrder
+alliesLayout.Padding = UDim.new(0, 2)
+alliesLayout.Parent = alliesScroll
+
+local noAlliesLabel = Instance.new("TextLabel")
+noAlliesLabel.Size = UDim2.new(1, 0, 0, 20)
+noAlliesLabel.BackgroundTransparency = 1
+noAlliesLabel.TextColor3 = BC.textDim
+noAlliesLabel.TextSize = 11
+noAlliesLabel.Font = Enum.Font.Gotham
+noAlliesLabel.Text = "Нет союзников"
+noAlliesLabel.Parent = alliesScroll
+
+contentY += ALLIES_LIST_H + 12
 
 -- ═══ Кнопка уничтожения замка ═══
 local destroyBtn = Instance.new("TextButton")
@@ -270,6 +353,48 @@ window.Size = UDim2.new(0, WINDOW_W, 0, WINDOW_H)
 local currentInfo = nil
 local confirmingDestroy = false
 
+-- ═══ Хелпер: заполнить список союзников ═══
+local function updateAlliesList(allies)
+    -- Очищаем старые элементы (кроме noAlliesLabel и layout)
+    for _, child in alliesScroll:GetChildren() do
+        if child:IsA("TextLabel") and child ~= noAlliesLabel then
+            child:Destroy()
+        end
+    end
+
+    if not allies or #allies == 0 then
+        noAlliesLabel.Visible = true
+        return
+    end
+
+    noAlliesLabel.Visible = false
+
+    for i, allyId in allies do
+        local allyName = "Игрок #" .. tostring(allyId)
+
+        -- Попробуем получить имя игрока (если он онлайн)
+        local success, name = pcall(function()
+            local p = Players:GetPlayerByUserId(allyId)
+            if p then return p.Name end
+            return nil
+        end)
+        if success and name then
+            allyName = name
+        end
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -4, 0, 18)
+        lbl.BackgroundTransparency = 1
+        lbl.TextColor3 = BC.textColor
+        lbl.TextSize = 11
+        lbl.Font = Enum.Font.Gotham
+        lbl.Text = "  " .. allyName
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.LayoutOrder = i
+        lbl.Parent = alliesScroll
+    end
+end
+
 -- ═══ Обновление UI ═══
 local function updateUI(info)
     if not info then
@@ -282,16 +407,23 @@ local function updateUI(info)
     levelLabel.Text = "Ур. " .. info.HeartLevel
 
     -- HP
-    local ratio = info.MaxHP > 0 and info.CurrentHP / info.MaxHP or 0
-    hpFill.Size = UDim2.new(math.clamp(ratio, 0, 1), 0, 1, 0)
+    local hpRatio = info.MaxHP > 0 and info.CurrentHP / info.MaxHP or 0
+    hpFill.Size = UDim2.new(math.clamp(hpRatio, 0, 1), 0, 1, 0)
     hpText.Text = info.CurrentHP .. " / " .. info.MaxHP
-    if ratio > 0.5 then
+    if hpRatio > 0.5 then
         hpFill.BackgroundColor3 = BC.hpBarGreen
-    elseif ratio > 0.25 then
+    elseif hpRatio > 0.25 then
         hpFill.BackgroundColor3 = BC.hpBarYellow
     else
         hpFill.BackgroundColor3 = BC.hpBarRed
     end
+
+    -- Essence
+    local essenceAmount = info.BloodEssence or 0
+    local essenceMax = info.MaxEssenceCapacity or 500
+    local essenceRatio = essenceMax > 0 and essenceAmount / essenceMax or 0
+    essenceFill.Size = UDim2.new(math.clamp(essenceRatio, 0, 1), 0, 1, 0)
+    essenceText.Text = "Эссенция: " .. essenceAmount .. " / " .. essenceMax
 
     -- Инфо
     blocksValue.Text = info.BlockCount .. " / " .. info.MaxBlocks
@@ -333,6 +465,9 @@ local function updateUI(info)
             data.btn.BackgroundColor3 = BC.btnRed
         end
     end
+
+    -- Allies
+    updateAlliesList(info.Allies)
 
     -- Destroy reset
     confirmingDestroy = false
@@ -376,6 +511,10 @@ end)
 -- ═══ Открытие UI — по нажатию F рядом с Castle Heart ═══
 local INTERACT_RANGE = 10
 
+--- Ищет Castle Heart (Model) рядом с игроком.
+--- Castle Heart — Model с PrimaryPart (Platform).
+--- Атрибут IsCastleHeart стоит и на Model, и на PrimaryPart.
+--- Проверяем оба варианта для надёжности.
 local function findNearbyHeart()
     local char = player.Character
     if not char then return nil end
@@ -386,11 +525,22 @@ local function findNearbyHeart()
     if not castlesFolder then return nil end
 
     for _, folder in castlesFolder:GetChildren() do
-        for _, part in folder:GetChildren() do
-            if part:IsA("BasePart") and part:GetAttribute("IsCastleHeart") then
-                local dist = (hrp.Position - part.Position).Magnitude
+        for _, obj in folder:GetChildren() do
+            -- Вариант 1: Castle Heart это Model
+            if obj:IsA("Model") and obj:GetAttribute("IsCastleHeart") then
+                local primary = obj.PrimaryPart
+                if primary then
+                    local dist = (hrp.Position - primary.Position).Magnitude
+                    if dist <= INTERACT_RANGE then
+                        return obj
+                    end
+                end
+            end
+            -- Вариант 2: обратная совместимость — Castle Heart это BasePart
+            if obj:IsA("BasePart") and obj:GetAttribute("IsCastleHeart") then
+                local dist = (hrp.Position - obj.Position).Magnitude
                 if dist <= INTERACT_RANGE then
-                    return part
+                    return obj
                 end
             end
         end
@@ -411,7 +561,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         -- Ищем Castle Heart рядом
         local heart = findNearbyHeart()
         if heart then
-            -- Запрашиваем данные через RemoteFunction
             local info = Remotes.GetCastleHeartInfo:InvokeServer()
             if info then
                 updateUI(info)
@@ -420,7 +569,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- ═══ Обновление от сервера ═══
+-- ═══ Обновление от сервера (push) ═══
 Remotes.CastleHeartInfo.OnClientEvent:Connect(function(info)
     if window.Visible then
         updateUI(info)

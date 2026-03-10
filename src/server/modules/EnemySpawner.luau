@@ -47,7 +47,6 @@ function EnemySpawner.spawn(enemyType, spawnPosition, level)
         humanoid.WalkSpeed = config.WalkSpeed
     end
 
-
     local enemyLevel = level
     if not enemyLevel then
         if config.MinLevel and config.MaxLevel then
@@ -72,17 +71,22 @@ function EnemySpawner.spawn(enemyType, spawnPosition, level)
 
     -- Blood
     local bloodType = config.BloodType or "Outcast"
-    local bqRange = config.BloodQuality or { Min = 1, Max = 1 }
+    local bqRange = config.BloodQuality or {
+        Min = 1,
+        Max = 1
+    }
     enemy:SetAttribute("BloodType", bloodType)
     enemy:SetAttribute("BloodQuality", math.random(bqRange.Min, bqRange.Max))
 
-    print("[EnemySpawner] Spawned: " .. enemyType .. " Lv" .. enemyLevel .. " at " .. tostring(spawnPosition))
+    -- print("[EnemySpawner] Spawned: " .. enemyType .. " Lv" .. enemyLevel .. " at " .. tostring(spawnPosition))
     return enemy
 end
 
 function EnemySpawner.respawn(enemyType, spawnPosition, level)
     local config = Config.Enemies[enemyType]
-    if not config then return end
+    if not config then
+        return
+    end
 
     task.delay(config.RespawnTime, function()
         EnemySpawner.spawn(enemyType, spawnPosition, level)
