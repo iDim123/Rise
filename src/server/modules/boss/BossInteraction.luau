@@ -50,14 +50,20 @@ function BossInteraction.finishBoss(player, bossId)
     -- ═══ Award Spell Points on first kill ═══
     if firstKill then
         local bossConfig = Config.Bosses[bossId]
-        if bossConfig and bossConfig.SpellPointReward then
-            local reward = bossConfig.SpellPointReward
-            SpellProgressManager.addSpellPoints(player, reward.School, tostring(reward.Tier), reward.Amount)
-            Remotes.Notify:FireClient(player,
-                "Получено: " .. reward.Amount .. " Spell Point (" .. reward.School .. " Tier " .. reward.Tier ..
-                    ")", "success")
-            print("[BossInteraction] Awarded " .. reward.Amount .. " " .. reward.School .. " T" .. reward.Tier ..
-                      " spell point(s) to " .. player.Name)
+        -- Award Spell Points (array format)
+        local rewards = bossConfig and bossConfig.SpellPointRewards
+        -- Backward compat: single SpellPointReward → wrap in array
+        if not rewards and bossConfig and bossConfig.SpellPointReward then
+            rewards = {bossConfig.SpellPointReward}
+        end
+        if rewards then
+            for _, reward in rewards do
+                SpellProgressManager.addSpellPoints(player, reward.School, tostring(reward.Tier), reward.Amount)
+                Remotes.Notify:FireClient(player, "Получено: " .. reward.Amount .. " Spell Point (" ..
+                    reward.School .. " Tier " .. reward.Tier .. ")", "success")
+                print("[BossInteraction] Awarded " .. reward.Amount .. " " .. reward.School .. " T" .. reward.Tier ..
+                          " spell point(s) to " .. player.Name)
+            end
         end
     end
 

@@ -11,19 +11,23 @@ return {
             AttackCooldown = 1.2,
             WalkSpeed = 14,
             RespawnTime = 10,
-            EssenceRequired = 2, -- сколько раз убить для захвата
+            EssenceRequired = 2,
             XPReward = 150,
             Location = "Кровавый лес",
             Description = "Могущественный воин, познавший силу крови. Его удары пропитаны кровавой энергией, а его жажда крови не знает границ. Он бродит по Кровавому лесу в поисках жертв, чтобы утолить свою жажду и стать ещё сильнее.",
             Image = "rbxassetid://87767728636951",
-            BloodType = nil, -- нет типа крови, нельзя пить
+            BloodType = nil,
             BloodQuality = nil,
-            CanCapture = false, -- нельзя обычным захватом
-            SpellPointReward = {
+            CanCapture = false,
+            SpellPointRewards = {{
                 School = "Blood",
                 Tier = 1,
                 Amount = 1
-            },
+            }, {
+                School = "Blood",
+                Tier = 2,
+                Amount = 1
+            }},
             Loot = {{
                 ItemId = "blood_essence",
                 Amount = {
@@ -56,9 +60,9 @@ return {
                     Damage = 30,
                     Range = 8,
                     Cooldown = 6,
-                    Priority = 1, -- higher = used first when available
-                    MinHP = 0, -- use at any HP %
-                    Animation = nil -- animation id (optional)
+                    Priority = 1,
+                    MinHP = 0,
+                    Animation = nil
                 },
                 BloodNova = {
                     Name = "Кровавая волна",
@@ -78,7 +82,7 @@ return {
                     Duration = 5,
                     Cooldown = 20,
                     Priority = 3,
-                    MinHP = 0.5, -- only use below 50% HP
+                    MinHP = 0.5,
                     Animation = nil
                 }
             }
@@ -98,15 +102,19 @@ return {
             XPReward = 100,
             Location = "Лесопилка",
             Description = "Жестокий надсмотрщик, управляющий старой лесопилкой. Знает секреты обработки древесины.",
-            Image = "rbxassetid://123248253802708", -- замени на свой ассет
+            Image = "rbxassetid://123248253802708",
             BloodType = nil,
             BloodQuality = nil,
             CanCapture = false,
-            SpellPointReward = {
+            SpellPointRewards = {{
                 School = "Chaos",
                 Tier = 1,
                 Amount = 1
-            },
+            }, {
+                School = "Blood",
+                Tier = 2,
+                Amount = 1
+            }},
             Loot = {{
                 ItemId = "wood",
                 Amount = {
@@ -114,18 +122,18 @@ return {
                     Max = 40
                 },
                 Chance = 1.0
+            }},
+            Unlocks = {{
+                Type = "Recipes",
+                Icon = "rbxassetid://120841469219855",
+                Name = "Обработка древесины",
+                Description = "Открывает рецепт обработки древесины в доски.",
+                Recipes = {"wooden_plank"}
             }, {
                 Type = "Spell",
                 Icon = "rbxassetid://136139846768097",
                 Name = "Chaos Volley",
                 Description = "Открывает Chaos Volley (Tier I Chaos)."
-            }},
-            Unlocks = {{
-                Type = "Recipes",
-                Icon = "rbxassetid://120841469219855", -- иконка досок
-                Name = "Обработка древесины",
-                Description = "Открывает рецепт обработки древесины в доски.",
-                Recipes = {"wooden_plank"}
             }},
             Abilities = {
                 HeavyChop = {
