@@ -15,7 +15,9 @@ local craftRunning = {}
 local function sendQueueUpdate(player)
     local queue = craftQueues[player.UserId] or {}
     local counts = {}
-    for _, recipeId in queue do
+    for _, entry in queue do
+        -- entry может быть string (legacy) или { recipeId, context }
+        local recipeId = type(entry) == "table" and entry.recipeId or entry
         counts[recipeId] = (counts[recipeId] or 0) + 1
     end
     Remotes.CraftQueueUpdate:FireClient(player, counts)
@@ -34,7 +36,10 @@ local function processCraftQueue(player)
                 return
             end
 
-            local recipeId = queue[1]
+            local entry = queue[1]
+            -- Поддержка legacy (string) и нового формата ({ recipeId, context })
+            local recipeId = type(entry) == "table" and entry.recipeId or entry
+            local context = type(entry) == "table" and entry.context or nil
 
             local recipe = nil
             for _, r in Config.Crafting.Recipes do
@@ -48,6 +53,17 @@ local function processCraftQueue(player)
                 table.remove(queue, 1)
                 sendQueueUpdate(player)
                 continue
+            end
+
+            -- Phase 0: проверка RequiresWorkbench
+            if recipe.RequiresWorkbench then
+                local hasWorkbench = context and context.hasWorkbench
+                if not hasWorkbench then
+                    print("[Craft] " .. player.Name .. " tried to craft " .. recipeId .. " without workbench")
+                    table.remove(queue, 1)
+                    sendQueueUpdate(player)
+                    continue
+                end
             end
 
             -- Проверяем ресурсы
@@ -94,7 +110,11 @@ local function processCraftQueue(player)
     end)
 end
 
-function CraftHandler.onCraftItem(player, recipeId)
+--- Запрос крафта.
+--- @param player Player
+--- @param recipeId string
+--- @param context table? — { hasWorkbench: boolean } (Phase 0: опциональный)
+function CraftHandler.onCraftItem(player, recipeId, context)
     if type(recipeId) ~= "string" then return end
 
     -- Find recipe
@@ -116,11 +136,27 @@ function CraftHandler.onCraftItem(player, recipeId)
         end
     end
 
+    -- Phase 0: ранняя проверка RequiresWorkbench (до очереди)
+    if recipe.RequiresWorkbench then
+        local hasWorkbench = context and context.hasWorkbench
+        if not hasWorkbench then
+            print("[Craft] " .. player.Name .. " tried to craft " .. recipeId .. " without workbench")
+            Remotes.Notify:FireClient(player, "Требуется верстак!", "warning")
+            return
+        end
+    end
+
     if not craftQueues[player.UserId] then
         craftQueues[player.UserId] = {}
     end
 
-    table.insert(craftQueues[player.UserId], recipeId)
+    -- Сохраняем context вместе с recipeId
+    if context then
+        table.insert(craftQueues[player.UserId], { recipeId = recipeId, context = context })
+    else
+        table.insert(craftQueues[player.UserId], recipeId)
+    end
+
     sendQueueUpdate(player)
     processCraftQueue(player)
 end

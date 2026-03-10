@@ -22,8 +22,6 @@ Phase 0: Refactoring (1 неделя) — подготовка систем к �
 | 0.2 | **TargetFinder** — `staticEntities` set, `addStaticEntity`/`removeStaticEntity`, обновлённый `isValidTarget` (BasePart + IsStructure), `getRootPosition` (BasePart fallback), порядок `rebuildGrid`: clear → enemies → players → static | Medium | `server/combat/TargetFinder.luau` |
 | 0.3 | **LootManager** — рефакторинг: приватные `_createLootPart(position, itemId, itemName, amount)`, `_calcLootOffset(basePosition)`. Новый публичный метод `dropItemAtPosition(position, itemId, amount)`. **Намеренное изменение поведения:** `dropLoot` переходит с сетки `%3` на спиральное размещение через `_calcLootOffset` | Medium | `server/modules/LootManager.luau` |
 | 0.4 | **CraftHandler** — опциональный параметр `context` в `onCraftItem`, поддержка `RequiresWorkbench` | Low | `server/inventory/CraftHandler.luau` |
-| 0.5 | **ContainerManager** — универсальный серверный менеджер контейнеров: `registerContainer`, `removeContainer`, `open`, `close`, `takeItem`, `takeAll`, `putItem`, `sort`, `serializeContainer`, `deserializeContainer` | High | `server/modules/ContainerManager.luau` |
-| 0.6 | **ContainerServer** — remote-оркестратор: ContainerOpen, ContainerClose, ContainerTakeItem, ContainerTakeAll, ContainerSort | Low | `server/inventory/ContainerServer.server.luau` |
 | 0.7 | **Remotes** — добавить `StructureDamageEvent` | Low | `shared/Remotes.luau` |
 
 ### HealthManager — изменения в `takeDamage`
