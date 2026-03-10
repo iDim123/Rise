@@ -20,6 +20,13 @@ local grid = {} -- { ["x,z"] = { entity1, entity2, ... } }
 local entityCell = {} -- { [entity] = "x,z" } для быстрого поиска прошлой ячейки
 local lastGridUpdate = 0
 
+-- ═══ Phase 0: Static entities (building structures) ═══
+-- Множество зарегистрированных статических объектов (BasePart с IsStructure).
+-- Не перестраиваются при rebuildGrid — добавляются/удаляются инкрементально
+-- через addStaticEntity/removeStaticEntity. Восстанавливаются в rebuildGrid
+-- ПОСЛЕДНИМИ, чтобы entityCell был актуален после полной очистки.
+local staticEntities = {} -- { [BasePart] = true }
+
 -- ═══ Хелперы грида ═══
 
 local function cellKey(x, z)
@@ -32,41 +39,58 @@ local function cellKeyFromInts(cx, cz)
 	return cx .. "," .. cz
 end
 
+--- Вставить entity в грид по позиции
+local function insertIntoGrid(entity, position)
+	local key = cellKey(position.X, position.Z)
+	if not grid[key] then
+		grid[key] = {}
+	end
+	table.insert(grid[key], entity)
+	entityCell[entity] = key
+end
+
 --- Перестроить грид из текущего состояния мира
+--- ╔══════════════════════════════════════════════════════════╗
+--- ║  ПОРЯДОК ВАЖЕН: clear → enemies → players → static      ║
+--- ║  staticEntities восстанавливаются ПОСЛЕДНИМИ,            ║
+--- ║  чтобы entityCell был актуален после clear.              ║
+--- ║  lastGridUpdate обновляется ПОСЛЕ обработки static.      ║
+--- ╚══════════════════════════════════════════════════════════╝
 local function rebuildGrid()
-	-- Полная очистка
+	-- 1. Полная очистка
 	table.clear(grid)
 	table.clear(entityCell)
 
-	-- Враги
+	-- 2. Враги
 	local enemiesFolder = workspace:FindFirstChild("Enemies")
 	if enemiesFolder then
 		for _, enemy in enemiesFolder:GetChildren() do
 			local root = enemy:FindFirstChild("HumanoidRootPart")
 			if root then
-				local key = cellKey(root.Position.X, root.Position.Z)
-				if not grid[key] then
-					grid[key] = {}
-				end
-				table.insert(grid[key], enemy)
-				entityCell[enemy] = key
+				insertIntoGrid(enemy, root.Position)
 			end
 		end
 	end
 
-	-- Игроки
+	-- 3. Игроки
 	for _, p in Players:GetPlayers() do
 		local character = p.Character
 		if character then
 			local root = character:FindFirstChild("HumanoidRootPart")
 			if root then
-				local key = cellKey(root.Position.X, root.Position.Z)
-				if not grid[key] then
-					grid[key] = {}
-				end
-				table.insert(grid[key], character)
-				entityCell[character] = key
+				insertIntoGrid(character, root.Position)
 			end
+		end
+	end
+
+	-- 4. Статические объекты (структуры замков)
+	-- Восстанавливаем из staticEntities set. Удалённые/destroyed отфильтровываются.
+	for entity, _ in staticEntities do
+		if entity and entity.Parent then
+			insertIntoGrid(entity, entity.Position)
+		else
+			-- Объект уничтожен вне нашего контроля — очищаем
+			staticEntities[entity] = nil
 		end
 	end
 
@@ -105,12 +129,28 @@ end
 -- Внутренние хелперы
 -- ═══════════════════════════════════════════════════════════
 
--- Проверить что entity жив и имеет HumanoidRootPart
+--- Проверить что entity жив/валиден и имеет позицию.
+--- Поддерживает как Model (персонажи/враги), так и BasePart (структуры).
 local function isValidTarget(entity)
-	if not entity then
+	if not entity or not entity.Parent then
 		return false
 	end
+	-- Phase 0: структуры — это BasePart с атрибутом IsStructure
+	if entity:IsA("BasePart") and entity:GetAttribute("IsStructure") then
+		return not entity:GetAttribute("IsDead")
+	end
+	-- Персонажи/враги — проверяем через CharacterUtil
 	return CharacterUtil.isAlive(entity) and entity:FindFirstChild("HumanoidRootPart") ~= nil
+end
+
+--- Получить позицию entity (поддерживает BasePart и Model)
+local function getRootPosition(entity)
+	-- Phase 0: структуры — BasePart, возвращаем .Position напрямую
+	if entity:IsA("BasePart") then
+		return entity.Position
+	end
+	local rootPart = entity:FindFirstChild("HumanoidRootPart")
+	return rootPart and rootPart.Position or nil
 end
 
 -- Собрать всех потенциальных врагов и игроков (кроме excludeCharacter)
@@ -136,13 +176,55 @@ local function collectAllTargets(excludeCharacter)
 		end
 	end
 
+	-- Статические объекты
+	for entity, _ in staticEntities do
+		if entity and entity.Parent and entity ~= excludeCharacter and isValidTarget(entity) then
+			table.insert(targets, entity)
+		end
+	end
+
 	return targets
 end
 
--- Получить позицию HumanoidRootPart
-local function getRootPosition(entity)
-	local rootPart = entity:FindFirstChild("HumanoidRootPart")
-	return rootPart and rootPart.Position or nil
+-- ═══════════════════════════════════════════════════════════
+-- Phase 0: Инкрементальное управление статическими объектами
+-- ═══════════════════════════════════════════════════════════
+
+--- Зарегистрировать статический объект (блок замка) в гриде.
+--- Вызывается из BlockHealth.initBlock при создании/восстановлении блока.
+--- O(1) — не вызывает полное перестроение грида.
+--- @param entity BasePart — блок с атрибутом IsStructure
+function TargetFinder.addStaticEntity(entity)
+	if not entity or not entity:IsA("BasePart") then
+		warn("[TargetFinder] addStaticEntity: expected BasePart, got " .. tostring(entity))
+		return
+	end
+	staticEntities[entity] = true
+	-- Сразу добавляем в текущий грид (инкрементально)
+	insertIntoGrid(entity, entity.Position)
+end
+
+--- Удалить статический объект из грида.
+--- Вызывается из BlockHealth при StructureDestroyed или ручном удалении.
+--- O(N) по размеру ячейки (обычно 1-10 объектов на ячейку).
+--- @param entity BasePart
+function TargetFinder.removeStaticEntity(entity)
+	staticEntities[entity] = nil
+	-- Удаляем из текущей ячейки грида
+	local key = entityCell[entity]
+	if key and grid[key] then
+		local cell = grid[key]
+		for i = #cell, 1, -1 do
+			if cell[i] == entity then
+				table.remove(cell, i)
+				break
+			end
+		end
+		if #cell == 0 then
+			grid[key] = nil
+		end
+	end
+	entityCell[entity] = nil
 end
 
 -- ═══════════════════════════════════════════════════════════
@@ -153,7 +235,7 @@ end
 --- @param origin Vector3
 --- @param radius number
 --- @param excludeCharacter Model? — персонаж, которого исключить
---- @return { Model, ... }
+--- @return { Model | BasePart, ... }
 function TargetFinder.inRadius(origin, radius, excludeCharacter)
 	ensureGridFresh()
 
@@ -190,7 +272,7 @@ end
 --- @param range number — максимальная дистанция
 --- @param dotThreshold number? — порог dot product (default 0.3)
 --- @param excludeCharacter Model?
---- @return { {entity: Model, distance: number}, ... }
+--- @return { {entity: Model | BasePart, distance: number}, ... }
 function TargetFinder.inCone(origin, direction, range, dotThreshold, excludeCharacter)
 	ensureGridFresh()
 
@@ -245,7 +327,7 @@ function TargetFinder.inCone(origin, direction, range, dotThreshold, excludeChar
 end
 
 --- Ближайшая цель в конусе (для single-target способностей)
---- @return Model | nil
+--- @return Model | BasePart | nil
 function TargetFinder.closestInCone(origin, direction, range, dotThreshold, excludeCharacter)
 	local results = TargetFinder.inCone(origin, direction, range, dotThreshold, excludeCharacter)
 	if #results > 0 then
@@ -258,8 +340,8 @@ end
 --- Исключает уже задетые цели из hitList
 --- @param position Vector3 — текущая позиция снаряда
 --- @param radius number — HitRadius снаряда
---- @param hitList { [Model]: true }? — уже задетые (для pierce)
---- @return { Model, ... } — новые попадания
+--- @param hitList { [Model | BasePart]: true }? — уже задетые (для pierce)
+--- @return { Model | BasePart, ... } — новые попадания
 function TargetFinder.sphereOverlap(position, radius, hitList)
 	ensureGridFresh()
 
@@ -295,7 +377,7 @@ end
 --- @param direction Vector3 (unit)
 --- @param maxDist number
 --- @param excludeList { Instance, ... }?
---- @return Model | nil, Vector3 | nil (hitPosition)
+--- @return Model | BasePart | nil, Vector3 | nil (hitPosition)
 function TargetFinder.raycast(origin, direction, maxDist, excludeList)
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -303,8 +385,17 @@ function TargetFinder.raycast(origin, direction, maxDist, excludeList)
 
 	local result = workspace:Raycast(origin, direction * maxDist, rayParams)
 	if result and result.Instance then
-		-- Найти модель-владельца (враг или персонаж)
 		local hit = result.Instance
+
+		-- Phase 0: проверяем структуры (BasePart с IsStructure)
+		if hit:IsA("BasePart") and hit:GetAttribute("IsStructure") then
+			if isValidTarget(hit) then
+				return hit, result.Position
+			end
+			return nil, result.Position
+		end
+
+		-- Найти модель-владельца (враг или персонаж)
 		local entity = hit:FindFirstAncestorOfClass("Model")
 		if entity and isValidTarget(entity) then
 			return entity, result.Position
@@ -329,7 +420,16 @@ function TargetFinder.getGridStats()
 		cellCount += 1
 		entityCount += #cell
 	end
-	return { cells = cellCount, entities = entityCount, cellSize = CELL_SIZE }
+	local staticCount = 0
+	for _ in staticEntities do
+		staticCount += 1
+	end
+	return {
+		cells = cellCount,
+		entities = entityCount,
+		staticEntities = staticCount,
+		cellSize = CELL_SIZE,
+	}
 end
 
 return TargetFinder

@@ -32,6 +32,8 @@ function HealthManager.init(entity, maxHP)
     entity:SetAttribute("MaxHP", maxHP)
     entity:SetAttribute("CurrentHP", maxHP)
     entity:SetAttribute("IsDead", false)
+    print("[HealthManager] init:", entity.Name, "HP:", maxHP, "IsStructure:",
+        entity:GetAttribute("IsStructure") or false) -- DEBUG
 end
 
 function HealthManager.takeDamage(entity, damage, attacker)
@@ -48,30 +50,49 @@ function HealthManager.takeDamage(entity, damage, attacker)
 
     EventBus.fire("EntityTookDamage", entity, damage, attacker)
 
-    local attackerName = attacker and attacker.Name or "Unknown"
-    Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
+    -- ═══ v1.9: Разделение структур и живых сущностей ═══
+    local isStructure = entity:GetAttribute("IsStructure")
 
-    -- Mark combat for regen timer (both attacker and target)
-    local StatsManager = require(modules:WaitForChild("StatsManager"))
-    StatsManager.markCombat(entity)
-    if attacker then
-        StatsManager.markCombat(attacker)
+    if isStructure then
+        -- Структуры: отдельный remote (клиент не ищет Humanoid)
+        Remotes.StructureDamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage)
+        print("[HealthManager] Structure took damage:", entity.Name, "HP:", data.CurrentHP, "/", data.MaxHP, "dmg:",
+            damage) -- DEBUG
+
+        -- Структура не входит в combat, но АТАКУЮЩИЙ входит (останавливаем реген)
+        if attacker then
+            local StatsManager = require(modules:WaitForChild("StatsManager"))
+            StatsManager.markCombat(attacker)
+        end
+    else
+        -- Живые сущности: стандартный DamageEvent
+        local attackerName = attacker and attacker.Name or "Unknown"
+        Remotes.DamageEvent:FireAllClients(entity, data.CurrentHP, data.MaxHP, damage, attackerName)
+
+        -- Mark combat for regen timer (both attacker and target)
+        local StatsManager = require(modules:WaitForChild("StatsManager"))
+        StatsManager.markCombat(entity)
+        if attacker then
+            StatsManager.markCombat(attacker)
+        end
     end
 
     if data.CurrentHP <= 0 then
-        local bossId = entity:GetAttribute("BossId")
-        if bossId then
-            local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
-            if BossManager.getBossState(bossId) == BossManager.BOSS_STATE.ALIVE then
-                -- Don't kill, just down
-                data.CurrentHP = 1
-                entity:SetAttribute("CurrentHP", 1)
-                local humanoid = entity:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid.Health = 1
+        -- Структуры не могут быть боссами — пропускаем boss check
+        if not isStructure then
+            local bossId = entity:GetAttribute("BossId")
+            if bossId then
+                local BossManager = require(modules:WaitForChild("boss"):WaitForChild("BossManager"))
+                if BossManager.getBossState(bossId) == BossManager.BOSS_STATE.ALIVE then
+                    data.CurrentHP = 1
+                    entity:SetAttribute("CurrentHP", 1)
+                    local humanoid = entity:FindFirstChild("Humanoid")
+                    if humanoid then
+                        humanoid.Health = 1
+                    end
+                    BossManager.onBossDowned(bossId, attacker)
+                    return
                 end
-                BossManager.onBossDowned(bossId, attacker)
-                return -- don't call die()
             end
         end
 
@@ -87,6 +108,16 @@ function HealthManager.die(entity, attacker)
 
     data.IsDead = true
     entity:SetAttribute("IsDead", true)
+
+    -- ═══ v1.9: Структуры — отдельная ветвь смерти ═══
+    if entity:GetAttribute("IsStructure") then
+        print("[HealthManager] Structure destroyed:", entity.Name, "attacker:", attacker and attacker.Name or "nil") -- DEBUG
+        EventBus.fire("StructureDestroyed", entity, attacker)
+        -- Part уничтожается BuildingManager через StructureDestroyed listener,
+        -- здесь только очищаем healthData
+        healthData[entity] = nil
+        return
+    end
 
     local player = Players:GetPlayerFromCharacter(entity)
 
@@ -115,8 +146,7 @@ function HealthManager.heal(entity, amount)
         return
     end
 
-    -- HealingReceived modifier
-    local Players = game:GetService("Players")
+    -- HealingReceived modifier — только для персонажей игроков
     local player = Players:GetPlayerFromCharacter(entity)
     if player then
         local StatsManager = require(modules:WaitForChild("StatsManager"))
@@ -145,7 +175,7 @@ EventBus.on("PlayerDied", function(player, entity, attacker)
         humanoid.JumpPower = 0
         humanoid.JumpHeight = 0
         humanoid.Health = 1
-        humanoid.MaxHealth = math.huge -- запрещаем естественную смерть
+        humanoid.MaxHealth = math.huge
     end
 
     Remotes.EntityDied:FireAllClients(entity)
@@ -180,7 +210,6 @@ function HealthManager.setMaxHP(entity, newMaxHP)
     data.MaxHP = newMaxHP
     entity:SetAttribute("MaxHP", newMaxHP)
 
-    -- Пропорционально масштабируем текущее HP
     if oldMaxHP > 0 then
         local ratio = data.CurrentHP / oldMaxHP
         data.CurrentHP = math.floor(ratio * newMaxHP)
