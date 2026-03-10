@@ -69,10 +69,6 @@ local function validateCharacter(player)
     end
     return player.Character, rootPart
 end
-    end
-
-    return character, rootPart
-end
 
 -- Выстрелить снарядом
 local function fireProjectile(player, rootPart, direction, weaponConfig)
