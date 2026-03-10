@@ -28,7 +28,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         return
     end
 
-    if input.KeyCode == Enum.KeyCode.B then
+    if input.KeyCode == Enum.KeyCode.J then
         JournalWindow.toggle("Bosses")
     elseif input.KeyCode == Enum.KeyCode.P then
         JournalWindow.toggle("Spellbook")

@@ -117,48 +117,135 @@ local function createBlockPart(typeId, position, rotation, folder)
     return part
 end
 
---- Создать Part для Castle Heart
-local function createHeartPart(position, level, folder)
+--- Рассчитать параметры сферы (размер, цвет, яркость) по количеству эссенции.
+--- @param essenceAmount number — текущее количество blood_essence в сердце
+--- @return number diameter, Color3 color, number brightness, number lightRange
+local function calcOrbParams(essenceAmount)
+    local vis = Config.Building.CastleHeart.Visual
+    local orb = vis.Orb
+    local maxEssence = vis.MaxEssenceCapacity
+
+    local t = math.clamp((essenceAmount or 0) / maxEssence, 0, 1)
+
+    local diameter = orb.MinDiameter + (orb.MaxDiameter - orb.MinDiameter) * t
+    local color = orb.EmptyColor:Lerp(orb.FullColor, t)
+    local brightness = orb.Light.MinBrightness + (orb.Light.MaxBrightness - orb.Light.MinBrightness) * t
+    local lightRange = orb.Light.MinRange + (orb.Light.MaxRange - orb.Light.MinRange) * t
+
+    return diameter, color, brightness, lightRange
+end
+
+--- Создать Model для Castle Heart (платформа + пьедестал + сфера с PointLight).
+--- Возвращает Model; PrimaryPart = Platform.
+--- @param position Vector3 — центр нижней грани (от calcPlacementPos / snap)
+--- @param level number — текущий уровень сердца
+--- @param essenceAmount number — кол-во blood_essence в сердце (0 при размещении)
+--- @param folder Folder — куда парентить
+--- @return Model
+local function createHeartPart(position, level, folder, essenceAmount)
     local heartCfg = Config.Building.CastleHeart
+    local vis = heartCfg.Visual
+    essenceAmount = essenceAmount or 0
 
-    local part = Instance.new("Part")
-    part.Name = "CastleHeart"
-    part.Size = heartCfg.Size
-    part.Material = heartCfg.Material
-    part.Color = heartCfg.Color
-    part.Anchored = true
-    part.CanCollide = true
-    part.Position = position
-    part.Parent = folder
+    -- ── Model ──
+    local model = Instance.new("Model")
+    model.Name = "CastleHeart"
 
-    return part
+    -- ── Platform ──
+    local platform = Instance.new("Part")
+    platform.Name = "Platform"
+    platform.Size = vis.Platform.Size
+    platform.Material = vis.Platform.Material
+    platform.Color = vis.Platform.Color
+    platform.Anchored = true
+    platform.CanCollide = true
+    -- position = центр bounding box; платформа лежит внизу
+    platform.Position = position
+    platform.Parent = model
+
+    model.PrimaryPart = platform
+
+    -- ── Pedestal (цилиндр) ──
+    local pedestal = Instance.new("Part")
+    pedestal.Name = "Pedestal"
+    pedestal.Shape = Enum.PartType.Cylinder
+    -- Cylinder в Roblox: Size.X = длина (высота цилиндра при повороте),
+    -- Size.Y и Size.Z = диаметры.
+    -- Мы ставим вертикально → поворачиваем на 90° по Z.
+    pedestal.Size = Vector3.new(vis.Pedestal.Height, vis.Pedestal.Diameter, vis.Pedestal.Diameter)
+    pedestal.Material = vis.Pedestal.Material
+    pedestal.Color = vis.Pedestal.Color
+    pedestal.Anchored = true
+    pedestal.CanCollide = true
+    pedestal.Orientation = Vector3.new(0, 0, 90) -- вертикально
+    pedestal.Position = platform.Position + Vector3.new(0, vis.Platform.Size.Y / 2 + vis.Pedestal.Height / 2, 0)
+    pedestal.Parent = model
+
+    -- ── Orb (сфера) ──
+    local diameter, orbColor, brightness, lightRange = calcOrbParams(essenceAmount)
+
+    local orb = Instance.new("Part")
+    orb.Name = "Orb"
+    orb.Shape = Enum.PartType.Ball
+    orb.Size = Vector3.new(diameter, diameter, diameter)
+    orb.Material = vis.Orb.Material
+    orb.Color = orbColor
+    orb.Anchored = true
+    orb.CanCollide = false -- сфера декоративная, без коллизии
+    orb.Position = pedestal.Position + Vector3.new(0, vis.Pedestal.Height / 2 + diameter / 2, 0)
+    orb.Parent = model
+
+    -- ── PointLight внутри сферы ──
+    local light = Instance.new("PointLight")
+    light.Name = "OrbLight"
+    light.Color = vis.Orb.Light.Color
+    light.Brightness = brightness
+    light.Range = lightRange
+    light.Shadows = true
+    light.Parent = orb
+
+    -- Атрибут для отслеживания эссенции на клиенте
+    model:SetAttribute("BloodEssence", essenceAmount)
+
+    model.Parent = folder
+    return model
 end
 
 --- Инициализировать атрибуты и системы для Castle Heart part.
 --- Регистрирует в HealthManager и TargetFinder напрямую (не через BlockHealth),
 --- потому что Castle Heart имеет особую логику уничтожения.
-local function initHeartSystems(part, level, ownerId, blockId)
+local function initHeartSystems(heartModel, level, ownerId, blockId)
     local heartCfg = Config.Building.CastleHeart
     local levelData = heartCfg.Levels[level]
 
-    -- Атрибуты
-    part:SetAttribute("IsStructure", true)
-    part:SetAttribute("IsCastleHeart", true)
-    part:SetAttribute("CastleOwnerId", ownerId)
-    part:SetAttribute("HeartLevel", level)
-    part:SetAttribute("BlockId", blockId)
+    local primaryPart = heartModel.PrimaryPart
 
-    -- HealthManager
-    HealthManager.init(part, levelData.HP)
+    -- Атрибуты на Model (для клиентского UI — GetAttribute на Model)
+    heartModel:SetAttribute("IsStructure", true)
+    heartModel:SetAttribute("IsCastleHeart", true)
+    heartModel:SetAttribute("CastleOwnerId", ownerId)
+    heartModel:SetAttribute("HeartLevel", level)
+    heartModel:SetAttribute("BlockId", blockId)
 
-    -- TargetFinder
-    getTargetFinder().addStaticEntity(part)
+    -- Атрибуты на PrimaryPart (для HealthManager/TargetFinder, которые ищут IsStructure на Part)
+    primaryPart:SetAttribute("IsStructure", true)
+    primaryPart:SetAttribute("IsCastleHeart", true)
+    primaryPart:SetAttribute("CastleOwnerId", ownerId)
+
+    -- HealthManager — привязываем к PrimaryPart
+    HealthManager.init(primaryPart, levelData.HP)
+
+    -- TargetFinder — регистрируем PrimaryPart
+    getTargetFinder().addStaticEntity(primaryPart)
 end
 
 --- Очистить системы Castle Heart part
-local function cleanupHeartSystems(part)
-    getTargetFinder().removeStaticEntity(part)
-    HealthManager.cleanup(part)
+local function cleanupHeartSystems(heartModel)
+    local primaryPart = heartModel.PrimaryPart
+    if primaryPart then
+        getTargetFinder().removeStaticEntity(primaryPart)
+        HealthManager.cleanup(primaryPart)
+    end
 end
 
 local function getExistingBlocksArray(castle)
@@ -254,7 +341,8 @@ function BuildingManager.initPlayer(player, savedData)
 
     -- FIX: создаём Castle Heart part при загрузке
     local heartBlockId = makeBlockId()
-    local heartPart = createHeartPart(deserialized.centerPos, heartLevel, folder)
+    local savedEssence = deserialized.bloodEssence or 0
+    local heartPart = createHeartPart(deserialized.centerPos, heartLevel, folder, savedEssence)
     initHeartSystems(heartPart, heartLevel, ownerId, heartBlockId)
 
     castles[ownerId] = {
@@ -303,6 +391,39 @@ end
 -- ═══════════════════════════════════════════════════════════
 -- Публичное API: Castle Heart
 -- ═══════════════════════════════════════════════════════════
+
+--- Обновить визуал сферы Castle Heart при изменении количества blood_essence.
+--- Вызывается из BuildingServer / BloodAltarHandler / future events.
+--- @param ownerId number
+--- @param essenceAmount number
+function BuildingManager.updateHeartEssence(ownerId, essenceAmount)
+    local castle = castles[ownerId]
+    if not castle or not castle.heartPart then return end
+
+    local heartModel = castle.heartPart
+    heartModel:SetAttribute("BloodEssence", essenceAmount or 0)
+
+    local orb = heartModel:FindFirstChild("Orb")
+    if not orb then return end
+
+    local diameter, orbColor, brightness, lightRange = calcOrbParams(essenceAmount)
+
+    orb.Size = Vector3.new(diameter, diameter, diameter)
+    orb.Color = orbColor
+
+    -- Пересчитать позицию (размер изменился)
+    local pedestal = heartModel:FindFirstChild("Pedestal")
+    if pedestal then
+        local vis = Config.Building.CastleHeart.Visual
+        orb.Position = pedestal.Position + Vector3.new(0, vis.Pedestal.Height / 2 + diameter / 2, 0)
+    end
+
+    local light = orb:FindFirstChild("OrbLight")
+    if light then
+        light.Brightness = brightness
+        light.Range = lightRange
+    end
+end
 
 function BuildingManager.placeCastleHeart(player, rawPosition)
     local ownerId = player.UserId
@@ -403,11 +524,16 @@ function BuildingManager.upgradeHeart(player)
     castle.heartLevel = nextLevel
     CastleBorder.setHeartLevel(ownerId, nextLevel)
 
-    if castle.heartPart and castle.heartPart.Parent then
-        HealthManager.setMaxHP(castle.heartPart, levelData.HP)
+     -- Обновить атрибут на Model
+    if castle.heartPart then
         castle.heartPart:SetAttribute("HeartLevel", nextLevel)
-    end
 
+        -- Обновить HP через PrimaryPart
+        local primaryPart = castle.heartPart.PrimaryPart
+        if primaryPart then
+            HealthManager.setMaxHP(primaryPart, levelData.HP)
+        end
+    end
     broadcastSync(castle)
 
     print("[BuildingManager] " .. player.Name .. " upgraded Castle Heart to level " .. nextLevel)
@@ -421,11 +547,6 @@ function BuildingManager.destroyCastle(player)
     local castle = castles[ownerId]
     if not castle then return false, "Нет замка" end
 
-    -- Phase 2: дроп лута из сундуков
-    -- for blockId, block in castle.blocks do
-    --     if block.containerId then ... end
-    -- end
-
     -- Уничтожаем все блоки
     for blockId, block in castle.blocks do
         if block.part and block.part.Parent then
@@ -434,10 +555,12 @@ function BuildingManager.destroyCastle(player)
         end
     end
 
-    -- Уничтожаем Castle Heart
-    if castle.heartPart and castle.heartPart.Parent then
+    -- Уничтожаем Castle Heart Model
+    if castle.heartPart then
         cleanupHeartSystems(castle.heartPart)
-        castle.heartPart:Destroy()
+        if castle.heartPart.Parent then
+            castle.heartPart:Destroy()
+        end
     end
 
     if castle.folder and castle.folder.Parent then
@@ -656,11 +779,11 @@ end)
 -- ═══════════════════════════════════════════════════════════
 
 EventBus.on("StructureDestroyed", function(entity, attacker)
+    -- entity = PrimaryPart (Platform) если это Castle Heart
     if not entity or not entity:GetAttribute("IsCastleHeart") then
-        return -- обычный блок — обрабатывается BlockHealth
+        return
     end
 
-    -- Castle Heart уничтожен через урон → каскадное уничтожение замка
     local ownerId = entity:GetAttribute("CastleOwnerId")
     local castle = castles[ownerId]
     if not castle then return end
@@ -675,10 +798,14 @@ EventBus.on("StructureDestroyed", function(entity, attacker)
         end
     end
 
-    -- Castle Heart part: очищаем из TargetFinder (healthData уже очищен HealthManager.die)
-    if entity and entity.Parent then
-        getTargetFinder().removeStaticEntity(entity)
-        entity:Destroy()
+    -- Castle Heart Model: очищаем PrimaryPart из TargetFinder
+    -- (HealthManager уже очищен в die())
+    getTargetFinder().removeStaticEntity(entity)
+
+    -- Уничтожаем всю Model
+    local heartModel = castle.heartPart
+    if heartModel and heartModel.Parent then
+        heartModel:Destroy()
     end
 
     if castle.folder and castle.folder.Parent then
@@ -688,7 +815,7 @@ EventBus.on("StructureDestroyed", function(entity, attacker)
     CastleBorder.removeClaim(ownerId)
     castles[ownerId] = nil
 
-    EventBus.fire("CastleDestroyed", nil) -- nil = не по команде игрока
+    EventBus.fire("CastleDestroyed", nil)
 
     print("[BuildingManager] Castle destroyed (heart killed) for owner " .. tostring(ownerId))
 end)
@@ -729,8 +856,8 @@ function BuildingManager.getCastleHeartInfo(ownerId)
 
     local currentHP = 0
     local maxHP = levelData and levelData.HP or 1000
-    if castle.heartPart and castle.heartPart.Parent then
-        currentHP = castle.heartPart:GetAttribute("CurrentHP") or maxHP
+    if castle.heartPart and castle.heartPart.PrimaryPart then
+        currentHP = castle.heartPart.PrimaryPart:GetAttribute("CurrentHP") or maxHP
     end
 
     return {
@@ -744,6 +871,8 @@ function BuildingManager.getCastleHeartInfo(ownerId)
         MaxCoffins = levelData and levelData.MaxCoffins or 1,
         CenterPos = castle.centerPos,
         ClaimRadius = levelData and levelData.ClaimRadius or 48,
+        BloodEssence = castle.heartPart and castle.heartPart:GetAttribute("BloodEssence") or 0,
+        MaxEssenceCapacity = heartCfg.Visual.MaxEssenceCapacity,
         UpgradeCost = castle.heartLevel < heartCfg.MaxLevel
             and heartCfg.Levels[castle.heartLevel + 1].UpgradeCost
             or nil,
@@ -803,10 +932,11 @@ function BuildingManager.cleanup(player)
         end
     end
 
-    -- Castle Heart cleanup
-    if castle.heartPart and castle.heartPart.Parent then
+    if castle.heartPart then
         cleanupHeartSystems(castle.heartPart)
-        castle.heartPart:Destroy()
+        if castle.heartPart.Parent then
+            castle.heartPart:Destroy()
+        end
     end
 
     if castle.folder and castle.folder.Parent then

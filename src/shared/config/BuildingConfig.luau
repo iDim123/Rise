@@ -27,13 +27,49 @@
         CastleHeart = {
             Name = "Сердце замка",
             Description = "Основа вашего замка. Определяет территорию и лимиты.",
-            Size = Vector3.new(4, 4, 4),
+            Size = Vector3.new(4, 4, 4), -- общий размер bounding box (для валидации)
             Material = Enum.Material.Basalt,
             Color = Color3.fromRGB(60, 15, 15),
             PlacementRule = "Ground",
             CanRotate = false,
             Icon = "rbxassetid://0",
 
+            -- ═══ Визуальная модель ═══
+            Visual = {
+                -- Платформа (нижняя часть)
+                Platform = {
+                    Size = Vector3.new(4, 0.6, 4),
+                    Material = Enum.Material.Basalt,
+                    Color = Color3.fromRGB(45, 12, 12)
+                },
+                -- Цилиндр-пьедестал (по центру платформы)
+                Pedestal = {
+                    Diameter = 1.2, -- ширина/глубина цилиндра
+                    Height = 1.8,
+                    Material = Enum.Material.Basalt,
+                    Color = Color3.fromRGB(55, 15, 15)
+                },
+                -- Сфера (на вершине пьедестала)
+                Orb = {
+                    -- Размер и цвет зависят от BloodEssence, задаются диапазонами:
+                    MinDiameter = 0.8, -- пустое сердце
+                    MaxDiameter = 1.6, -- полностью заполненное
+                    EmptyColor = Color3.fromRGB(40, 10, 10), -- тусклый тёмно-красный
+                    FullColor = Color3.fromRGB(220, 30, 30), -- яркий красный
+                    Material = Enum.Material.Neon,
+                    -- Свечение (PointLight внутри сферы)
+                    Light = {
+                        MinBrightness = 0.2,
+                        MaxBrightness = 1.5,
+                        MinRange = 4,
+                        MaxRange = 16,
+                        Color = Color3.fromRGB(200, 20, 20)
+                    }
+                },
+                -- Максимальная ёмкость эссенции для расчёта заполненности
+                -- (привязано к стоимости улучшения уровня 3 как ориентир)
+                MaxEssenceCapacity = 500
+            },
             -- Уровни: 1 = базовый (при размещении), 2 и 3 = улучшения
             Levels = {
                 [1] = {
