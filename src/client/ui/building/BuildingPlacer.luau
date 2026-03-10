@@ -156,7 +156,7 @@ local function createHeartGhost()
     pedestal.Position = platform.Position + Vector3.new(0, vis.Platform.Size.Y / 2 + vis.Pedestal.Height / 2, 0)
     pedestal.Parent = model
 
-    -- Orb (минимальный размер — пустое сердце)
+    -- Orb
     local orbDiameter = vis.Orb.MinDiameter
     local orb = Instance.new("Part")
     orb.Name = "Orb"
@@ -171,22 +171,17 @@ local function createHeartGhost()
     orb.Position = pedestal.Position + Vector3.new(0, vis.Pedestal.Height / 2 + orbDiameter / 2, 0)
     orb.Parent = model
 
-    -- PointLight (слабый, декоративный)
-    local light = Instance.new("PointLight")
-    light.Color = vis.Orb.Light.Color
-    light.Brightness = vis.Orb.Light.MinBrightness
-    light.Range = vis.Orb.Light.MinRange
-    light.Shadows = false
-    light.Parent = orb
-
-    -- SelectionBox на Platform для индикации валидности
-    local highlight = Instance.new("SelectionBox")
-    highlight.Adornee = platform
-    highlight.Color3 = BC.GHOST_VALID_BORDER
-    highlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
-    highlight.SurfaceTransparency = 0.8
-    highlight.LineThickness = BC.GHOST_BORDER_THICKNESS
-    highlight.Parent = platform
+    -- Highlight вместо SelectionBox — обводит всю Model целиком,
+    -- тонкая рамка без заливки поверхности
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "GhostHighlight"
+    highlight.Adornee = model
+    highlight.FillTransparency = 0.7 -- почти прозрачная заливка
+    highlight.FillColor = BC.GHOST_VALID_COLOR
+    highlight.OutlineColor = BC.GHOST_VALID_BORDER
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+    highlight.Parent = model
 
     model.Parent = workspace
     ghostModel = model
@@ -261,11 +256,11 @@ local function updateHeartGhostPosition()
     -- Обновляем цвет
     if ghostHighlight then
         if isValid then
-            ghostHighlight.Color3 = BC.GHOST_VALID_BORDER
-            ghostHighlight.SurfaceColor3 = BC.GHOST_VALID_COLOR
+            ghostHighlight.FillColor = BC.GHOST_VALID_COLOR
+            ghostHighlight.OutlineColor = BC.GHOST_VALID_BORDER
         else
-            ghostHighlight.Color3 = BC.GHOST_INVALID_BORDER
-            ghostHighlight.SurfaceColor3 = BC.GHOST_INVALID_COLOR
+            ghostHighlight.FillColor = BC.GHOST_INVALID_COLOR
+            ghostHighlight.OutlineColor = BC.GHOST_INVALID_BORDER
         end
     end
 end

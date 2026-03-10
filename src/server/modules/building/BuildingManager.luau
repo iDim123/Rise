@@ -441,22 +441,32 @@ function BuildingManager.placeCastleHeart(player, rawPosition)
     local snapped = BuildingValidator.snapPosition(rawPosition)
 
     local heartCfg = Config.Building.CastleHeart
+    local vis = heartCfg.Visual
+    local platformH = vis.Platform.Size.Y
+
+    -- FIX: raycast по ВСЕМ поверхностям (Terrain + Baseplate + любые части)
+    -- Исключаем только папку Castles чтобы не попадать в уже поставленные блоки
     local surfaceY = 0
-    local baseplate = workspace:FindFirstChild("Baseplate")
-    if baseplate then
-        local rayOrigin = Vector3.new(snapped.X, 50, snapped.Z)
-        local params = RaycastParams.new()
-        params.FilterType = Enum.RaycastFilterType.Include
-        params.FilterDescendantsInstances = { baseplate }
-        local result = workspace:Raycast(rayOrigin, Vector3.new(0, -100, 0), params)
-        if result then
-            surfaceY = result.Position.Y
-        end
+    local rayOrigin = Vector3.new(snapped.X, 500, snapped.Z)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local excludeList = {}
+    local castlesFolder = workspace:FindFirstChild("Castles")
+    if castlesFolder then
+        table.insert(excludeList, castlesFolder)
+    end
+    if player.Character then
+        table.insert(excludeList, player.Character)
+    end
+    params.FilterDescendantsInstances = excludeList
+
+    local result = workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), params)
+    if result then
+        surfaceY = result.Position.Y
     end
 
-    local finalPos = Vector3.new(snapped.X, surfaceY + heartCfg.Size.Y / 2, snapped.Z)
+    local finalPos = Vector3.new(snapped.X, surfaceY + platformH / 2, snapped.Z)
 
-    -- Проверка пересечения с чужими территориями
     local ok, err = CastleBorder.registerClaim(ownerId, finalPos, 1)
     if not ok then
         return false, err
@@ -464,7 +474,6 @@ function BuildingManager.placeCastleHeart(player, rawPosition)
 
     local folder = getCastleFolder(ownerId)
 
-    -- Создаём Part
     local heartBlockId = makeBlockId()
     local part = createHeartPart(finalPos, 1, folder)
     initHeartSystems(part, 1, ownerId, heartBlockId)
