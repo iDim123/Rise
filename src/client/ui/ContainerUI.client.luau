@@ -242,6 +242,7 @@ end
 -- Построение сетки слотов
 -- ════════════════════════════════════════════════════════════
 local function buildSlotGrid(slots)
+    ItemTooltip.hide() 
     for _, btn in slotButtons do
         btn:Destroy()
     end
