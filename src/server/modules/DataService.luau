@@ -18,7 +18,8 @@ local dataStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local playerLoaded = {} -- [userId] = true when data is loaded
 local saving = {} -- [userId] = true while saving (prevent double save)
 
-local SAVE_ENABLED = not RunService:IsStudio()
+local SAVE_ENABLED = not RunService:IsStudio() -- автосохранение
+local LOAD_FROM_DS = true
 local playerVersion = {} -- [userId] = last saved version number
 
 -- ═══ Default data template ═══
@@ -162,12 +163,13 @@ end
 
 -- ═══ Load ═══
 function DataService.load(player)
-    if not SAVE_ENABLED then
+    if not LOAD_FROM_DS then
         DataService._applyData(player, getDefaultData())
         playerLoaded[player.UserId] = true
-        print("[DataService] SAVE DISABLED — using defaults for " .. player.Name)
+        print("[DataService] LOAD DISABLED — using defaults for " .. player.Name)
         return
     end
+
     local userId = player.UserId
     local key = "player_" .. userId
 
@@ -339,33 +341,42 @@ function DataService.save(player)
 
     local data = DataService.collect(player)
 
-    -- Версия: инкремент от последней известной, а не от дефолта
+    -- Версия: инкремент от последней известной
     local currentVersion = playerVersion[userId] or 1
     data.Version = currentVersion + 1
 
     local key = "player_" .. userId
 
     local success, err
+    local didWrite = false
+
     for attempt = 1, MAX_RETRIES do
+        didWrite = false
+
         success, err = pcall(function()
             dataStore:UpdateAsync(key, function(oldData)
+                -- Если в DataStore уже версия >= нашей, поднимаем свою
                 if oldData and type(oldData) == "table" then
                     local oldVersion = oldData.Version or 0
                     if oldVersion >= data.Version then
-                        warn(
-                            "[DataService] Version conflict for " .. (player.Name or tostring(userId)) .. ": remote v" ..
-                                oldVersion .. " >= local v" .. data.Version .. ", skip")
-                        return nil
+                        -- Поднимаем версию выше remote
+                        data.Version = oldVersion + 1
                     end
                 end
+                didWrite = true
                 return data
             end)
         end)
-        if success then
+
+        if success and didWrite then
             break
         end
-        warn("[DataService] Save attempt " .. attempt .. " failed for " .. (player.Name or userId) .. ": " ..
-                 tostring(err))
+
+        if not success then
+            warn("[DataService] Save attempt " .. attempt .. " failed for " .. (player.Name or userId) .. ": " ..
+                     tostring(err))
+        end
+
         if attempt < MAX_RETRIES then
             task.wait(2)
         end
@@ -373,8 +384,7 @@ function DataService.save(player)
 
     saving[userId] = nil
 
-    if success then
-        -- Обновить локальную версию после успешного сохранения
+    if success and didWrite then
         playerVersion[userId] = data.Version
         print("[DataService] Saved data for " .. (player.Name or tostring(userId)) .. " (v" .. data.Version .. ")")
     else
@@ -383,7 +393,7 @@ function DataService.save(player)
                 " attempts!")
     end
 
-    return success
+    return success and didWrite
 end
 
 -- ═══ Cleanup ═══
@@ -403,8 +413,17 @@ function DataService.toggleSave()
     return SAVE_ENABLED
 end
 
+function DataService.toggleLoad()
+    LOAD_FROM_DS = not LOAD_FROM_DS
+    return LOAD_FROM_DS
+end
+
 function DataService.isSaveEnabled()
     return SAVE_ENABLED
+end
+
+function DataService.isLoadEnabled()
+    return LOAD_FROM_DS
 end
 
 -- ═══ Autosave loop ═══
