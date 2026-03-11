@@ -481,7 +481,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == Enum.KeyCode.F then
-        -- NEW: если окно уже открыто — взять всё
+        -- Если окно уже открыто — взять всё
         if window.Visible and currentContainerId then
             Remotes.ContainerTakeAll:FireServer(currentContainerId)
             return
@@ -490,8 +490,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if isCasting then return end
 
         if nearbyContainer and nearbyContainer.containerId then
-            if nearbyContainer.model and nearbyContainer.model:GetAttribute("ContainerEmpty") then
-                return
+            -- Мировые контейнеры: не открывать пустые
+            -- Замковые сундуки (isCastle): открывать всегда
+            if not nearbyContainer.isCastle then
+                if nearbyContainer.model and nearbyContainer.model:GetAttribute("ContainerEmpty") then
+                    return
+                end
             end
             isCasting = true
             Remotes.ContainerOpen:FireServer(nearbyContainer.containerId, false)

@@ -19,6 +19,7 @@ local playerLoaded = {} -- [userId] = true when data is loaded
 local saving = {} -- [userId] = true while saving (prevent double save)
 
 local SAVE_ENABLED = not RunService:IsStudio()
+local playerVersion = {} -- [userId] = last saved version number
 
 -- ═══ Default data template ═══
 local function getDefaultData()
@@ -202,6 +203,9 @@ function DataService.load(player)
 end
 
 function DataService._applyData(player, data)
+    -- Запомнить версию загруженных данных
+    playerVersion[player.UserId] = data.Version or 1
+
     local InventoryManager = require(modules:WaitForChild("InventoryManager"))
     local LevelManager = require(modules:WaitForChild("LevelManager"))
     local BloodManager = require(modules:WaitForChild("BloodManager"))
@@ -258,13 +262,9 @@ function DataService._applyData(player, data)
     end
 
     -- v1.9: Building (Castle)
-    -- BuildingManager.initPlayer восстанавливает замок из сохранённых данных.
-    -- Вызывается ПОСЛЕ InventoryManager.create (для возможных проверок ресурсов).
-    -- savedData может быть nil (нет замка) — initPlayer это обрабатывает.
     local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
     BuildingManager.initPlayer(player, data.BuildingData)
 end
-
 -- ═══ Collect ═══
 function DataService.collect(player)
     local InventoryManager = require(modules:WaitForChild("InventoryManager"))
@@ -338,7 +338,11 @@ function DataService.save(player)
     saving[userId] = true
 
     local data = DataService.collect(player)
-    data.Version = (data.Version or 0) + 1
+
+    -- Версия: инкремент от последней известной, а не от дефолта
+    local currentVersion = playerVersion[userId] or 1
+    data.Version = currentVersion + 1
+
     local key = "player_" .. userId
 
     local success, err
@@ -370,6 +374,8 @@ function DataService.save(player)
     saving[userId] = nil
 
     if success then
+        -- Обновить локальную версию после успешного сохранения
+        playerVersion[userId] = data.Version
         print("[DataService] Saved data for " .. (player.Name or tostring(userId)) .. " (v" .. data.Version .. ")")
     else
         warn(
@@ -385,6 +391,7 @@ function DataService.cleanup(player)
     local userId = player.UserId
     playerLoaded[userId] = nil
     saving[userId] = nil
+    playerVersion[userId] = nil -- добавить
 end
 
 function DataService.isLoaded(player)
