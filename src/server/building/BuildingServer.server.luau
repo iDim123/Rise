@@ -14,6 +14,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local EventBus = require(modules:WaitForChild("EventBus"))
 
+local DoorHandler = require(modules:WaitForChild("building"):WaitForChild("DoorHandler"))
 local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
 local CastleBorder = require(modules:WaitForChild("building"):WaitForChild("CastleBorder"))
 
@@ -216,6 +217,53 @@ Remotes.RemoveBuildAlly.OnServerEvent:Connect(function(player, allyUserId)
     end
 end)
 
+-- ═══════════════════════════════════════════════════════════
+-- Interact (Phase 2)
+-- ═══════════════════════════════════════════════════════════
+
+Remotes.InteractBlock.OnServerEvent:Connect(function(player, blockId)
+    if isRateLimited(player) then
+        return
+    end
+
+    if type(blockId) ~= "string" then
+        return
+    end
+
+    -- Найти блок по blockId
+    local castle, foundBlock
+    for ownerId, c in pairs(BuildingManager.getAllCastles()) do
+        if c.blocks[blockId] then
+            castle = c
+            foundBlock = c.blocks[blockId]
+            break
+        end
+    end
+
+    if not castle or not foundBlock then
+        Remotes.Notify:FireClient(player, "Блок не найден", "warning")
+        return
+    end
+
+    local bt = require(ReplicatedStorage:WaitForChild("Config")).Building.BlockTypes[foundBlock.typeId]
+    if not bt or not bt.Functional then
+        return
+    end
+
+    -- Маршрутизация по Functional типу
+    if bt.Functional == "Door" then
+        local ok, err = DoorHandler.interact(player, foundBlock.part)
+        if not ok then
+            Remotes.Notify:FireClient(player, err or "Не удалось открыть дверь", "warning")
+        end
+        -- elseif bt.Functional == "Chest" then
+        --     ChestHandler.interact(player, foundBlock, castle)
+        -- elseif bt.Functional == "Workbench" then
+        --     WorkbenchHandler.interact(player, foundBlock)
+        -- elseif bt.Functional == "BloodAltar" then
+        --     BloodAltarHandler.interact(player, foundBlock)
+    end
+end)
 -- ═══════════════════════════════════════════════════════════
 -- RemoteFunctions (запрос данных)
 -- ═══════════════════════════════════════════════════════════
