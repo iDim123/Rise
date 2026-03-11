@@ -3,7 +3,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
-local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer

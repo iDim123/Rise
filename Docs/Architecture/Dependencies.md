@@ -130,6 +130,12 @@ CharacterWindow.client.luau ├── UIConstants ← Config ├── SlotFacto
 
 ContainerUI.client.luau ← Config, Remotes, CharacterGui.ToggleCharacterWindow (BindableEvent)
 
+ItemTooltip (client/ui/tooltip/)
+  ← CharacterWindow.client.luau
+  ← SlotBehavior.luau
+  ← EquipmentPanel.luau
+  ← ContainerUI.client.luau       -- NEW
+
 ### UI — Способности (`client/ui/abilities/`)
 
 AbilitiesBar.client.luau ├── Config ├── Remotes ├── AbilityTooltip └── AbilityCooldowns

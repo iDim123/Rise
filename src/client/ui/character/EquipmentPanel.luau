@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local UC = require(script.Parent:WaitForChild("UIConstants"))
 local SlotFactory = require(script.Parent:WaitForChild("SlotFactory"))
-local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 
 local EquipmentPanel = {}
 
@@ -28,7 +28,8 @@ local function buildSlotColumn(panel, slots, unequipRemote)
         local label = Instance.new("TextLabel")
         label.Name = "SlotLabel"
         label.Size = UDim2.new(0, 40, 0, UC.slotSize)
-        label.Position = UDim2.new(0, UC.padding + UC.slotSize + 6, 0, UC.padding + (i - 1) * (UC.slotSize + UC.padding))
+        label.Position =
+            UDim2.new(0, UC.padding + UC.slotSize + 6, 0, UC.padding + (i - 1) * (UC.slotSize + UC.padding))
         label.BackgroundTransparency = 1
         label.TextColor3 = Color3.fromRGB(150, 150, 170)
         label.TextSize = 10
@@ -96,7 +97,7 @@ function EquipmentPanel.build(parent, contentY, unequipRemote)
     local container = Instance.new("Frame")
     container.Name = "EquipPanel"
     container.Size = UDim2.new(1, 0, 0, UC.equipPanelHeight)
-    container.Position = UDim2.new(0, 0, 0, contentY)  -- contentY == UC.contentY, уже верно
+    container.Position = UDim2.new(0, 0, 0, contentY) -- contentY == UC.contentY, уже верно
     container.BackgroundTransparency = 1
     container.Parent = parent
 
@@ -135,10 +136,14 @@ end
 
 function EquipmentPanel.refresh(equipmentData)
     currentEquipment = equipmentData
-    if not equipmentData then return end
+    if not equipmentData then
+        return
+    end
     for slotId, slotFrame in equipSlotFrames do
         local itemData = equipmentData[slotId]
-        if itemData == false then itemData = nil end
+        if itemData == false then
+            itemData = nil
+        end
 
         local icon = slotFrame:FindFirstChild("Icon")
         local nameLabel = slotFrame:FindFirstChild("NameLabel")
@@ -147,7 +152,9 @@ function EquipmentPanel.refresh(equipmentData)
             if itemData.Icon and itemData.Icon ~= "" and itemData.Icon ~= "rbxassetid://0" then
                 icon.Image = itemData.Icon
                 icon.Visible = true
-                if nameLabel then nameLabel.Visible = false end
+                if nameLabel then
+                    nameLabel.Visible = false
+                end
             else
                 icon.Visible = false
                 if nameLabel then
@@ -158,7 +165,9 @@ function EquipmentPanel.refresh(equipmentData)
             slotFrame.BackgroundColor3 = UC.slotBgFilled
         else
             icon.Visible = false
-            if nameLabel then nameLabel.Visible = false end
+            if nameLabel then
+                nameLabel.Visible = false
+            end
             slotFrame.BackgroundColor3 = UC.slotBg
         end
     end

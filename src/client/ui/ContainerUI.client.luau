@@ -5,6 +5,7 @@ local UserInputService  = game:GetService("UserInputService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local Config  = require(ReplicatedStorage:WaitForChild("Config"))
+local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
 
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -40,6 +41,10 @@ local SMALL_R   = UDim.new(0, 4)
 local MINIMAP_LEFT_OFFSET = -256
 local GAP_TO_MINIMAP      = 12
 local TOP_OFFSET          = 40
+
+if not playerGui:FindFirstChild("TooltipGui") then
+    ItemTooltip.init(screenGui)
+end
 
 -- ═══ Связь с CharacterWindow ═══
 local function fireCharacterToggle(forceOpen)
@@ -294,6 +299,23 @@ local function buildSlotGrid(slots)
                 amtLabel.TextXAlignment       = Enum.TextXAlignment.Right
                 amtLabel.Parent               = btn
             end
+
+            -- Tooltip при наведении
+            btn.MouseEnter:Connect(function()
+                if slot and slot ~= false then
+                    -- Формируем данные в формате, который понимает ItemTooltip
+                    local tooltipData = {
+                        Id     = slot.ItemId,
+                        Name   = itemDef and itemDef.Name or slot.ItemId,
+                        Amount = slot.Amount or 1,
+                    }
+                    ItemTooltip.show(tooltipData, btn)
+                end
+            end)
+
+            btn.MouseLeave:Connect(function()
+                ItemTooltip.hide()
+            end)
 
             -- ЛКМ → TakeItem (забрать из сундука)
             local slotIndex = i
