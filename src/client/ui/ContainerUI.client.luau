@@ -293,84 +293,145 @@ end
 local SCAN_INTERVAL = 0.2
 local scanTimer     = 0
 
-RunService.Heartbeat:Connect(function(dt)
-    -- Auto-close
-    if currentContainerId and window.Visible then
-        local containersFolder = workspace:FindFirstChild("Containers")
-        if containersFolder then
-            local model = nil
-            for _, obj in containersFolder:GetDescendants() do
-                if obj:GetAttribute("ContainerId") == currentContainerId then
-                    model = obj
-                    break
+-- ════════════════════════════════════════════════════════════
+-- Сканирование ближайших контейнеров (Heartbeat)
+-- ════════════════════════════════════════════════════════════
+local SCAN_INTERVAL = 0.2
+local scanTimer     = 0
+
+-- Утилита: найти модель / парт по ContainerId в указанных папках
+local function findContainerObject(containerId)
+    -- 1) workspace.Containers (мировые)
+    local containersFolder = workspace:FindFirstChild("Containers")
+    if containersFolder then
+        for _, obj in containersFolder:GetDescendants() do
+            if obj:GetAttribute("ContainerId") == containerId then
+                return obj
+            end
+        end
+    end
+    -- 2) workspace.Castles (замковые сундуки)
+    local castlesFolder = workspace:FindFirstChild("Castles")
+    if castlesFolder then
+        for _, folder in castlesFolder:GetChildren() do
+            for _, obj in folder:GetChildren() do
+                if obj:GetAttribute("ContainerId") == containerId then
+                    return obj
                 end
             end
-            if model and hrp then
-                local pos = model:IsA("BasePart") and model.Position
-                    or (model.PrimaryPart and model.PrimaryPart.Position)
-                if pos then
+        end
+    end
+    return nil
+end
+
+-- Утилита: получить позицию объекта
+local function getObjectPosition(obj)
+    if obj:IsA("BasePart") then
+        return obj.Position
+    elseif obj:IsA("Model") and obj.PrimaryPart then
+        return obj.PrimaryPart.Position
+    end
+    return nil
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    -- ── Auto-close: если ушли далеко от открытого контейнера ──
+    if currentContainerId and window.Visible and hrp then
+        local model = findContainerObject(currentContainerId)
+        if model then
+            local pos = getObjectPosition(model)
+            if pos and (hrp.Position - pos).Magnitude > interactRange + 3 then
+                closeWindow()
+            end
+        end
+    end
+
+    -- ── Hint-сканирование ──
+    scanTimer += dt
+    if scanTimer < SCAN_INTERVAL then return end
+    scanTimer = 0
+
+    if not hrp then
+        billboardGui.Enabled = false
+        nearbyContainer = nil
+        return
+    end
+
+    local closest     = nil
+    local closestDist = math.huge
+
+    -- 1) Мировые контейнеры (workspace.Containers)
+    local containersFolder = workspace:FindFirstChild("Containers")
+    if containersFolder then
+        for _, obj in containersFolder:GetDescendants() do
+            local cfgId = obj:GetAttribute("ContainerType")
+            if cfgId then
+                -- Проверяем пустоту
+                local isEmpty = obj:GetAttribute("ContainerEmpty")
+                if not isEmpty and obj.Parent then
+                    isEmpty = obj.Parent:GetAttribute("ContainerEmpty")
+                end
+                if isEmpty then continue end
+
+                local pos = getObjectPosition(obj)
+                if not pos then continue end
+
+                local cfg = Config.Containers[cfgId]
+                if cfg then
                     local dist = (hrp.Position - pos).Magnitude
-                    if dist > interactRange + 3 then
-                        closeWindow()
+                    local range = cfg.InteractRange or 5
+                    if dist <= range and dist < closestDist then
+                        closestDist = dist
+                        closest = {
+                            model         = obj,
+                            containerId   = obj:GetAttribute("ContainerId"),
+                            interactRange = range,
+                            isCastle      = false,
+                        }
                     end
                 end
             end
         end
     end
 
-    -- Подсказка
-    scanTimer += dt
-    if scanTimer < SCAN_INTERVAL then return end
-    scanTimer = 0
+    -- 2) Замковые сундуки (workspace.Castles)
+    local castlesFolder = workspace:FindFirstChild("Castles")
+    if castlesFolder then
+        for _, folder in castlesFolder:GetChildren() do
+            for _, obj in folder:GetChildren() do
+                if obj:IsA("BasePart") and obj:GetAttribute("IsStructure") then
+                    local typeId = obj:GetAttribute("BlockTypeId")
+                    if typeId then
+                        local bt = Config.Building and Config.Building.BlockTypes and Config.Building.BlockTypes[typeId]
+                        if bt and bt.Functional == "Chest" then
+                            local cid = obj:GetAttribute("ContainerId")
+                            if not cid then continue end
 
-    local containersFolder = workspace:FindFirstChild("Containers")
-    if not containersFolder or not hrp then return end
-
-    local closest     = nil
-    local closestDist = math.huge
-
-    for _, obj in containersFolder:GetDescendants() do
-        local cfgId = obj:GetAttribute("ContainerType")
-        if cfgId then
-            -- Проверяем пустоту на этом объекте или его предке
-            local isEmpty = obj:GetAttribute("ContainerEmpty")
-            if not isEmpty and obj.Parent then
-                isEmpty = obj.Parent:GetAttribute("ContainerEmpty")
-            end
-            if isEmpty then
-                continue
-            end
-
-            -- Находим позицию для расчёта дальности
-            local pos = nil
-            if obj:IsA("BasePart") then
-                pos = obj.Position
-            elseif obj:IsA("Model") and obj.PrimaryPart then
-                pos = obj.PrimaryPart.Position
-            end
-            if not pos then continue end
-
-            local cfg = Config.Containers[cfgId]
-            if cfg then
-                local dist = (hrp.Position - pos).Magnitude
-                local range = cfg.InteractRange or 5
-                if dist <= range and dist < closestDist then
-                    closestDist = dist
-                    closest = {
-                        model         = obj,
-                        containerId   = obj:GetAttribute("ContainerId"),
-                        interactRange = range,
-                    }
+                            local pos = obj.Position
+                            local range = (bt.FunctionalData and bt.FunctionalData.InteractRange) or 8
+                            local dist = (hrp.Position - pos).Magnitude
+                            if dist <= range and dist < closestDist then
+                                closestDist = dist
+                                closest = {
+                                    model         = obj,
+                                    containerId   = cid,
+                                    interactRange = range,
+                                    isCastle      = true,
+                                }
+                            end
+                        end
+                    end
                 end
             end
         end
     end
 
+    -- ── Обновляем подсказку ──
     if closest then
         nearbyContainer = closest
         interactRange   = closest.interactRange
 
-        if billboardGui.Parent ~= closest.model then
+        if billboardGui.Adornee ~= closest.model then
             local anchor = closest.model:FindFirstChild("HintAnchor")
             if anchor then
                 billboardGui.Parent      = anchor

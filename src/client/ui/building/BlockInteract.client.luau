@@ -96,7 +96,7 @@ RunService.Heartbeat:Connect(function(dt)
                 local typeId = obj:GetAttribute("BlockTypeId")
                 if typeId then
                     local bt = Config.Building.BlockTypes[typeId]
-                    if bt and bt.Functional then
+                    if bt and bt.Functional and bt.Functional ~= "Chest" then
                         local dist = (hrp.Position - obj.Position).Magnitude
                         local range = (bt.FunctionalData and bt.FunctionalData.InteractRange) or INTERACT_RANGE
                         if dist <= range and dist < closestDist then

@@ -171,7 +171,7 @@ end
 local function destroyAllBlocks(castle)
     for blockId, block in castle.blocks do
         if block.part and block.part.Parent then
-            FunctionalDispatcher.onRemove(block.part, block.typeId)
+            FunctionalDispatcher.onRemove(block.part, block.typeId, blockId)
             BlockHealth.cleanupBlock(block.part)
             block.part:Destroy()
         end
@@ -227,13 +227,15 @@ function BuildingManager.initPlayer(player, savedData)
     }
     local castle = castles[ownerId]
 
+    -- Маппинг: serialized index → blockId (для привязки контейнеров)
+    local indexToBlockId = {}
+
     for i, blockData in deserialized.blocks do
         if blockData and blockData ~= false then
             local blockId = makeBlockId()
             local part = createBlockPart(blockData.typeId, blockData.position, blockData.rotation, folder)
 
             BlockHealth.initBlock(part, blockData.typeId, ownerId, blockId)
-            FunctionalDispatcher.onPlace(part, blockData.typeId, blockId, castle)
 
             castle.blocks[blockId] = {
                 typeId = blockData.typeId,
@@ -244,11 +246,54 @@ function BuildingManager.initPlayer(player, savedData)
                 containerId = nil,
             }
             castle.blockCount += 1
+            indexToBlockId[i] = blockId
 
             local bt = Config.Building.BlockTypes[blockData.typeId]
             if bt and bt.Functional == "Coffin" then
                 castle.coffinPos = blockData.position + Vector3.new(0, 1, 0)
                 castle.coffinBlockId = blockId
+            end
+
+            -- FunctionalDispatcher для НЕ-сундуков (двери и т.д.)
+            if not (bt and bt.Functional == "Chest") then
+                FunctionalDispatcher.onPlace(part, blockData.typeId, blockId, castle)
+            end
+        end
+    end
+
+    -- Восстановление сундуков с данными из DataStore
+    local ChestHandler = FunctionalDispatcher.getChestHandler()
+    if deserialized.containers and #deserialized.containers > 0 then
+        -- Сопоставляем Ref → blockId
+        local containerByRef = {}
+        for _, savedContainer in deserialized.containers do
+            if savedContainer.Ref then
+                containerByRef[savedContainer.Ref] = savedContainer
+            end
+        end
+
+        for refIndex, blockId in indexToBlockId do
+            local savedContainer = containerByRef[refIndex]
+            local block = castle.blocks[blockId]
+            if savedContainer and block then
+                local bt = Config.Building.BlockTypes[block.typeId]
+                if bt and bt.Functional == "Chest" then
+                    ChestHandler.restoreContainer(block.part, block.typeId, blockId, castle, savedContainer)
+                end
+            end
+        end
+    end
+
+    -- Инициализировать сундуки без сохранённых данных (новые пустые)
+    for i, blockData in deserialized.blocks do
+        if blockData and blockData ~= false then
+            local blockId = indexToBlockId[i]
+            local bt = Config.Building.BlockTypes[blockData.typeId]
+            if bt and bt.Functional == "Chest" and blockId then
+                local block = castle.blocks[blockId]
+                if block and not block.containerId then
+                    ChestHandler.onCreate(block.part, blockData.typeId, blockId, castle)
+                end
             end
         end
     end
@@ -292,7 +337,8 @@ function BuildingManager.destroyCastle(player)
     local castle = castles[ownerId]
     if not castle then return false, "Нет замка" end
 
-    -- TODO Phase 2: дроп лута из сундуков
+    -- Phase 2: дроп лута из всех сундуков
+    FunctionalDispatcher.getChestHandler().dropAllLoot(castle)
 
     destroyAllBlocks(castle)
     CastleHeartManager.destroyHeart(castle)
@@ -453,7 +499,7 @@ function BuildingManager.removeBlock(player, blockId)
     end
 
     if foundBlock.part and foundBlock.part.Parent then
-        FunctionalDispatcher.onRemove(foundBlock.part, foundBlock.typeId)
+        FunctionalDispatcher.onRemove(foundBlock.part, foundBlock.typeId, blockId)
         BlockHealth.cleanupBlock(foundBlock.part)
         foundBlock.part:Destroy()
     end
@@ -485,7 +531,7 @@ EventBus.on("BlockDestroyedByDamage", function(entity, attacker, ownerId, typeId
         castle.coffinBlockId = nil
     end
 
-    FunctionalDispatcher.onRemove(entity, typeId)
+    FunctionalDispatcher.onRemove(entity, typeId, blockId)
 
     if entity and entity.Parent then
         entity:Destroy()
@@ -509,6 +555,8 @@ end)
 function BuildingManager.onHeartDestroyedByDamage(ownerId, heartEntity, attacker)
     local castle = castles[ownerId]
     if not castle then return end
+
+    FunctionalDispatcher.getChestHandler().dropAllLoot(castle)
 
     destroyAllBlocks(castle)
 
@@ -540,7 +588,8 @@ function BuildingManager.collect(player)
     local castle = castles[player.UserId]
     if not castle then return nil end
     local claimData = CastleBorder.serializeClaim(player.UserId)
-    return BuildingSerializer.serialize(castle, claimData, nil)
+    local containerSerializer = FunctionalDispatcher.getChestHandler().getSerializer()
+    return BuildingSerializer.serialize(castle, claimData, containerSerializer)
 end
 
 function BuildingManager.getCoffinPos(player)
