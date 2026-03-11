@@ -72,8 +72,21 @@ Remotes.ContainerSort.OnServerEvent:Connect(function(player, containerId)
 end)
 
 -- ────────────────────────────────────────────────────────────
--- 7. Очистка при выходе игрока
+-- 7. Remote: ContainerDepositItem — из инвентаря в сундук
 -- ────────────────────────────────────────────────────────────
+Remotes.ContainerDepositItem.OnServerEvent:Connect(function(player, containerId, inventorySlotIndex)
+    if type(inventorySlotIndex) ~= "number" then
+        return
+    end
+    if type(containerId) ~= "string" then
+        return
+    end
+    ContainerManager.depositItem(player, containerId, inventorySlotIndex)
+end)
+
+-- ────────────────────────────────────────────────────────────
+-- 8. Очистка при выходе игрока
+-- ─────────────────────────────────────────────────────────────
 game:GetService("Players").PlayerRemoving:Connect(function(player)
     for _, data in ContainerManager.getAll() do
         if data.openedBy[player.UserId] then

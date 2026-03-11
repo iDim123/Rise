@@ -16,9 +16,8 @@ player.CharacterAdded:Connect(function(char)
     hrp = char:WaitForChild("HumanoidRootPart")
 end)
 
--- ═══ Стиль из UIConstants (как CharacterWindow / ServantWindow) ═══
+-- ═══ Стиль ═══
 local BG_COLOR     = Color3.fromRGB(25, 25, 35)
-local PANEL_BG     = Color3.fromRGB(35, 35, 50)
 local SLOT_BG      = Color3.fromRGB(50, 50, 65)
 local SLOT_EMPTY   = Color3.fromRGB(40, 40, 55)
 local TEXT_COLOR   = Color3.fromRGB(220, 220, 220)
@@ -26,6 +25,8 @@ local GOLD_COLOR   = Color3.fromRGB(220, 190, 80)
 local GREEN_BTN    = Color3.fromRGB(50, 130, 50)
 local BLUE_BTN     = Color3.fromRGB(50, 50, 70)
 local STROKE_COLOR = Color3.fromRGB(60, 60, 80)
+local DISABLED_BTN = Color3.fromRGB(35, 35, 45)
+local DISABLED_TXT = Color3.fromRGB(100, 100, 100)
 
 local SLOT_SIZE = 50
 local PADDING   = 4
@@ -36,10 +37,9 @@ local BUTTON_H  = 30
 local CORNER_R  = UDim.new(0, 8)
 local SMALL_R   = UDim.new(0, 4)
 
-local MINIMAP_LEFT_OFFSET = -256   -- из Minimap.client.luau
+local MINIMAP_LEFT_OFFSET = -256
 local GAP_TO_MINIMAP      = 12
-local TOP_OFFSET          = 40     -- как CharacterWindow
-
+local TOP_OFFSET          = 40
 
 -- ═══ Связь с CharacterWindow ═══
 local function fireCharacterToggle(forceOpen)
@@ -51,6 +51,19 @@ local function fireCharacterToggle(forceOpen)
         end
     end
 end
+
+-- ═══ Проверка: открыто ли окно персонажа ═══
+local function isCharacterWindowOpen()
+    local charGui = playerGui:FindFirstChild("CharacterGui")
+    if charGui then
+        local win = charGui:FindFirstChild("CharacterWindow")
+        if win then
+            return win.Visible
+        end
+    end
+    return false
+end
+
 -- ════════════════════════════════════════════════════════════
 -- ScreenGui
 -- ════════════════════════════════════════════════════════════
@@ -80,8 +93,6 @@ hintLabel.Text                 = "Открыть [F]"
 hintLabel.Parent               = billboardGui
 
 -- ═══ Окно контейнера ═══
--- Размер динамический, зависит от кол-ва слотов (рассчитываем при открытии)
-local MAX_SLOTS = 12
 local function calcWindowSize(slotCount)
     local rows = math.ceil(slotCount / COLS)
     local gridH = rows * (SLOT_SIZE + PADDING) + PADDING
@@ -112,7 +123,6 @@ winStroke.Color     = STROKE_COLOR
 winStroke.Thickness = 1
 winStroke.Parent    = window
 
--- Заголовок (прозрачный фон, как в CharacterWindow)
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size                 = UDim2.new(1, -40, 0, HEADER_H)
 titleLabel.Position             = UDim2.new(0, PAD, 0, 0)
@@ -124,7 +134,6 @@ titleLabel.Text                 = "Сундук"
 titleLabel.TextXAlignment       = Enum.TextXAlignment.Left
 titleLabel.Parent               = window
 
--- Кнопка закрытия (стиль ServantWindow)
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size             = UDim2.new(0, 28, 0, 28)
 closeBtn.Position         = UDim2.new(1, -34, 0, 4)
@@ -140,7 +149,6 @@ local closeBtnCorner = Instance.new("UICorner")
 closeBtnCorner.CornerRadius = SMALL_R
 closeBtnCorner.Parent = closeBtn
 
--- Сетка слотов
 local slotsFrame = Instance.new("Frame")
 slotsFrame.Name                  = "SlotsFrame"
 slotsFrame.Size                  = UDim2.new(1, -PAD * 2, 0, 200)
@@ -148,7 +156,6 @@ slotsFrame.Position              = UDim2.new(0, PAD, 0, HEADER_H + PAD)
 slotsFrame.BackgroundTransparency = 1
 slotsFrame.Parent                = window
 
--- Кнопки внизу
 local btnFrame = Instance.new("Frame")
 btnFrame.Name                  = "ButtonFrame"
 btnFrame.Size                  = UDim2.new(1, -PAD * 2, 0, BUTTON_H)
@@ -196,6 +203,37 @@ local interactRange      = 5
 local isCasting          = false
 
 -- ════════════════════════════════════════════════════════════
+-- Состояние кнопок (disabled при пустом сундуке)
+-- ════════════════════════════════════════════════════════════
+local function isChestEmpty(slots)
+    for _, slot in slots do
+        if slot and slot ~= false then
+            return false
+        end
+    end
+    return true
+end
+
+local function updateButtonStates(slots)
+    local empty = isChestEmpty(slots)
+    if empty then
+        btnTakeAll.BackgroundColor3 = DISABLED_BTN
+        btnTakeAll.TextColor3       = DISABLED_TXT
+        btnTakeAll.AutoButtonColor  = false
+        btnSort.BackgroundColor3    = DISABLED_BTN
+        btnSort.TextColor3          = DISABLED_TXT
+        btnSort.AutoButtonColor     = false
+    else
+        btnTakeAll.BackgroundColor3 = GREEN_BTN
+        btnTakeAll.TextColor3       = Color3.fromRGB(255, 255, 255)
+        btnTakeAll.AutoButtonColor  = true
+        btnSort.BackgroundColor3    = BLUE_BTN
+        btnSort.TextColor3          = TEXT_COLOR
+        btnSort.AutoButtonColor     = true
+    end
+end
+
+-- ════════════════════════════════════════════════════════════
 -- Построение сетки слотов
 -- ════════════════════════════════════════════════════════════
 local function buildSlotGrid(slots)
@@ -208,7 +246,6 @@ local function buildSlotGrid(slots)
     local gridH = rows * (SLOT_SIZE + PADDING) + PADDING
     slotsFrame.Size = UDim2.new(1, -PAD * 2, 0, gridH)
 
-    -- Пересчитываем размер окна и позицию кнопок
     local totalH = HEADER_H + PAD + gridH + PAD + BUTTON_H + PAD
     window.Size = UDim2.new(0, window.Size.X.Offset, 0, totalH)
     btnFrame.Position = UDim2.new(0, PAD, 0, HEADER_H + PAD + gridH + PAD)
@@ -230,7 +267,6 @@ local function buildSlotGrid(slots)
         btnCorner.CornerRadius = SMALL_R
         btnCorner.Parent = btn
 
-        -- Обводка слота
         local slotStroke = Instance.new("UIStroke")
         slotStroke.Color     = STROKE_COLOR
         slotStroke.Thickness = 1
@@ -239,7 +275,6 @@ local function buildSlotGrid(slots)
         if slot and slot ~= false then
             local itemDef = Config.Items[slot.ItemId]
 
-            -- Иконка
             local img = Instance.new("ImageLabel")
             img.Size                 = UDim2.new(0, 36, 0, 36)
             img.Position             = UDim2.new(0.5, -18, 0, 2)
@@ -247,7 +282,6 @@ local function buildSlotGrid(slots)
             img.Image                = itemDef and itemDef.Icon or ""
             img.Parent               = btn
 
-            -- Количество
             if slot.Amount and slot.Amount > 1 then
                 local amtLabel = Instance.new("TextLabel")
                 amtLabel.Size                 = UDim2.new(1, -4, 0, 14)
@@ -261,9 +295,16 @@ local function buildSlotGrid(slots)
                 amtLabel.Parent               = btn
             end
 
-            -- Клик → TakeItem
+            -- ЛКМ → TakeItem (забрать из сундука)
             local slotIndex = i
             btn.MouseButton1Click:Connect(function()
+                if currentContainerId then
+                    Remotes.ContainerTakeItem:FireServer(currentContainerId, slotIndex)
+                end
+            end)
+
+            -- ПКМ → TakeItem (забрать из сундука в инвентарь)
+            btn.MouseButton2Click:Connect(function()
                 if currentContainerId then
                     Remotes.ContainerTakeItem:FireServer(currentContainerId, slotIndex)
                 end
@@ -272,11 +313,8 @@ local function buildSlotGrid(slots)
 
         slotButtons[i] = btn
     end
-end
 
-local function updateSlots(slots)
-    currentSlots = slots
-    buildSlotGrid(slots)
+    updateButtonStates(slots)
 end
 
 -- ════════════════════════════════════════════════════════════
@@ -289,7 +327,6 @@ local function openWindow(containerId, slots, name)
     buildSlotGrid(slots)
     window.Visible     = true
 
-    -- Открыть инвентарь рядом с сундуком
     fireCharacterToggle(true)
 end
 
@@ -300,24 +337,35 @@ local function closeWindow()
     currentContainerId = nil
     window.Visible     = false
 
-    -- Закрыть инвентарь при закрытии сундука
     fireCharacterToggle(false)
 end
+
 -- ════════════════════════════════════════════════════════════
--- Сканирование ближайших контейнеров (Heartbeat)
+-- Публичный API: узнать открыт ли сундук (для SlotBehavior)
+-- ════════════════════════════════════════════════════════════
+local containerState = Instance.new("BoolValue")
+containerState.Name  = "ContainerOpen"
+containerState.Value = false
+containerState.Parent = screenGui
+
+local containerIdValue = Instance.new("StringValue")
+containerIdValue.Name  = "ContainerOpenId"
+containerIdValue.Value = ""
+containerIdValue.Parent = screenGui
+
+-- Обновлять при открытии/закрытии
+local function syncContainerState()
+    containerState.Value = (currentContainerId ~= nil and window.Visible)
+    containerIdValue.Value = currentContainerId or ""
+end
+
+-- ════════════════════════════════════════════════════════════
+-- Сканирование (Heartbeat)
 -- ════════════════════════════════════════════════════════════
 local SCAN_INTERVAL = 0.2
 local scanTimer     = 0
 
--- ════════════════════════════════════════════════════════════
--- Сканирование ближайших контейнеров (Heartbeat)
--- ════════════════════════════════════════════════════════════
-local SCAN_INTERVAL = 0.2
-local scanTimer     = 0
-
--- Утилита: найти модель / парт по ContainerId в указанных папках
 local function findContainerObject(containerId)
-    -- 1) workspace.Containers (мировые)
     local containersFolder = workspace:FindFirstChild("Containers")
     if containersFolder then
         for _, obj in containersFolder:GetDescendants() do
@@ -326,7 +374,6 @@ local function findContainerObject(containerId)
             end
         end
     end
-    -- 2) workspace.Castles (замковые сундуки)
     local castlesFolder = workspace:FindFirstChild("Castles")
     if castlesFolder then
         for _, folder in castlesFolder:GetChildren() do
@@ -340,7 +387,6 @@ local function findContainerObject(containerId)
     return nil
 end
 
--- Утилита: получить позицию объекта
 local function getObjectPosition(obj)
     if obj:IsA("BasePart") then
         return obj.Position
@@ -351,18 +397,17 @@ local function getObjectPosition(obj)
 end
 
 RunService.Heartbeat:Connect(function(dt)
-    -- ── Auto-close: если ушли далеко от открытого контейнера ──
     if currentContainerId and window.Visible and hrp then
         local model = findContainerObject(currentContainerId)
         if model then
             local pos = getObjectPosition(model)
             if pos and (hrp.Position - pos).Magnitude > interactRange + 3 then
                 closeWindow()
+                syncContainerState()
             end
         end
     end
 
-    -- ── Hint-сканирование ──
     scanTimer += dt
     if scanTimer < SCAN_INTERVAL then return end
     scanTimer = 0
@@ -376,13 +421,11 @@ RunService.Heartbeat:Connect(function(dt)
     local closest     = nil
     local closestDist = math.huge
 
-    -- 1) Мировые контейнеры (workspace.Containers)
     local containersFolder = workspace:FindFirstChild("Containers")
     if containersFolder then
         for _, obj in containersFolder:GetDescendants() do
             local cfgId = obj:GetAttribute("ContainerType")
             if cfgId then
-                -- Проверяем пустоту
                 local isEmpty = obj:GetAttribute("ContainerEmpty")
                 if not isEmpty and obj.Parent then
                     isEmpty = obj.Parent:GetAttribute("ContainerEmpty")
@@ -410,7 +453,6 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 2) Замковые сундуки (workspace.Castles)
     local castlesFolder = workspace:FindFirstChild("Castles")
     if castlesFolder then
         for _, folder in castlesFolder:GetChildren() do
@@ -423,9 +465,6 @@ RunService.Heartbeat:Connect(function(dt)
                         if bt and bt.Functional == "Chest" then
                             local cid = obj:GetAttribute("ContainerId")
                             if not cid then continue end
-
-                            -- НЕ проверяем ContainerEmpty — замковые сундуки
-                            -- можно открывать даже пустыми
 
                             local pos = obj.Position
                             local range = (bt.FunctionalData and bt.FunctionalData.InteractRange) or 8
@@ -446,7 +485,6 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- ── Обновляем подсказку ──
     if closest then
         nearbyContainer = closest
         interactRange   = closest.interactRange
@@ -475,23 +513,22 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 -- ════════════════════════════════════════════════════════════
--- Ввод: F → открыть, Escape → закрыть
+-- Ввод: F → открыть/закрыть
 -- ════════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == Enum.KeyCode.F then
-        -- Если окно уже открыто — взять всё
+        -- Если сундук уже открыт — закрыть оба окна
         if window.Visible and currentContainerId then
-            Remotes.ContainerTakeAll:FireServer(currentContainerId)
+            closeWindow()
+            syncContainerState()
             return
         end
 
         if isCasting then return end
 
         if nearbyContainer and nearbyContainer.containerId then
-            -- Мировые контейнеры: не открывать пустые
-            -- Замковые сундуки (isCastle): открывать всегда
             if not nearbyContainer.isCastle then
                 if nearbyContainer.model and nearbyContainer.model:GetAttribute("ContainerEmpty") then
                     return
@@ -509,38 +546,46 @@ end)
 Remotes.ContainerOpened.OnClientEvent:Connect(function(containerId, slots, name)
     isCasting = false
     openWindow(containerId, slots, name)
+    syncContainerState()
 end)
 
+Remotes.ContainerUpdate.OnClientEvent:Connect(function(containerId, slots)
+    if currentContainerId == containerId then
+        currentSlots = slots
+        buildSlotGrid(slots)
+    end
+end)
 
 Remotes.ContainerClosed.OnClientEvent:Connect(function(containerId)
     isCasting = false
     if currentContainerId == containerId then
         currentContainerId = nil
         window.Visible = false
+        fireCharacterToggle(false)
+        syncContainerState()
     end
 end)
 
 Remotes.CastCancel.OnClientEvent:Connect(function()
-    isCasting = false   -- NEW
+    isCasting = false
 end)
 
 -- ════════════════════════════════════════════════════════════
 -- Кнопки
 -- ════════════════════════════════════════════════════════════
-closeBtn.MouseButton1Click:Connect(closeWindow)
+closeBtn.MouseButton1Click:Connect(function()
+    closeWindow()
+    syncContainerState()
+end)
 
 btnTakeAll.MouseButton1Click:Connect(function()
-    print("[ContainerUI] TakeAll clicked, currentContainerId =", currentContainerId)
-    if currentContainerId then
-        print("[ContainerUI] Firing ContainerTakeAll:", currentContainerId)
-        Remotes.ContainerTakeAll:FireServer(currentContainerId)
-    else
-        print("[ContainerUI] TakeAll SKIP: no currentContainerId")
-    end
+    if not currentContainerId then return end
+    if isChestEmpty(currentSlots) then return end
+    Remotes.ContainerTakeAll:FireServer(currentContainerId)
 end)
 
 btnSort.MouseButton1Click:Connect(function()
-    if currentContainerId then
-        Remotes.ContainerSort:FireServer(currentContainerId)
-    end
+    if not currentContainerId then return end
+    if isChestEmpty(currentSlots) then return end
+    Remotes.ContainerSort:FireServer(currentContainerId)
 end)

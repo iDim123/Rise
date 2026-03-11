@@ -4,7 +4,9 @@ local UC = require(script.Parent:WaitForChild("UIConstants"))
 local DragManager = require(script.Parent:WaitForChild("DragManager"))
 local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local Players = game:GetService("Players")
 
+local player = Players.LocalPlayer
 local SlotBehavior = {}
 
 local function isLocked(slot)
@@ -16,7 +18,9 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     -- options: { equipRemote, useItemRemote, setActiveWeaponRemote (optional) }
 
     slot.MouseButton1Down:Connect(function()
-        if isLocked(slot) then return end
+        if isLocked(slot) then
+            return
+        end
         ItemTooltip.hide()
         local item = getItemFn()
         if item and item ~= false then
@@ -26,7 +30,9 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseEnter:Connect(function()
-        if isLocked(slot) then return end
+        if isLocked(slot) then
+            return
+        end
         if DragManager.isDragging() and DragManager.dragFrom ~= index then
             DragManager.dragOverIndex = index
             slot.BackgroundColor3 = UC.slotBgTarget
@@ -39,7 +45,9 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseLeave:Connect(function()
-        if isLocked(slot) then return end
+        if isLocked(slot) then
+            return
+        end
         ItemTooltip.hide()
         if DragManager.dragOverIndex == index then
             DragManager.dragOverIndex = nil
@@ -50,11 +58,28 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
     end)
 
     slot.MouseButton2Click:Connect(function()
-        if isLocked(slot) then return end
+        if isLocked(slot) then
+            return
+        end
         ItemTooltip.hide()
         local item = getItemFn()
-        if not item or item == false then return end
+        if not item or item == false then
+            return
+        end
 
+        -- Если открыт сундук → положить предмет в сундук (ПКМ)
+        local containerGui = player:WaitForChild("PlayerGui"):FindFirstChild("ContainerUI")
+        if containerGui then
+            local isContainerOpen = containerGui:FindFirstChild("ContainerOpen")
+            local containerIdVal = containerGui:FindFirstChild("ContainerOpenId")
+            if isContainerOpen and isContainerOpen.Value and containerIdVal and containerIdVal.Value ~= "" then
+                local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+                Remotes.ContainerDepositItem:FireServer(containerIdVal.Value, index)
+                return
+            end
+        end
+
+        -- Стандартное поведение: экипировка / использование
         if item.EquipSlot and options.equipRemote then
             options.equipRemote:FireServer(index)
         elseif item.Type == "Consumable" and options.useItemRemote then

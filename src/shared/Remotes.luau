@@ -12,11 +12,12 @@ local events = { -- === Existing ===
 "AbilityCooldown", "ResourceGathered", "UpdateLevel", "UpdateServantLevel", "UpdateStats", "BossFinish", "BossCapture",
 "BossFinishResult", "BossCaptureResult", "UnlockTech", "Notify", "DebugCommand", "PlayerDied", "ContainerOpen",
 "ContainerClose", "ContainerTakeItem", "ContainerTakeAll", "ContainerSort", "ContainerOpened", "ContainerUpdate",
-"ContainerClosed", "CastStart", "CastCancel", "CastCancelRequest", "DayNightSync", "PlayerRespawn", "RangedRelease",
-"ProjectileFired", "ProjectileHit", "ProjectileRemoved", "CastSpell", "LearnSpell", "EquipSpell", "UnequipSpell",
-"SpellCooldown", "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect", "UpdateSpellData",
-"SpellAim", "StructureDamageEvent", "PlaceCastleHeart", "UpgradeCastleHeart", "DestroyCastle", "CastleHeartInfo",
-"PlaceBlock", "RemoveBlock", "BuildingSync", "SetBuildPermission", "AddBuildAlly", "RemoveBuildAlly", "InteractBlock"}
+"ContainerClosed", "ContainerDepositItem", "CastStart", "CastCancel", "CastCancelRequest", "DayNightSync",
+"PlayerRespawn", "RangedRelease", "ProjectileFired", "ProjectileHit", "ProjectileRemoved", "CastSpell", "LearnSpell",
+"EquipSpell", "UnequipSpell", "SpellCooldown", "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect",
+"UpdateSpellData", "SpellAim", "StructureDamageEvent", "PlaceCastleHeart", "UpgradeCastleHeart", "DestroyCastle",
+"CastleHeartInfo", "PlaceBlock", "RemoveBlock", "BuildingSync", "SetBuildPermission", "AddBuildAlly", "RemoveBuildAlly",
+"InteractBlock"}
 
 -- RemoteFunctions
 local functions = { -- === Existing ===

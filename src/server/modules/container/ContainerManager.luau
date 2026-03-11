@@ -78,6 +78,10 @@ function ContainerManager.sort(player, containerId)
     ContainerInventory.sort(player, containerId, containers)
 end
 
+function ContainerManager.depositItem(player, containerId, inventorySlotIndex)
+    ContainerInventory.depositItem(player, containerId, inventorySlotIndex, containers)
+end
+
 -- ── Геттеры ──────────────────────────────────────────────
 function ContainerManager.getData(containerId)
     return containers[containerId]

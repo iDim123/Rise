@@ -62,7 +62,7 @@ function ContainerInventory.takeItem(player, containerId, slotIndex, containers,
     getInventorySync().sendFullUpdate(player)
 
     -- Если сундук пуст — закрываем
-    if ContainerLoot.isEmpty(data.slots) then
+    if ContainerLoot.isEmpty(data.slots) and not data.config.Persistent then
         if closeFn then
             closeFn(player, containerId)
         end
@@ -103,7 +103,8 @@ function ContainerInventory.takeAll(player, containerId, containers, closeFn)
         getInventorySync().sendFullUpdate(player)
     end
 
-    if ContainerLoot.isEmpty(data.slots) then
+    -- Persistent контейнеры (замковые сундуки): НЕ закрывать, только обновить
+    if ContainerLoot.isEmpty(data.slots) and not data.config.Persistent then
         if closeFn then
             closeFn(player, containerId)
         end
@@ -127,6 +128,63 @@ function ContainerInventory.sort(player, containerId, containers)
 
     ContainerLoot.sort(data.slots, data.config.Slots)
     ContainerInventory.broadcastUpdate(data)
+end
+
+--- Игрок кладёт предмет из инвентаря в сундук.
+--- @param player Player
+--- @param containerId string
+--- @param inventorySlotIndex number — слот инвентаря игрока
+--- @param containers table
+function ContainerInventory.depositItem(player, containerId, inventorySlotIndex, containers)
+    local data = containers[containerId]
+    if not data then
+        return false
+    end
+    if data.state ~= "Opened" then
+        return false
+    end
+    if not data.openedBy[player.UserId] then
+        return false
+    end
+
+    local IM = getInventoryManager()
+    local inv = IM.getInventory(player)
+    if not inv then
+        return false
+    end
+
+    local slot = inv.slots[inventorySlotIndex]
+    if not slot or slot == false then
+        return false
+    end
+
+    -- Найти свободный слот в сундуке
+    local freeIdx = nil
+    for i = 1, data.config.Slots do
+        if not data.slots[i] or data.slots[i] == false then
+            freeIdx = i
+            break
+        end
+    end
+
+    if not freeIdx then
+        local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+        Remotes.Notify:FireClient(player, "Сундук переполнен!", "warning")
+        return false
+    end
+
+    -- Переместить: убрать из инвентаря, положить в сундук
+    data.slots[freeIdx] = {
+        ItemId = slot.Id,
+        Amount = slot.Amount or 1
+    }
+    inv.slots[inventorySlotIndex] = false
+
+    ContainerLoot.updateEmptyAttribute(data)
+    getInventorySync().sendFullUpdate(player)
+    ContainerInventory.broadcastUpdate(data)
+
+    return true
 end
 
 return ContainerInventory
