@@ -168,6 +168,49 @@ commands["/help"] = function(player, args)
     return "Commands: " .. table.concat(list, ", ")
 end
 
+commands["/savecastle"] = function(player, args)
+    -- Принудительно включаем сохранение (в Studio оно выключено по умолчанию)
+    local wasEnabled = DataService.isSaveEnabled()
+    if not wasEnabled then
+        DataService.toggleSave()
+    end
+
+    local success = DataService.save(player)
+
+    -- Вернуть обратно если было выключено
+    if not wasEnabled then
+        DataService.toggleSave()
+    end
+
+    if success then
+        return "Castle saved to DataStore!"
+    else
+        return "FAILED to save castle"
+    end
+end
+
+commands["/wipecastle"] = function(player, args)
+    local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
+    local castle = BuildingManager.getCastle(player.UserId)
+    if not castle then
+        return "No castle to wipe"
+    end
+
+    BuildingManager.destroyCastle(player)
+
+    -- Сохраняем без замка
+    local wasEnabled = DataService.isSaveEnabled()
+    if not wasEnabled then
+        DataService.toggleSave()
+    end
+    DataService.save(player)
+    if not wasEnabled then
+        DataService.toggleSave()
+    end
+
+    return "Castle wiped and saved"
+end
+
 -- ════════════════════════════════════════════════════════════
 -- Обработчик
 -- ════════════════════════════════════════════════════════════
@@ -197,3 +240,4 @@ Remotes.DebugCommand.OnServerEvent:Connect(function(player, input)
 end)
 
 print("[Debug] Debug commands loaded. Use /help for list")
+

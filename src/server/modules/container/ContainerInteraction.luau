@@ -25,8 +25,8 @@ function ContainerInteraction.requestOpen(player, containerId, containers, STATE
         return false, "Контейнер недоступен"
     end
 
-    -- NEW: пустой контейнер нельзя открыть
-    if ContainerLoot.isEmpty(data.slots) then
+    -- Пустой контейнер нельзя открыть, КРОМЕ Persistent (замковые сундуки)
+    if ContainerLoot.isEmpty(data.slots) and not data.config.Persistent then
         return false, "Контейнер пуст"
     end
 
@@ -120,12 +120,14 @@ function ContainerInteraction.finishOpen(player, data)
 
     -- Таймер despawn
     if not data.despawnTimer then
-        -- despawn вызывается через фасад, но таймер ставим здесь
-        -- Сохраняем ссылку на функцию despawn через замыкание
         if data._despawnFn then
-            data.despawnTimer = task.delay(data.config.DespawnTime, function()
-                data._despawnFn(data.id)
-            end)
+            local despawnTime = data.config.DespawnTime
+            -- Замковые сундуки (math.huge) не нуждаются в despawn-таймере
+            if despawnTime and despawnTime < math.huge then
+                data.despawnTimer = task.delay(despawnTime, function()
+                    data._despawnFn(data.id)
+                end)
+            end
         end
     end
 end

@@ -115,7 +115,7 @@ function ChestHandler.onCreate(part, typeId, blockId, castle)
     -- Атрибуты на Part для клиентского UI
     part:SetAttribute("ContainerId", containerId)
     part:SetAttribute("ContainerType", "castle_chest")
-    part:SetAttribute("ContainerEmpty", true)
+    part:SetAttribute("ContainerEmpty", false)
 
     -- Трекинг
     chestData[blockId] = {

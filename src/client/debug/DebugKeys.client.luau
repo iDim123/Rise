@@ -81,6 +81,10 @@ UserInputService.InputBegan:Connect(function(input, processed)
             Remotes.DebugCommand:FireServer("/spellpoint Blood 3 2")
             Remotes.DebugCommand:FireServer("/spellpoint Blood ULT 1")
             Remotes.DebugCommand:FireServer("/spellpoint Chaos ULT 1")
+        elseif input.KeyCode == Enum.KeyCode.Four then
+            Remotes.DebugCommand:FireServer("/savecastle")
+        elseif input.KeyCode == Enum.KeyCode.Five then
+            Remotes.DebugCommand:FireServer("/wipecastle")
         end
     end
 end)

@@ -128,6 +128,7 @@ DamageNumbers.client.luau └── Remotes
 
 CharacterWindow.client.luau ├── UIConstants ← Config ├── SlotFactory ← UIConstants ├── SlotBehavior ← Config, UIConstants, DragManager, CooldownManager, ItemTooltip ├── DragManager ← UIConstants ├── EquipmentPanel ← Config, UIConstants, SlotFactory, ItemTooltip ├── CraftPanel ← Config, UIConstants, Remotes ├── InventoryGrid ← Config, UIConstants, SlotFactory, SlotBehavior, DragManager, │ CooldownManager, ItemTooltip, ActionBarHUD, Remotes ├── ActionBarHUD ← UIConstants, SlotFactory, SlotBehavior ├── CooldownManager (standalone, RenderStepped) ├── AttributesPanel ← Remotes, Config ├── BloodPoolPanel ← Config └── ItemTooltip (tooltip/)
 
+ContainerUI.client.luau ← Config, Remotes, CharacterGui.ToggleCharacterWindow (BindableEvent)
 
 ### UI — Способности (`client/ui/abilities/`)
 

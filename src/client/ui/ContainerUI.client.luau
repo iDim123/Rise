@@ -40,6 +40,17 @@ local MINIMAP_LEFT_OFFSET = -256   -- из Minimap.client.luau
 local GAP_TO_MINIMAP      = 12
 local TOP_OFFSET          = 40     -- как CharacterWindow
 
+
+-- ═══ Связь с CharacterWindow ═══
+local function fireCharacterToggle(forceOpen)
+    local charGui = playerGui:FindFirstChild("CharacterGui")
+    if charGui then
+        local toggle = charGui:FindFirstChild("ToggleCharacterWindow")
+        if toggle then
+            toggle:Fire(forceOpen)
+        end
+    end
+end
 -- ════════════════════════════════════════════════════════════
 -- ScreenGui
 -- ════════════════════════════════════════════════════════════
@@ -277,6 +288,9 @@ local function openWindow(containerId, slots, name)
     titleLabel.Text    = name or "Сундук"
     buildSlotGrid(slots)
     window.Visible     = true
+
+    -- Открыть инвентарь рядом с сундуком
+    fireCharacterToggle(true)
 end
 
 local function closeWindow()
@@ -285,8 +299,10 @@ local function closeWindow()
     end
     currentContainerId = nil
     window.Visible     = false
-end
 
+    -- Закрыть инвентарь при закрытии сундука
+    fireCharacterToggle(false)
+end
 -- ════════════════════════════════════════════════════════════
 -- Сканирование ближайших контейнеров (Heartbeat)
 -- ════════════════════════════════════════════════════════════
@@ -402,10 +418,14 @@ RunService.Heartbeat:Connect(function(dt)
                 if obj:IsA("BasePart") and obj:GetAttribute("IsStructure") then
                     local typeId = obj:GetAttribute("BlockTypeId")
                     if typeId then
-                        local bt = Config.Building and Config.Building.BlockTypes and Config.Building.BlockTypes[typeId]
+                        local bt = Config.Building and Config.Building.BlockTypes
+                            and Config.Building.BlockTypes[typeId]
                         if bt and bt.Functional == "Chest" then
                             local cid = obj:GetAttribute("ContainerId")
                             if not cid then continue end
+
+                            -- НЕ проверяем ContainerEmpty — замковые сундуки
+                            -- можно открывать даже пустыми
 
                             local pos = obj.Position
                             local range = (bt.FunctionalData and bt.FunctionalData.InteractRange) or 8

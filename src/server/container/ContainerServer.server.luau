@@ -28,13 +28,16 @@ initSpawnPoints()
 -- 2. Remote: ContainerOpen — запрос открытия
 -- ────────────────────────────────────────────────────────────
 Remotes.ContainerOpen.OnServerEvent:Connect(function(player, containerId)
-    -- Простая защита от спама
+    print("[ContainerServer] ContainerOpen from", player.Name, "containerId:", containerId)
+
     local CastManager = require(ServerScriptService:WaitForChild("modules"):WaitForChild("CastManager"))
     if CastManager.isActive(player) then
+        print("[ContainerServer] REJECTED: player is casting")
         return
-    end -- уже кастует
+    end
 
-    ContainerManager.requestOpen(player, containerId)
+    local ok, result = ContainerManager.requestOpen(player, containerId)
+    print("[ContainerServer] requestOpen result:", ok, result)
 end)
 
 -- ────────────────────────────────────────────────────────────

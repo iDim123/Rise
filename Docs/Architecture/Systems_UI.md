@@ -157,6 +157,10 @@ Dot pool для производительности — переиспольз�
 - `DragManager.luau` — drag-and-drop ghost-элемент
 - `CooldownManager.luau` — визуальный cooldown (RenderStepped)
 
+Внешнее управление: BindableEvent "ToggleCharacterWindow" в ScreenGui "CharacterGui".
+Fire(true) — открыть, Fire(false) — закрыть, Fire() — toggle.
+Используется: ContainerUI (открывает инвентарь при открытии сундука).
+
 ### ServantWindow
 
 Файл: `servant/ServantWindow.client.luau`

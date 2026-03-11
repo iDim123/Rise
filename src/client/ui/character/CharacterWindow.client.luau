@@ -210,3 +210,31 @@ task.spawn(function()
         refreshUI(data)
     end
 end)
+
+-- ═══ Внешнее управление окном (для ContainerUI и др.) ═══
+local toggleEvent = Instance.new("BindableEvent")
+toggleEvent.Name = "ToggleCharacterWindow"
+toggleEvent.Parent = screenGui -- "CharacterGui"
+
+toggleEvent.Event:Connect(function(forceOpen)
+    if forceOpen == true then
+        if not isOpen then
+            isOpen = true
+            mainFrame.Visible = true
+            local data = Remotes.GetInventory:InvokeServer()
+            refreshUI(data)
+        end
+    elseif forceOpen == false then
+        if isOpen then
+            isOpen = false
+            mainFrame.Visible = false
+        end
+    else
+        isOpen = not isOpen
+        mainFrame.Visible = isOpen
+        if isOpen then
+            local data = Remotes.GetInventory:InvokeServer()
+            refreshUI(data)
+        end
+    end
+end)
