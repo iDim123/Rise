@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local DragManager = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("DragManager"))
-local ItemTooltip = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("tooltip"))
+local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 
 local ServantEquipPanel = {}
@@ -25,7 +25,7 @@ local SLOT_TYPE_MAP = {
     Hands = "Hands",
     Amulet = "Amulet",
     Ring1 = "Ring",
-    Ring2 = "Ring",
+    Ring2 = "Ring"
 }
 
 function ServantEquipPanel.build(parent, x, y, w, h)
@@ -167,10 +167,14 @@ function ServantEquipPanel.getSlotFrames()
 end
 
 function ServantEquipPanel.registerDropTargets(servantId)
-    if not panelFrame then return end
+    if not panelFrame then
+        return
+    end
 
     DragManager.registerDropTarget(panelFrame, function(data)
-        if not data or not data.item then return end
+        if not data or not data.item then
+            return
+        end
 
         local item = data.item
         local targetSlot = nil
@@ -198,7 +202,9 @@ function ServantEquipPanel.registerDropTargets(servantId)
             end
         end
 
-        if not targetSlot then return end
+        if not targetSlot then
+            return
+        end
 
         Remotes.EquipServantItem:FireServer(servantId, data.slotIndex, targetSlot)
     end)
