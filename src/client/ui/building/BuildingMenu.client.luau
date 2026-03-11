@@ -306,6 +306,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     -- X — toggle delete mode
     if input.KeyCode == BC.KEY_DELETE_MODE then
+        -- Блокируем X если окно строительства закрыто
+        if not window.Visible and not BuildingPlacer.isDeleteMode() then
+            return
+        end
+
         if BuildingPlacer.isDeleteMode() then
             BuildingPlacer.stopDeleteMode()
             deleteModeBtn.Text = "Режим удаления (X)"

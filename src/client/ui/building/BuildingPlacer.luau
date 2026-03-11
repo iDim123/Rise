@@ -397,11 +397,13 @@ local function createDeleteHighlight()
     if deleteHighlight then
         return
     end
-    deleteHighlight = Instance.new("SelectionBox")
-    deleteHighlight.Color3 = BC.DELETE_HIGHLIGHT_COLOR
-    deleteHighlight.SurfaceColor3 = BC.DELETE_HIGHLIGHT_COLOR
-    deleteHighlight.SurfaceTransparency = BC.DELETE_HIGHLIGHT_TRANSPARENCY
-    deleteHighlight.LineThickness = 2
+    deleteHighlight = Instance.new("Highlight")
+    deleteHighlight.FillColor = BC.DELETE_HIGHLIGHT_COLOR
+    deleteHighlight.FillTransparency = BC.DELETE_HIGHLIGHT_TRANSPARENCY
+    deleteHighlight.OutlineColor = BC.DELETE_HIGHLIGHT_COLOR
+    deleteHighlight.OutlineTransparency = 0.3
+    deleteHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
+    deleteHighlight.Enabled = false
     deleteHighlight.Parent = player.PlayerGui
 end
 
@@ -419,14 +421,14 @@ local function updateDeleteMode()
             if not hit:GetAttribute("IsCastleHeart") then
                 hoveredBlock = hit
                 deleteHighlight.Adornee = hit
-                deleteHighlight.Visible = true
+                deleteHighlight.Enabled = true
                 return
             end
         end
     end
 
     deleteHighlight.Adornee = nil
-    deleteHighlight.Visible = false
+    deleteHighlight.Enabled = false
 end
 
 local function destroyDeleteHighlight()
