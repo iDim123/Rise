@@ -160,7 +160,8 @@ local function updateGhostPosition()
     local hitPart = rayResult.Instance
     local foundationPart = nil
 
-    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" then
+    local needsEdgeSnap = bt.Category == "Wall" or bt.EdgeSnap
+    if bt.PlacementRule == "OnFoundation" and needsEdgeSnap then
         -- Сначала проверяем: попали ли на фундамент напрямую
         if hitPart and hitPart:IsA("BasePart") and hitPart:GetAttribute("IsStructure") then
             local hitTypeId = hitPart:GetAttribute("BlockTypeId")

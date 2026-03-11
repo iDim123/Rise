@@ -395,7 +395,8 @@ function BuildingValidator.calcPlacementPos(blockTypeId, rawPosition, rotation, 
     end
 
     -- Стены: snap к краю фундамента
-    if bt.PlacementRule == "OnFoundation" and bt.Category == "Wall" and hitPart and hitPart:GetAttribute("IsStructure") then
+    local needsEdgeSnap = bt.Category == "Wall" or bt.EdgeSnap
+    if bt.PlacementRule == "OnFoundation" and needsEdgeSnap and hitPart and hitPart:GetAttribute("IsStructure") then
         local hitTypeId = hitPart:GetAttribute("BlockTypeId")
         local hitCategory = hitTypeId and getBlockCategory(hitTypeId)
         local isCastleHeartPlatform = hitPart:GetAttribute("IsCastleHeart")

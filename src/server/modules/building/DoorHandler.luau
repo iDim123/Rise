@@ -3,12 +3,12 @@
     Обработка дверей в замке: открытие/закрытие по F.
     
     Механика:
-    - Дверь поворачивается на 90° при открытии (TweenService)
+    - Дверь поворачивается на 90° вокруг левого края (hinge)
     - CanCollide отключается при открытии
     - Повторное нажатие F закрывает дверь
     - Проверка прав через CastleBorder.canInteract
     
-    Используется: BuildingServer (InteractBlock маршрутизация)
+    Используется: FunctionalDispatcher
     Зависимости: CastleBorder, TweenService
 ]] local TweenService = game:GetService("TweenService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -18,20 +18,48 @@ local CastleBorder = require(modules:WaitForChild("building"):WaitForChild("Cast
 
 local DoorHandler = {}
 
--- Состояние дверей: doorStates[part] = { isOpen, tweening, closedCFrame }
+-- doorStates[part] = { isOpen, tweening, closedCFrame, openCFrame, hingeCFrame }
 local doorStates = {}
 
 local TWEEN_TIME = 0.4
 local TWEEN_INFO = TweenInfo.new(TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local OPEN_ANGLE = math.rad(-90)
+
+--- Вычислить CFrame двери в открытом состоянии.
+--- Поворот вокруг левого края (hinge) на -90° по оси Y.
+local function calcOpenCFrame(closedCF, size)
+    local doorWidth, hingeLocalOffset
+
+    if size.X >= size.Z then
+        doorWidth = size.X
+        hingeLocalOffset = Vector3.new(-doorWidth / 2, 0, 0)
+    else
+        doorWidth = size.Z
+        hingeLocalOffset = Vector3.new(0, 0, -doorWidth / 2)
+    end
+
+    local hingeWorldPos = closedCF:PointToWorldSpace(hingeLocalOffset)
+
+    local _, yRot, _ = closedCF:ToEulerAnglesYXZ()
+    local hingeCF = CFrame.new(hingeWorldPos) * CFrame.fromEulerAnglesYXZ(0, yRot, 0)
+
+    local openCF = hingeCF * CFrame.Angles(0, OPEN_ANGLE, 0) * hingeCF:Inverse() * closedCF
+
+    return openCF, hingeCF
+end
 
 --- Инициализировать дверь при размещении.
---- Вызывается из BuildingManager после создания Part.
---- @param part BasePart — Part двери (уже в workspace)
+--- @param part BasePart
 function DoorHandler.initDoor(part)
+    local closedCF = part.CFrame
+    local openCF, hingeCF = calcOpenCFrame(closedCF, part.Size)
+
     doorStates[part] = {
         isOpen = false,
         tweening = false,
-        closedCFrame = part.CFrame
+        closedCFrame = closedCF,
+        openCFrame = openCF,
+        hingeCFrame = hingeCF
     }
 end
 
@@ -49,7 +77,6 @@ function DoorHandler.interact(player, part)
         return false, "Дверь уже в движении"
     end
 
-    -- Проверка прав доступа
     local ownerId = part:GetAttribute("CastleOwnerId")
     if ownerId then
         if not CastleBorder.canInteract(player.UserId, ownerId) then
@@ -60,7 +87,6 @@ function DoorHandler.interact(player, part)
     state.tweening = true
 
     if state.isOpen then
-        -- Закрываем: возвращаем к closedCFrame
         local tween = TweenService:Create(part, TWEEN_INFO, {
             CFrame = state.closedCFrame
         })
@@ -71,22 +97,9 @@ function DoorHandler.interact(player, part)
         end)
         tween:Play()
     else
-        -- Открываем: поворот на 90° вокруг левого края
-        -- Определяем pivot — левый край двери
-        local size = part.Size
-        local cf = state.closedCFrame
-
-        -- Ширина двери — Size.X (или Size.Z если повёрнута на 90/270)
-        -- Pivot на -X/2 в локальных координатах
-        local pivotOffset = cf:PointToWorldSpace(Vector3.new(-size.X / 2, 0, 0))
-        local pivotCFrame = CFrame.new(pivotOffset)
-
-        -- Целевой CFrame: поворот на 90° вокруг pivot по Y
-        local openCFrame = pivotCFrame * CFrame.Angles(0, math.rad(-90), 0) * pivotCFrame:Inverse() * cf
-
         part.CanCollide = false
         local tween = TweenService:Create(part, TWEEN_INFO, {
-            CFrame = openCFrame
+            CFrame = state.openCFrame
         })
         tween.Completed:Once(function()
             state.isOpen = true

@@ -259,6 +259,7 @@
                 PlacementRule = "OnFoundation",
                 CanRotate = true,
                 Functional = "Door",
+                EdgeSnap = true,
                 Icon = "rbxassetid://0"
             },
 
