@@ -3,6 +3,7 @@
     Клиентский UI лесопилки.
 
     Открывается по F через SawmillOpened ремот.
+    Автоматически открывает окно персонажа.
     Стилистика и размеры слотов из UIConstants.
     Ширина окна больше CharacterWindow, высота — та же.
     Рецепты в 2 колонки с кнопкой toggle (зелёный/красный).
@@ -10,11 +11,8 @@
     Прогресс-бар текущего крафта.
 
     Зависимости: UIConstants, Config, Remotes, WindowManager, ItemTooltip
-]]
-
-local Players = game:GetService("Players")
+]] local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
@@ -29,9 +27,9 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Константы раскладки
 -- ═══════════════════════════════════════════════════════════
 
-local SLOT_SIZE = UC.slotSize          -- 50
-local PADDING = UC.padding             -- 5
-local HEADER_H = UC.headerH            -- 36
+local SLOT_SIZE = UC.slotSize
+local PADDING = UC.padding
+local HEADER_H = UC.headerH
 local CORNER_R = UDim.new(0, 8)
 local SMALL_R = UDim.new(0, 4)
 
@@ -49,30 +47,25 @@ local IO_ROWS = 2
 local IO_GRID_W = PADDING + IO_COLS * (SLOT_SIZE + PADDING)
 local IO_GRID_H = PADDING + IO_ROWS * (SLOT_SIZE + PADDING)
 
--- Ширина окна: input + gap + output + gap + padding
 local IO_GAP = 16
 local SECTION_PAD = 10
 local WINDOW_PAD_X = 10
 
--- Рецепт-зона: ширина окна минус отступы
--- Сначала рассчитаем ширину по IO зонам
+-- Ширина окна: input + gap + output + отступы
 local WINDOW_WIDTH = WINDOW_PAD_X + IO_GRID_W + IO_GAP + IO_GRID_W + WINDOW_PAD_X
--- Убеждаемся что окно шире CharacterWindow
 if WINDOW_WIDTH < UC.windowWidth + 80 then
     WINDOW_WIDTH = UC.windowWidth + 80
 end
 
-local WINDOW_HEIGHT = UC.windowHeight  -- высота как у CharacterWindow
+local WINDOW_HEIGHT = UC.windowHeight
 
--- Цвета (из UIConstants)
-local BG_COLOR = UC.windowBg           -- Color3.fromRGB(25, 25, 35)
-local PANEL_BG = UC.panelBg            -- Color3.fromRGB(35, 35, 50)
-local SLOT_BG = UC.slotBg              -- Color3.fromRGB(50, 50, 65)
-local SLOT_FILLED = UC.slotBgFilled    -- Color3.fromRGB(60, 60, 80)
-local SLOT_BORDER = UC.slotBorder      -- Color3.fromRGB(80, 80, 100)
-local TEXT_COLOR = UC.textColor         -- Color3.fromRGB(220, 220, 220)
-local TAB_ACTIVE = UC.tabActive        -- Color3.fromRGB(60, 100, 60)
-local TAB_INACTIVE = UC.tabInactive    -- Color3.fromRGB(50, 50, 70)
+-- Цвета
+local BG_COLOR = UC.windowBg
+local PANEL_BG = UC.panelBg
+local SLOT_BG = UC.slotBg
+local SLOT_FILLED = UC.slotBgFilled
+local SLOT_BORDER = UC.slotBorder
+local TEXT_COLOR = UC.textColor
 
 local TOGGLE_ON = Color3.fromRGB(50, 180, 50)
 local TOGGLE_OFF = Color3.fromRGB(180, 50, 50)
@@ -81,15 +74,35 @@ local PROGRESS_FILL = Color3.fromRGB(80, 200, 80)
 local GOLD_COLOR = Color3.fromRGB(220, 190, 80)
 local LABEL_DIM = Color3.fromRGB(150, 150, 170)
 
+local PROGRESS_H = 22
+
+-- Позиция: правый край экрана, с отступом
+local RIGHT_MARGIN = 20 -- место для миникарты
+local TOP_OFFSET = 40
+
 -- ═══════════════════════════════════════════════════════════
--- ScreenGui
+-- ScreenGui — DisplayOrder выше AbilitiesBar (810)
 -- ═══════════════════════════════════════════════════════════
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SawmillGui"
 screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 14
+screenGui.DisplayOrder = 815
 screenGui.Parent = playerGui
+
+-- ═══════════════════════════════════════════════════════════
+-- Связь с CharacterWindow
+-- ═══════════════════════════════════════════════════════════
+
+local function fireCharacterToggle(forceOpen)
+    local charGui = playerGui:FindFirstChild("CharacterGui")
+    if charGui then
+        local toggle = charGui:FindFirstChild("ToggleCharacterWindow")
+        if toggle then
+            toggle:Fire(forceOpen)
+        end
+    end
+end
 
 -- ═══════════════════════════════════════════════════════════
 -- Состояние
@@ -101,20 +114,20 @@ local currentInputSlots = {}
 local currentOutputSlots = {}
 local currentRecipeToggles = {}
 local currentRecipes = {}
-local currentCrafting = nil -- { RecipeId, Elapsed, Duration }
+local currentCrafting = nil
 
 local inputSlotButtons = {}
 local outputSlotButtons = {}
 local recipeButtons = {}
 
 -- ═══════════════════════════════════════════════════════════
--- Главное окно
+-- Главное окно — правый край экрана
 -- ═══════════════════════════════════════════════════════════
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "SawmillWindow"
 mainFrame.Size = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
-mainFrame.Position = UDim2.new(0.5, -WINDOW_WIDTH / 2, 0.5, -WINDOW_HEIGHT / 2)
+mainFrame.Position = UDim2.new(1, -RIGHT_MARGIN - WINDOW_WIDTH, 0, TOP_OFFSET)
 mainFrame.BackgroundColor3 = BG_COLOR
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
@@ -159,7 +172,7 @@ closeBtnCorner.CornerRadius = SMALL_R
 closeBtnCorner.Parent = closeBtn
 
 -- ═══════════════════════════════════════════════════════════
--- Секция рецептов (верхняя часть)
+-- Секция рецептов
 -- ═══════════════════════════════════════════════════════════
 
 local recipeSectionLabel = Instance.new("TextLabel")
@@ -191,10 +204,8 @@ recipeFrameCorner.CornerRadius = UDim.new(0, 6)
 recipeFrameCorner.Parent = recipeFrame
 
 -- ═══════════════════════════════════════════════════════════
--- Прогресс-бар (между рецептами и IO)
+-- Прогресс-бар
 -- ═══════════════════════════════════════════════════════════
-
-local PROGRESS_H = 22
 
 local progressFrame = Instance.new("Frame")
 progressFrame.Name = "ProgressBar"
@@ -228,10 +239,9 @@ progressLabel.ZIndex = 2
 progressLabel.Parent = progressFrame
 
 -- ═══════════════════════════════════════════════════════════
--- IO секции (нижняя часть)
+-- IO секции
 -- ═══════════════════════════════════════════════════════════
 
--- Input label
 local inputLabel = Instance.new("TextLabel")
 inputLabel.Name = "InputLabel"
 inputLabel.BackgroundTransparency = 1
@@ -242,7 +252,6 @@ inputLabel.Text = "Вход"
 inputLabel.TextXAlignment = Enum.TextXAlignment.Left
 inputLabel.Parent = mainFrame
 
--- Input frame
 local inputFrame = Instance.new("Frame")
 inputFrame.Name = "InputFrame"
 inputFrame.Size = UDim2.new(0, IO_GRID_W, 0, IO_GRID_H)
@@ -254,7 +263,6 @@ local inputFrameCorner = Instance.new("UICorner")
 inputFrameCorner.CornerRadius = UDim.new(0, 6)
 inputFrameCorner.Parent = inputFrame
 
--- Output label
 local outputLabel = Instance.new("TextLabel")
 outputLabel.Name = "OutputLabel"
 outputLabel.BackgroundTransparency = 1
@@ -265,7 +273,6 @@ outputLabel.Text = "Выход"
 outputLabel.TextXAlignment = Enum.TextXAlignment.Left
 outputLabel.Parent = mainFrame
 
--- Output frame
 local outputFrame = Instance.new("Frame")
 outputFrame.Name = "OutputFrame"
 outputFrame.Size = UDim2.new(0, IO_GRID_W, 0, IO_GRID_H)
@@ -277,7 +284,6 @@ local outputFrameCorner = Instance.new("UICorner")
 outputFrameCorner.CornerRadius = UDim.new(0, 6)
 outputFrameCorner.Parent = outputFrame
 
--- Take All button (в зоне output)
 local btnTakeAll = Instance.new("TextButton")
 btnTakeAll.Size = UDim2.new(0, IO_GRID_W, 0, 24)
 btnTakeAll.BackgroundColor3 = Color3.fromRGB(50, 130, 50)
@@ -293,42 +299,37 @@ takeAllCorner.CornerRadius = SMALL_R
 takeAllCorner.Parent = btnTakeAll
 
 -- ═══════════════════════════════════════════════════════════
--- Расчёт раскладки (вызывается при открытии)
+-- Расчёт раскладки
 -- ═══════════════════════════════════════════════════════════
 
 local function layoutWindow()
-    -- Рецепт-секция: от recipeY до IO-секции
-    -- IO-секция: фиксированная высота снизу
-    local IO_SECTION_H = 18 + IO_GRID_H + 4 + 24 + SECTION_PAD -- label + grid + gap + takeAll + pad
+    local IO_SECTION_H = 18 + IO_GRID_H + 4 + 24 + SECTION_PAD
     local PROGRESS_SECTION_H = PROGRESS_H + 8
 
     local recipeAreaH = WINDOW_HEIGHT - recipeY - PROGRESS_SECTION_H - IO_SECTION_H - SECTION_PAD
-    if recipeAreaH < 60 then recipeAreaH = 60 end
+    if recipeAreaH < 60 then
+        recipeAreaH = 60
+    end
 
     recipeFrame.Size = UDim2.new(0, recipeAreaW, 0, recipeAreaH)
     recipeFrame.Position = UDim2.new(0, WINDOW_PAD_X, 0, recipeY)
 
-    -- Progress bar
     local progressY = recipeY + recipeAreaH + 4
     progressFrame.Size = UDim2.new(0, recipeAreaW, 0, PROGRESS_H)
     progressFrame.Position = UDim2.new(0, WINDOW_PAD_X, 0, progressY)
 
-    -- IO section
     local ioY = progressY + PROGRESS_H + 8
 
-    -- Input (left)
     local inputX = WINDOW_PAD_X
     inputLabel.Size = UDim2.new(0, IO_GRID_W, 0, 16)
     inputLabel.Position = UDim2.new(0, inputX, 0, ioY)
     inputFrame.Position = UDim2.new(0, inputX, 0, ioY + 18)
 
-    -- Output (right)
     local outputX = WINDOW_WIDTH - WINDOW_PAD_X - IO_GRID_W
     outputLabel.Size = UDim2.new(0, IO_GRID_W, 0, 16)
     outputLabel.Position = UDim2.new(0, outputX, 0, ioY)
     outputFrame.Position = UDim2.new(0, outputX, 0, ioY + 18)
 
-    -- Take All button (under output)
     btnTakeAll.Position = UDim2.new(0, outputX, 0, ioY + 18 + IO_GRID_H + 4)
 end
 
@@ -393,14 +394,12 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
             amtLabel.Parent = btn
         end
 
-        -- Tooltip
         btn.MouseEnter:Connect(function()
-            local tooltipData = {
+            ItemTooltip.show({
                 Id = slot.ItemId,
                 Name = itemDef and itemDef.Name or slot.ItemId,
-                Amount = slot.Amount or 1,
-            }
-            ItemTooltip.show(tooltipData, btn)
+                Amount = slot.Amount or 1
+            }, btn)
         end)
         btn.MouseLeave:Connect(function()
             ItemTooltip.hide()
@@ -416,22 +415,23 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
 end
 
 local function rebuildInputSlots()
-    for _, btn in inputSlotButtons do btn:Destroy() end
+    for _, btn in inputSlotButtons do
+        btn:Destroy()
+    end
     inputSlotButtons = {}
-
     for i = 1, 8 do
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
-        -- Клик по input слоту — ничего (предметы кладутся из инвентаря ПКМ)
         local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, nil)
         inputSlotButtons[i] = btn
     end
 end
 
 local function rebuildOutputSlots()
-    for _, btn in outputSlotButtons do btn:Destroy() end
+    for _, btn in outputSlotButtons do
+        btn:Destroy()
+    end
     outputSlotButtons = {}
-
     for i = 1, 8 do
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
@@ -451,19 +451,16 @@ end
 
 local function buildRecipeList()
     for _, entry in recipeButtons do
-        if entry.frame then entry.frame:Destroy() end
+        if entry.frame then
+            entry.frame:Destroy()
+        end
     end
     recipeButtons = {}
 
     local totalH = RECIPE_PAD
-    local rowIndex = 0
 
     for idx, recipe in currentRecipes do
         local col = (idx - 1) % RECIPE_COLS
-        if col == 0 and idx > 1 then
-            rowIndex += 1
-        end
-
         local row = math.floor((idx - 1) / RECIPE_COLS)
         local xPos = RECIPE_PAD + col * (recipeColW + RECIPE_PAD)
         local yPos = RECIPE_PAD + row * (RECIPE_ROW_H + RECIPE_PAD)
@@ -481,7 +478,7 @@ local function buildRecipeList()
         rowCorner.CornerRadius = SMALL_R
         rowCorner.Parent = recipeRow
 
-        -- Toggle button (circle)
+        -- Toggle circle
         local toggleBtn = Instance.new("TextButton")
         toggleBtn.Size = UDim2.new(0, TOGGLE_SIZE, 0, TOGGLE_SIZE)
         toggleBtn.Position = UDim2.new(0, 4, 0.5, -TOGGLE_SIZE / 2)
@@ -490,7 +487,7 @@ local function buildRecipeList()
         toggleBtn.Parent = recipeRow
 
         local toggleCorner = Instance.new("UICorner")
-        toggleCorner.CornerRadius = UDim.new(0.5, 0) -- circle
+        toggleCorner.CornerRadius = UDim.new(0.5, 0)
         toggleCorner.Parent = toggleBtn
 
         local isActive = currentRecipeToggles[recipe.Id] ~= false
@@ -502,7 +499,7 @@ local function buildRecipeList()
             end
         end)
 
-        -- Icon
+        -- Icon (first result)
         local iconFrame = Instance.new("Frame")
         iconFrame.Size = UDim2.new(0, 32, 0, 32)
         iconFrame.Position = UDim2.new(0, TOGGLE_SIZE + 10, 0.5, -16)
@@ -514,7 +511,6 @@ local function buildRecipeList()
         iconCorner.CornerRadius = SMALL_R
         iconCorner.Parent = iconFrame
 
-        -- Показываем первый result как иконку
         local firstResult = recipe.Results and recipe.Results[1] or recipe.Result
         if firstResult then
             local resultDef = Config.Items[firstResult.ItemId]
@@ -550,14 +546,13 @@ local function buildRecipeList()
         nameLabel.Font = Enum.Font.GothamBold
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-        nameLabel.TextWrapped = false
         nameLabel.Text = recipe.Name
         nameLabel.Parent = recipeRow
 
         recipeButtons[idx] = {
             frame = recipeRow,
             toggleBtn = toggleBtn,
-            recipe = recipe,
+            recipe = recipe
         }
 
         totalH = math.max(totalH, yPos + RECIPE_ROW_H + RECIPE_PAD)
@@ -567,7 +562,7 @@ local function buildRecipeList()
 end
 
 -- ═══════════════════════════════════════════════════════════
--- Обновление UI
+-- Обновление
 -- ═══════════════════════════════════════════════════════════
 
 local function updateToggles()
@@ -582,7 +577,6 @@ local function updateProgress()
         local ratio = math.clamp((currentCrafting.Elapsed or 0) / currentCrafting.Duration, 0, 1)
         progressFill.Size = UDim2.new(ratio, 0, 1, 0)
 
-        -- Найти имя рецепта
         local recipeName = currentCrafting.RecipeId
         for _, r in currentRecipes do
             if r.Id == currentCrafting.RecipeId then
@@ -619,6 +613,9 @@ local function closeSawmill()
     isOpen = false
     mainFrame.Visible = false
     WindowManager.remove("SawmillUI")
+    -- Закрыть окно персонажа тоже
+    fireCharacterToggle(false)
+    syncSawmillState()
 end
 
 local function openSawmill(payload)
@@ -636,14 +633,18 @@ local function openSawmill(payload)
     buildRecipeList()
     refreshAll()
 
+    -- Автоматически открыть окно персонажа
+    fireCharacterToggle(true)
+
     WindowManager.push("SawmillUI", function()
         closeSawmill()
     end)
+
+    syncSawmillState()
 end
 
 -- ═══════════════════════════════════════════════════════════
--- Deposit: ПКМ в инвентаре → кладём в input лесопилки
--- Публикуем состояние для SlotBehavior
+-- Публичное состояние (для SlotBehavior ПКМ)
 -- ═══════════════════════════════════════════════════════════
 
 local sawmillState = Instance.new("BoolValue")
@@ -656,7 +657,7 @@ sawmillIdValue.Name = "SawmillOpenId"
 sawmillIdValue.Value = ""
 sawmillIdValue.Parent = screenGui
 
-local function syncSawmillState()
+function syncSawmillState()
     sawmillState.Value = isOpen and currentSawmillId ~= nil
     sawmillIdValue.Value = currentSawmillId or ""
 end
@@ -667,11 +668,12 @@ end
 
 Remotes.SawmillOpened.OnClientEvent:Connect(function(payload)
     openSawmill(payload)
-    syncSawmillState()
 end)
 
 Remotes.SawmillUpdate.OnClientEvent:Connect(function(payload)
-    if not currentSawmillId or payload.SawmillId ~= currentSawmillId then return end
+    if not currentSawmillId or payload.SawmillId ~= currentSawmillId then
+        return
+    end
 
     currentInputSlots = payload.InputSlots or currentInputSlots
     currentOutputSlots = payload.OutputSlots or currentOutputSlots
@@ -697,26 +699,10 @@ end)
 
 closeBtn.MouseButton1Click:Connect(function()
     closeSawmill()
-    syncSawmillState()
 end)
 
 btnTakeAll.MouseButton1Click:Connect(function()
     if currentSawmillId then
         Remotes.SawmillTakeAll:FireServer(currentSawmillId)
-    end
-end)
-
--- ═══════════════════════════════════════════════════════════
--- Deposit из инвентаря (ПКМ по слоту в CharacterWindow)
--- Через BindableEvent — CharacterWindow fire → SawmillUI listen
--- ═══════════════════════════════════════════════════════════
-
-local depositEvent = Instance.new("BindableEvent")
-depositEvent.Name = "SawmillDeposit"
-depositEvent.Parent = screenGui
-
-depositEvent.Event:Connect(function(inventorySlotIndex)
-    if currentSawmillId and isOpen then
-        Remotes.SawmillDeposit:FireServer(currentSawmillId, inventorySlotIndex)
     end
 end)

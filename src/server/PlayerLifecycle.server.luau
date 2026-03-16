@@ -73,6 +73,7 @@ local function onPlayerAdded(player)
         InventoryManager.addItemFromConfig(player, "blood_vial_creature", 5)
         InventoryManager.addItemFromConfig(player, "stone", 900)
         InventoryManager.addItemFromConfig(player, "wooden_plank", 900)
+        InventoryManager.addItemFromConfig(player, "wood", 900)
     end
 
     -- 3. CharacterAdded

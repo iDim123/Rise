@@ -15,8 +15,6 @@ local function isLocked(slot)
 end
 
 function SlotBehavior.connect(slot, index, getItemFn, options)
-    -- options: { equipRemote, useItemRemote, setActiveWeaponRemote (optional) }
-
     slot.MouseButton1Down:Connect(function()
         if isLocked(slot) then
             return
@@ -67,7 +65,19 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             return
         end
 
-        -- Если открыт сундук → положить предмет в сундук (ПКМ)
+        -- Приоритет 1: Если открыта лесопилка → deposit в input
+        local sawmillGui = player:WaitForChild("PlayerGui"):FindFirstChild("SawmillGui")
+        if sawmillGui then
+            local isSawmillOpen = sawmillGui:FindFirstChild("SawmillOpen")
+            local sawmillIdVal = sawmillGui:FindFirstChild("SawmillOpenId")
+            if isSawmillOpen and isSawmillOpen.Value and sawmillIdVal and sawmillIdVal.Value ~= "" then
+                local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+                Remotes.SawmillDeposit:FireServer(sawmillIdVal.Value, index)
+                return
+            end
+        end
+
+        -- Приоритет 2: Если открыт сундук → deposit в сундук
         local containerGui = player:WaitForChild("PlayerGui"):FindFirstChild("ContainerUI")
         if containerGui then
             local isContainerOpen = containerGui:FindFirstChild("ContainerOpen")
@@ -79,7 +89,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             end
         end
 
-        -- Стандартное поведение: экипировка / использование
+        -- Приоритет 3: Стандартное поведение
         if item.EquipSlot and options.equipRemote then
             options.equipRemote:FireServer(index)
         elseif item.Type == "Consumable" and options.useItemRemote then
