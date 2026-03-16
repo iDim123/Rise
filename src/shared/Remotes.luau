@@ -17,8 +17,8 @@ local events = { -- === Existing ===
 "EquipSpell", "UnequipSpell", "SpellCooldown", "SpellChargeUpdate", "BeamStart", "BeamUpdate", "BeamEnd", "SpellEffect",
 "UpdateSpellData", "SpellAim", "StructureDamageEvent", "PlaceCastleHeart", "UpgradeCastleHeart", "DestroyCastle",
 "CastleHeartInfo", "PlaceBlock", "RemoveBlock", "BuildingSync", "SetBuildPermission", "AddBuildAlly", "RemoveBuildAlly",
-"InteractBlock", "SawmillOpened", "SawmillUpdate", "SawmillClosed", "SawmillDeposit", "SawmillTakeItem",
-"SawmillTakeAll", "SawmillToggleRecipe", "SawmillClose"}
+"InteractBlock", "StationOpened", "StationUpdate", "StationClosed", "StationDeposit", "StationTakeItem",
+"StationTakeAll", "StationToggleRecipe", "StationClose"}
 
 -- RemoteFunctions
 local functions = { -- === Existing ===

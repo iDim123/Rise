@@ -65,14 +65,14 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             return
         end
 
-        -- Приоритет 1: Если открыта лесопилка → deposit в input
-        local sawmillGui = player:WaitForChild("PlayerGui"):FindFirstChild("SawmillGui")
-        if sawmillGui then
-            local isSawmillOpen = sawmillGui:FindFirstChild("SawmillOpen")
-            local sawmillIdVal = sawmillGui:FindFirstChild("SawmillOpenId")
-            if isSawmillOpen and isSawmillOpen.Value and sawmillIdVal and sawmillIdVal.Value ~= "" then
+        -- Приоритет 1: Если открыта станция → deposit в input
+        local stationGui = player:WaitForChild("PlayerGui"):FindFirstChild("StationGui")
+        if stationGui then
+            local isStationOpen = stationGui:FindFirstChild("StationOpen")
+            local stationIdVal = stationGui:FindFirstChild("StationOpenId")
+            if isStationOpen and isStationOpen.Value and stationIdVal and stationIdVal.Value ~= "" then
                 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-                Remotes.SawmillDeposit:FireServer(sawmillIdVal.Value, index)
+                Remotes.StationDeposit:FireServer(stationIdVal.Value, index)
                 return
             end
         end

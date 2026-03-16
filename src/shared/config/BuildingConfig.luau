@@ -355,7 +355,7 @@
                 Name = "Лесопилка",
                 Description = "Автоматически обрабатывает древесину и другие ресурсы.",
                 Category = "Functional",
-                Size = Vector3.new(16, 4, 8), -- 2 клетки × 1 клетка (16×4×8)
+                Size = Vector3.new(16, 4, 8),
                 Material = Enum.Material.WoodPlanks,
                 Color = Color3.fromRGB(140, 100, 50),
                 HP = 200,
@@ -368,11 +368,32 @@
                 }},
                 PlacementRule = "OnFoundation",
                 CanRotate = true,
-                Functional = "Sawmill",
+                Functional = "Station", -- ← было "Sawmill"
                 FunctionalData = {
-                    InputSlots = 8,
-                    OutputSlots = 8,
-                    InteractRange = 10
+                    StationType = "Sawmill" -- ← новое поле
+                },
+                Icon = "rbxassetid://0"
+            },
+            crusher = {
+                Name = "Дробилка",
+                Description = "Перерабатывает камень в строительные материалы.",
+                Category = "Functional",
+                Size = Vector3.new(16, 4, 8),
+                Material = Enum.Material.Slate,
+                Color = Color3.fromRGB(110, 110, 120),
+                HP = 200,
+                Cost = {{
+                    ItemId = "stone",
+                    Amount = 20
+                }, {
+                    ItemId = "wooden_plank",
+                    Amount = 4
+                }},
+                PlacementRule = "OnFoundation",
+                CanRotate = true,
+                Functional = "Station",
+                FunctionalData = {
+                    StationType = "Crusher"
                 },
                 Icon = "rbxassetid://0"
             }

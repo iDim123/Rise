@@ -298,18 +298,17 @@ function BuildingManager.initPlayer(player, savedData)
         end
     end
 
-        -- Восстановление лесопилок с данными из DataStore
-    local SawmillHandler = FunctionalDispatcher.getSawmillHandler()
+    -- Восстановление станций с данными из DataStore
+    local StationHandler = FunctionalDispatcher.getStationHandler()
     if deserialized.containers and #deserialized.containers > 0 then
         for refIndex, blockId in indexToBlockId do
             local block = castle.blocks[blockId]
             if not block then continue end
             local bt = Config.Building.BlockTypes[block.typeId]
-            if bt and bt.Functional == "Sawmill" then
-                -- Ищем savedContainer с совпадающим Ref
+            if bt and bt.Functional == "Station" then
                 for _, savedContainer in deserialized.containers do
-                    if savedContainer.Ref == refIndex and savedContainer.Type == "sawmill" then
-                        SawmillHandler.restoreContainer(block.part, block.typeId, blockId, castle, savedContainer)
+                    if savedContainer.Ref == refIndex and savedContainer.Type == "station" then
+                        StationHandler.restoreContainer(block.part, block.typeId, blockId, castle, savedContainer)
                         break
                     end
                 end
@@ -317,14 +316,14 @@ function BuildingManager.initPlayer(player, savedData)
         end
     end
 
-    -- Инициализировать лесопилки без сохранённых данных (новые пустые)
+    -- Инициализировать новые станции без сохранённых данных
     for i, blockData in deserialized.blocks do
         if blockData and blockData ~= false then
             local blockId = indexToBlockId[i]
             local bt = Config.Building.BlockTypes[blockData.typeId]
-            if bt and bt.Functional == "Sawmill" and blockId then
+            if bt and bt.Functional == "Station" and blockId then
                 local block = castle.blocks[blockId]
-                if block and not block.sawmillId then
+                if block and not block.stationId then
                     FunctionalDispatcher.onPlace(block.part, blockData.typeId, blockId, castle)
                 end
             end
@@ -592,7 +591,7 @@ function BuildingManager.onHeartDestroyedByDamage(ownerId, heartEntity, attacker
     if not castle then return end
 
     FunctionalDispatcher.getChestHandler().dropAllLoot(castle)
-    FunctionalDispatcher.getSawmillHandler().dropAllLoot(castle)
+    FunctionalDispatcher.getStationHandler().dropAllLoot(castle)
 
     destroyAllBlocks(castle)
 
@@ -625,13 +624,12 @@ function BuildingManager.collect(player)
     if not castle then return nil end
     local claimData = CastleBorder.serializeClaim(player.UserId)
     local chestSerializer = FunctionalDispatcher.getChestHandler().getSerializer()
-    local sawmillSerializer = FunctionalDispatcher.getSawmillHandler().getSerializer()
+    local stationSerializer = FunctionalDispatcher.getStationHandler().getSerializer()
 
-    -- Комбинированный сериализатор: пробует chest, потом sawmill
     local function combinedSerializer(containerId)
         local result = chestSerializer(containerId)
         if result then return result end
-        return sawmillSerializer(containerId)
+        return stationSerializer(containerId)
     end
 
     return BuildingSerializer.serialize(castle, claimData, combinedSerializer)

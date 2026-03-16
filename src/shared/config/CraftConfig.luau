@@ -190,6 +190,24 @@ return {
                 Amount = 10
             }},
             CraftTime = 2
+        }, -- ═══════════════════════════════════════
+        --  Дробилка (Station = "Crusher")
+        -- ═══════════════════════════════════════
+        {
+            Id = "crusher_stone_brick",
+            Name = "Каменный кирпич",
+            Description = "Обработать камень в строительные кирпичи.",
+            Icon = "rbxassetid://0",
+            Station = "Crusher",
+            Results = {{
+                ItemId = "stone_brick",
+                Amount = 5
+            }},
+            Ingredients = {{
+                ItemId = "stone",
+                Amount = 20
+            }},
+            CraftTime = 3
         }}
     }
 }

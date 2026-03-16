@@ -27,6 +27,15 @@ return {
         Stackable = true,
         MaxStack = 99
     },
+    stone_brick = {
+        Name = "Кирпич",
+        Description = "Обработанный каменный блок. Используется в строительстве.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 500
+    },
     rugged_hide = {
         Name = "Rugged Hide",
         Description = "Thick hide stripped from wild beasts.",

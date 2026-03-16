@@ -246,53 +246,53 @@ Remotes.InteractBlock.OnServerEvent:Connect(function(player, blockId)
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- Sawmill Remotes
+-- Station Remotes (Sawmill, Crusher, ...)
 -- ═══════════════════════════════════════════════════════════
 
-local SawmillHandler = FunctionalDispatcher.getSawmillHandler()
+local StationHandler = FunctionalDispatcher.getStationHandler()
 
-Remotes.SawmillDeposit.OnServerEvent:Connect(function(player, sawmillId, inventorySlotIndex)
-    if type(sawmillId) ~= "string" then
+Remotes.StationDeposit.OnServerEvent:Connect(function(player, stationId, inventorySlotIndex)
+    if type(stationId) ~= "string" then
         return
     end
     if type(inventorySlotIndex) ~= "number" then
         return
     end
-    SawmillHandler.depositToInput(player, sawmillId, inventorySlotIndex)
+    StationHandler.depositToInput(player, stationId, inventorySlotIndex)
 end)
 
-Remotes.SawmillTakeItem.OnServerEvent:Connect(function(player, sawmillId, slotIndex)
-    if type(sawmillId) ~= "string" then
+Remotes.StationTakeItem.OnServerEvent:Connect(function(player, stationId, slotIndex)
+    if type(stationId) ~= "string" then
         return
     end
     if type(slotIndex) ~= "number" then
         return
     end
-    SawmillHandler.takeFromOutput(player, sawmillId, slotIndex)
+    StationHandler.takeFromOutput(player, stationId, slotIndex)
 end)
 
-Remotes.SawmillTakeAll.OnServerEvent:Connect(function(player, sawmillId)
-    if type(sawmillId) ~= "string" then
+Remotes.StationTakeAll.OnServerEvent:Connect(function(player, stationId)
+    if type(stationId) ~= "string" then
         return
     end
-    SawmillHandler.takeAllOutput(player, sawmillId)
+    StationHandler.takeAllOutput(player, stationId)
 end)
 
-Remotes.SawmillToggleRecipe.OnServerEvent:Connect(function(player, sawmillId, recipeId)
-    if type(sawmillId) ~= "string" then
+Remotes.StationToggleRecipe.OnServerEvent:Connect(function(player, stationId, recipeId)
+    if type(stationId) ~= "string" then
         return
     end
     if type(recipeId) ~= "string" then
         return
     end
-    SawmillHandler.toggleRecipe(player, sawmillId, recipeId)
+    StationHandler.toggleRecipe(player, stationId, recipeId)
 end)
 
-Remotes.SawmillClose.OnServerEvent:Connect(function(player, sawmillId)
-    if type(sawmillId) ~= "string" then
+Remotes.StationClose.OnServerEvent:Connect(function(player, stationId)
+    if type(stationId) ~= "string" then
         return
     end
-    SawmillHandler.closeSawmill(player, sawmillId)
+    StationHandler.closeStation(player, stationId)
 end)
 
 -- ═══════════════════════════════════════════════════════════

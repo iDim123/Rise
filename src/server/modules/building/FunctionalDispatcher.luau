@@ -6,11 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local DoorHandler = require(script.Parent:WaitForChild("DoorHandler"))
 local ChestHandler = require(script.Parent:WaitForChild("ChestHandler"))
-local SawmillHandler = require(script.Parent:WaitForChild("SawmillHandler"))
--- Phase 2 — раскомментировать по мере создания:
--- local WorkbenchHandler = require(script.Parent:WaitForChild("WorkbenchHandler"))
--- local BloodAltarHandler = require(script.Parent:WaitForChild("BloodAltarHandler"))
--- local CoffinHandler = require(script.Parent:WaitForChild("CoffinHandler"))
+local StationHandler = require(script.Parent:WaitForChild("StationHandler"))
 
 local FunctionalDispatcher = {}
 
@@ -19,15 +15,14 @@ function FunctionalDispatcher.onPlace(part, typeId, blockId, castle)
     if not bt or not bt.Functional then
         return
     end
-
     local fn = bt.Functional
 
     if fn == "Door" then
         DoorHandler.initDoor(part)
     elseif fn == "Chest" then
         ChestHandler.onCreate(part, typeId, blockId, castle)
-    elseif fn == "Sawmill" then
-        SawmillHandler.onCreate(part, typeId, blockId, castle)
+    elseif fn == "Station" then
+        StationHandler.onCreate(part, typeId, blockId, castle)
     end
 end
 
@@ -36,15 +31,14 @@ function FunctionalDispatcher.onRemove(part, typeId, blockId)
     if not bt or not bt.Functional then
         return
     end
-
     local fn = bt.Functional
 
     if fn == "Door" then
         DoorHandler.cleanup(part)
     elseif fn == "Chest" then
         ChestHandler.onDestroy(part, blockId)
-    elseif fn == "Sawmill" then
-        SawmillHandler.onDestroy(part, blockId)
+    elseif fn == "Station" then
+        StationHandler.onDestroy(part, blockId)
     end
 end
 
@@ -53,27 +47,25 @@ function FunctionalDispatcher.interact(player, part, typeId, castle, blockData)
     if not bt or not bt.Functional then
         return false, "Блок не функциональный"
     end
-
     local fn = bt.Functional
 
     if fn == "Door" then
         return DoorHandler.interact(player, part)
     elseif fn == "Chest" then
         return ChestHandler.interact(player, part, blockData, castle)
-    elseif fn == "Sawmill" then
-        return SawmillHandler.interact(player, part, blockData, castle)
+    elseif fn == "Station" then
+        return StationHandler.interact(player, part, blockData, castle)
     end
 
     return false, "Неизвестный тип: " .. tostring(fn)
 end
 
---- Доступ к хендлерам для сериализации и восстановления.
 function FunctionalDispatcher.getChestHandler()
     return ChestHandler
 end
 
-function FunctionalDispatcher.getSawmillHandler()
-    return SawmillHandler
+function FunctionalDispatcher.getStationHandler()
+    return StationHandler
 end
 
 return FunctionalDispatcher
