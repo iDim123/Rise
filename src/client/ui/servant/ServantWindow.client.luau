@@ -10,6 +10,7 @@ local ServantEquipPanel = require(script.Parent:WaitForChild("ServantEquipPanel"
 local ServantStatsPanel = require(script.Parent:WaitForChild("ServantStatsPanel"))
 local ServantCollection = require(script.Parent:WaitForChild("ServantCollection"))
 local ServantActionBar = require(script.Parent:WaitForChild("ServantActionBar"))
+local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -159,7 +160,8 @@ collectionLabel.Text = "Collection"
 collectionLabel.Parent = mainFrame
 
 -- Collection panel
-local collectionPanel = ServantCollection.build(mainFrame, PAD, collectionY + collectionLabelH, WINDOW_W - PAD * 2, COLLECTION_H)
+local collectionPanel = ServantCollection.build(mainFrame, PAD, collectionY + collectionLabelH, WINDOW_W - PAD * 2,
+    COLLECTION_H)
 
 -- Servant ActionBar
 ServantActionBar.build(playerGui)
@@ -215,7 +217,9 @@ end
 
 local function refreshUI()
     servantData = Remotes.GetServants:InvokeServer()
-    if not servantData then return end
+    if not servantData then
+        return
+    end
 
     selectedServantId = selectedServantId or servantData.activeId
 
@@ -243,7 +247,10 @@ local function refreshUI()
     if servantData.activeId then
         local activeServant = nil
         for _, s in servantData.captured do
-            if s.id == servantData.activeId then activeServant = s break end
+            if s.id == servantData.activeId then
+                activeServant = s
+                break
+            end
         end
         if activeServant then
             ServantActionBar.refresh(activeServant.mode)
@@ -253,21 +260,27 @@ end
 
 -- Button handlers
 summonBtn.MouseButton1Click:Connect(function()
-    if not selectedServantId or not servantData or #servantData.captured == 0 then return end
+    if not selectedServantId or not servantData or #servantData.captured == 0 then
+        return
+    end
     Remotes.SummonServant:FireServer(selectedServantId)
     task.wait(0.3)
     refreshUI()
 end)
 
 dismissBtn.MouseButton1Click:Connect(function()
-    if not servantData or not servantData.activeId then return end
+    if not servantData or not servantData.activeId then
+        return
+    end
     Remotes.DismissServant:FireServer()
     task.wait(0.3)
     refreshUI()
 end)
 
 favBtn.MouseButton1Click:Connect(function()
-    if not selectedServantId or not servantData or #servantData.captured == 0 then return end
+    if not selectedServantId or not servantData or #servantData.captured == 0 then
+        return
+    end
     Remotes.ToggleServantFavorite:FireServer(selectedServantId)
     task.wait(0.2)
     refreshUI()
@@ -306,16 +319,35 @@ Remotes.UpdateInventory.OnClientEvent:Connect(function(data)
     end
 end)
 
--- Toggle with V
+local function closeServantWindow()
+    if not isOpen then
+        return
+    end
+    isOpen = false
+    mainFrame.Visible = false
+    ServantEquipPanel.unregisterDropTargets()
+    WindowManager.remove("ServantWindow")
+end
+
+local function openServantWindow()
+    if isOpen then
+        return
+    end
+    isOpen = true
+    mainFrame.Visible = true
+    refreshUI()
+    WindowManager.push("ServantWindow", closeServantWindow)
+end
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if gameProcessed then
+        return
+    end
     if input.KeyCode == Enum.KeyCode.V then
-        isOpen = not isOpen
-        mainFrame.Visible = isOpen
         if isOpen then
-            refreshUI()
+            closeServantWindow()
         else
-            ServantEquipPanel.unregisterDropTargets()
+            openServantWindow()
         end
     end
 end)

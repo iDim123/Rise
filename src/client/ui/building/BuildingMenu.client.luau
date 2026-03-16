@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local BC = require(script.Parent:WaitForChild("BuildingConstants"))
 local BuildingPlacer = require(script.Parent:WaitForChild("BuildingPlacer"))
+local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -253,28 +254,34 @@ deleteModeBtn.BorderSizePixel = 0
 deleteModeBtn.Parent = window
 Instance.new("UICorner", deleteModeBtn).CornerRadius = UDim.new(0, BC.SMALL_RADIUS)
 
+
+local function closeBuildingMenu()
+    if not window.Visible then return end
+    window.Visible = false
+    BuildingPlacer.cleanup()
+    WindowManager.remove("BuildingMenu")
+end
+
+local function openBuildingMenu()
+    if window.Visible then return end
+    window.Visible = true
+    buildBlockGrid()
+    WindowManager.push("BuildingMenu", closeBuildingMenu)
+end
+
 -- ═══ События ═══
 
 closeBtn.MouseButton1Click:Connect(function()
-    window.Visible = false
-    BuildingPlacer.cleanup()
+    closeBuildingMenu()
 end)
 
 heartBtn.MouseButton1Click:Connect(function()
-    -- Если у игрока уже есть замок — не даём ставить повторно
-    -- (кнопка уже изменена через BuildingSync, но на всякий случай)
     local info = Remotes.GetCastleHeartInfo:InvokeServer()
-    if info then
-        -- Уже есть замок — ничего не делаем (или открываем CastleHeartUI)
-        return
-    end
-
-    -- Запускаем ghost-режим размещения Castle Heart
+    if info then return end
     BuildingPlacer.startPlacingHeart()
-
-    -- Закрываем меню чтобы не мешало
-    window.Visible = false
+    closeBuildingMenu()
 end)
+
 
 deleteModeBtn.MouseButton1Click:Connect(function()
     if BuildingPlacer.isDeleteMode() then
@@ -288,29 +295,25 @@ deleteModeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+
+
 -- ═══ Горячие клавиши ═══
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
-    -- B — toggle меню
     if input.KeyCode == BC.KEY_TOGGLE_MENU then
         if window.Visible then
-            window.Visible = false
-            BuildingPlacer.cleanup()
+            closeBuildingMenu()
         else
-            window.Visible = true
-            buildBlockGrid()
+            openBuildingMenu()
         end
         return
     end
 
-    -- X — toggle delete mode
     if input.KeyCode == BC.KEY_DELETE_MODE then
-        -- Блокируем X если окно строительства закрыто
         if not window.Visible and not BuildingPlacer.isDeleteMode() then
             return
         end
-
         if BuildingPlacer.isDeleteMode() then
             BuildingPlacer.stopDeleteMode()
             deleteModeBtn.Text = "Режим удаления (X)"

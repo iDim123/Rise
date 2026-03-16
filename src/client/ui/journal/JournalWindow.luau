@@ -15,6 +15,7 @@ local pages = {} -- [pageName] = { frame, module }
 local screenGui, mainFrame, navBar, contentFrame
 local bgImage
 
+local WindowManager
 -- ═══ Navbar pages config ═══
 local PAGE_ORDER = {"Map", "Bosses", "Spellbook"}
 
@@ -174,6 +175,10 @@ function JournalWindow.build()
     return screenGui, contentFrame
 end
 
+function JournalWindow.setWindowManager(wm)
+    WindowManager = wm
+end
+
 -- ═══ Register a page ═══
 function JournalWindow.registerPage(pageName, pageModule)
     pages[pageName] = {
@@ -235,6 +240,12 @@ function JournalWindow.open(pageName)
     mainFrame.Visible = true
     isOpen = true
     JournalWindow.switchPage(pageName or activePage or "Bosses")
+
+    if WindowManager then
+        WindowManager.push("JournalWindow", function()
+            JournalWindow.close()
+        end)
+    end
 end
 
 function JournalWindow.close()
@@ -247,6 +258,10 @@ function JournalWindow.close()
     -- Notify active page
     if activePage and pages[activePage] and pages[activePage].module.onDeactivate then
         pages[activePage].module.onDeactivate()
+    end
+
+    if WindowManager then
+        WindowManager.remove("JournalWindow")
     end
 end
 

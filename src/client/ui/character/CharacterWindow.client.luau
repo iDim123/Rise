@@ -14,6 +14,7 @@ local CooldownManager = require(script.Parent:WaitForChild("CooldownManager"))
 local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 local AttributesPanel = require(script.Parent:WaitForChild("AttributesPanel"))
 local BloodPoolPanel = require(script.Parent:WaitForChild("BloodPoolPanel"))
+local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -153,10 +154,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.C then
         isOpen = not isOpen
         mainFrame.Visible = isOpen
-        if isOpen then
-            local data = Remotes.GetInventory:InvokeServer()
-            refreshUI(data)
-        end
+        WindowManager.push("CharacterWindow", function()
+            isOpen = false
+            mainFrame.Visible = false
+        end)
     end
 
     local keyNumber = nil
@@ -228,6 +229,7 @@ toggleEvent.Event:Connect(function(forceOpen)
         if isOpen then
             isOpen = false
             mainFrame.Visible = false
+            WindowManager.remove("CharacterWindow")
         end
     else
         isOpen = not isOpen

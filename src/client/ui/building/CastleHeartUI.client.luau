@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local BC = require(script.Parent:WaitForChild("BuildingConstants"))
+local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -477,9 +478,20 @@ local function updateUI(info)
     window.Visible = true
 end
 
+local function closeCastleHeartUI()
+    if not window.Visible then return end
+    window.Visible = false
+    WindowManager.remove("CastleHeartUI")
+end
+
+local function openCastleHeartUI(info)
+    updateUI(info)
+    WindowManager.push("CastleHeartUI", closeCastleHeartUI)
+end
+
 -- ═══ Кнопки ═══
 closeBtn.MouseButton1Click:Connect(function()
-    window.Visible = false
+    closeCastleHeartUI()
 end)
 
 upgradeBtn.MouseButton1Click:Connect(function()
@@ -504,7 +516,7 @@ destroyBtn.MouseButton1Click:Connect(function()
         destroyBtn.Text = "Уничтожить замок"
         destroyBtn.BackgroundColor3 = BC.btnRed
         Remotes.DestroyCastle:FireServer()
-        window.Visible = false
+        closeCastleHeartUI()
     end
 end)
 
@@ -552,18 +564,16 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == BC.KEY_INTERACT then
-        -- Если окно уже открыто — закрываем
         if window.Visible then
-            window.Visible = false
+            closeCastleHeartUI()
             return
         end
 
-        -- Ищем Castle Heart рядом
         local heart = findNearbyHeart()
         if heart then
             local info = Remotes.GetCastleHeartInfo:InvokeServer()
             if info then
-                updateUI(info)
+                openCastleHeartUI(info)
             end
         end
     end

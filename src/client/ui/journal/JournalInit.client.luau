@@ -4,7 +4,7 @@ local JournalWindow = require(script.Parent:WaitForChild("JournalWindow"))
 local MenuBar = require(script.Parent.Parent:WaitForChild("MenuBar"))
 local BossPage = require(script.Parent:WaitForChild("bosses"):WaitForChild("BossPage"))
 local SpellbookPage = require(script.Parent:WaitForChild("spellbook"):WaitForChild("SpellbookPage"))
-
+local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 -- Build the journal
 JournalWindow.build()
 

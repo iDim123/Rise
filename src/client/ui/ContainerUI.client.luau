@@ -6,6 +6,7 @@ local UserInputService  = game:GetService("UserInputService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local Config  = require(ReplicatedStorage:WaitForChild("Config"))
 local ItemTooltip = require(script.Parent:WaitForChild("tooltip"))
+local WindowManager = require(script.Parent:WaitForChild("WindowManager"))
 
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -348,9 +349,11 @@ local function openWindow(containerId, slots, name)
     currentSlots       = slots
     titleLabel.Text    = name or "Сундук"
     buildSlotGrid(slots)
-    window.Visible     = true
-
+    window.Visible = true
     fireCharacterToggle(true)
+      WindowManager.push("ContainerUI", function()
+        closeWindow() -- вызываем существующую функцию закрытия
+    end)
 end
 
 local function closeWindow()
@@ -361,6 +364,7 @@ local function closeWindow()
     window.Visible     = false
 
     fireCharacterToggle(false)
+    WindowManager.remove("ContainerUI")
 end
 
 -- ════════════════════════════════════════════════════════════
