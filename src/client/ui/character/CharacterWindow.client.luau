@@ -154,10 +154,16 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.C then
         isOpen = not isOpen
         mainFrame.Visible = isOpen
-        WindowManager.push("CharacterWindow", function()
-            isOpen = false
-            mainFrame.Visible = false
-        end)
+        if isOpen then
+            local data = Remotes.GetInventory:InvokeServer()
+            refreshUI(data)
+            WindowManager.push("CharacterWindow", function()
+                isOpen = false
+                mainFrame.Visible = false
+            end)
+        else
+            WindowManager.remove("CharacterWindow")
+        end
     end
 
     local keyNumber = nil
