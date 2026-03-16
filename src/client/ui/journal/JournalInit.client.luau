@@ -5,13 +5,14 @@ local MenuBar = require(script.Parent.Parent:WaitForChild("MenuBar"))
 local BossPage = require(script.Parent:WaitForChild("bosses"):WaitForChild("BossPage"))
 local SpellbookPage = require(script.Parent:WaitForChild("spellbook"):WaitForChild("SpellbookPage"))
 local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
+
 -- Build the journal
 JournalWindow.build()
+JournalWindow.setWindowManager(WindowManager) -- ← вот эта строка отсутствовала
 
 -- Register pages
 JournalWindow.registerPage("Bosses", BossPage)
 JournalWindow.registerPage("Spellbook", SpellbookPage)
--- JournalWindow.registerPage("Map", MapPage) -- будущее
 
 -- MenuBar integration
 MenuBar.onButtonClick("BossJournal", function()

@@ -246,3 +246,22 @@ toggleEvent.Event:Connect(function(forceOpen)
         end
     end
 end)
+
+-- ═══ MenuBar интеграция ═══
+local MenuBar = require(script.Parent.Parent:WaitForChild("MenuBar"))
+MenuBar.onButtonClick("CharacterWindow", function()
+    if isOpen then
+        isOpen = false
+        mainFrame.Visible = false
+        WindowManager.remove("CharacterWindow")
+    else
+        isOpen = true
+        mainFrame.Visible = true
+        local data = Remotes.GetInventory:InvokeServer()
+        refreshUI(data)
+        WindowManager.push("CharacterWindow", function()
+            isOpen = false
+            mainFrame.Visible = false
+        end)
+    end
+end)

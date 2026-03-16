@@ -351,3 +351,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
+
+-- ═══ MenuBar интеграция ═══
+local MenuBar = require(script.Parent.Parent:WaitForChild("MenuBar"))
+MenuBar.onButtonClick("ServantWindow", function()
+    if isOpen then
+        closeServantWindow()
+    else
+        openServantWindow()
+    end
+end)

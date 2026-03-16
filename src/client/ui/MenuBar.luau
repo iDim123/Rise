@@ -20,14 +20,24 @@ local TOOLTIP_BORDER = Color3.fromRGB(100, 100, 120)
 
 -- ═══ Menu items ═══
 local menuItems = {{
+    Id = "CharacterWindow",
+    Name = "Персонаж",
+    Description = "Инвентарь и экипировка (C)",
+    Icon = "rbxassetid://0"
+}, {
+    Id = "ServantWindow",
+    Name = "Слуга",
+    Description = "Управление слугой (V)",
+    Icon = "rbxassetid://0"
+}, {
     Id = "BossJournal",
     Name = "Журнал боссов",
-    Description = "Список поверженных боссов",
+    Description = "Список поверженных боссов (J)",
     Icon = "rbxassetid://0"
 }, {
     Id = "Spellbook",
     Name = "Книга заклинаний",
-    Description = "Магические школы и заклинания",
+    Description = "Магические школы и заклинания (P)",
     Icon = "rbxassetid://0"
 }}
 
@@ -144,7 +154,7 @@ for i, item in menuItems do
         fallback.Font = Enum.Font.GothamBold
         fallback.TextSize = 18
         fallback.TextColor3 = TEXT_COLOR
-        fallback.Text = string.sub(item.Name, 1, 1) -- first letter
+        fallback.Text = string.sub(item.Name, 1, 1)
         fallback.Parent = btn
     end
 
