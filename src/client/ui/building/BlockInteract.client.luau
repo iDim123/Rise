@@ -61,6 +61,7 @@ end
 local FUNCTIONAL_HINTS = {
     Door = "[F] Открыть / Закрыть",
     Chest = "[F] Открыть сундук",
+    Sawmill = "[F] Лесопилка",       
     Workbench = "[F] Верстак",
     BloodAltar = "[F] Алтарь крови",
     Coffin = "[F] Гроб",

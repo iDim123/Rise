@@ -5,7 +5,7 @@
     Обрабатывает все Building/CastleHeart remotes от клиента.
     Rate-limit 0.3 с на игрока для мутирующих операций.
 
-    Зависимости: BuildingManager, CastleBorder, Remotes, EventBus
+    Зависимости: BuildingManager, CastleBorder, FunctionalDispatcher, Remotes, EventBus
 ]] local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -14,9 +14,9 @@ local modules = ServerScriptService:WaitForChild("modules")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local EventBus = require(modules:WaitForChild("EventBus"))
 
-local DoorHandler = require(modules:WaitForChild("building"):WaitForChild("DoorHandler"))
 local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
 local CastleBorder = require(modules:WaitForChild("building"):WaitForChild("CastleBorder"))
+local FunctionalDispatcher = require(modules:WaitForChild("building"):WaitForChild("FunctionalDispatcher"))
 
 -- ═══════════════════════════════════════════════════════════
 -- Rate limiting
@@ -61,7 +61,6 @@ Remotes.UpgradeCastleHeart.OnServerEvent:Connect(function(player)
 
     local ok, err = BuildingManager.upgradeHeart(player)
     if ok then
-        -- Отправляем обновлённую информацию клиенту
         local info = BuildingManager.getCastleHeartInfo(player.UserId)
         if info then
             Remotes.CastleHeartInfo:FireClient(player, info)
@@ -76,7 +75,6 @@ Remotes.DestroyCastle.OnServerEvent:Connect(function(player)
         return
     end
 
-    -- Только владелец может уничтожить свой замок
     local castle = BuildingManager.getCastle(player.UserId)
     if not castle then
         Remotes.Notify:FireClient(player, "У вас нет замка", "warning")
@@ -137,7 +135,6 @@ Remotes.SetBuildPermission.OnServerEvent:Connect(function(player, permissionKey,
     if isRateLimited(player) then
         return
     end
-
     if type(permissionKey) ~= "string" then
         return
     end
@@ -153,7 +150,6 @@ Remotes.SetBuildPermission.OnServerEvent:Connect(function(player, permissionKey,
 
     local ok = CastleBorder.setPermission(ownerId, permissionKey, value)
     if ok then
-        -- Обновляем UI клиента
         local info = BuildingManager.getCastleHeartInfo(ownerId)
         if info then
             Remotes.CastleHeartInfo:FireClient(player, info)
@@ -167,7 +163,6 @@ Remotes.AddBuildAlly.OnServerEvent:Connect(function(player, allyUserId)
     if isRateLimited(player) then
         return
     end
-
     if type(allyUserId) ~= "number" then
         return
     end
@@ -194,7 +189,6 @@ Remotes.RemoveBuildAlly.OnServerEvent:Connect(function(player, allyUserId)
     if isRateLimited(player) then
         return
     end
-
     if type(allyUserId) ~= "number" then
         return
     end
@@ -218,14 +212,13 @@ Remotes.RemoveBuildAlly.OnServerEvent:Connect(function(player, allyUserId)
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- Interact (Phase 2)
+-- Interact (F key) — через FunctionalDispatcher
 -- ═══════════════════════════════════════════════════════════
 
 Remotes.InteractBlock.OnServerEvent:Connect(function(player, blockId)
     if isRateLimited(player) then
         return
     end
-
     if type(blockId) ~= "string" then
         return
     end
@@ -245,25 +238,63 @@ Remotes.InteractBlock.OnServerEvent:Connect(function(player, blockId)
         return
     end
 
-    local bt = require(ReplicatedStorage:WaitForChild("Config")).Building.BlockTypes[foundBlock.typeId]
-    if not bt or not bt.Functional then
-        return
-    end
-
-    -- Маршрутизация по Functional типу
-    if bt.Functional == "Door" then
-        local ok, err = DoorHandler.interact(player, foundBlock.part)
-        if not ok then
-            Remotes.Notify:FireClient(player, err or "Не удалось открыть дверь", "warning")
-        end
-        -- elseif bt.Functional == "Chest" then
-        --     ChestHandler.interact(player, foundBlock, castle)
-        -- elseif bt.Functional == "Workbench" then
-        --     WorkbenchHandler.interact(player, foundBlock)
-        -- elseif bt.Functional == "BloodAltar" then
-        --     BloodAltarHandler.interact(player, foundBlock)
+    -- Делегируем в FunctionalDispatcher (двери, сундуки, лесопилки и т.д.)
+    local ok, err = FunctionalDispatcher.interact(player, foundBlock.part, foundBlock.typeId, castle, foundBlock)
+    if not ok and err then
+        Remotes.Notify:FireClient(player, err, "warning")
     end
 end)
+
+-- ═══════════════════════════════════════════════════════════
+-- Sawmill Remotes
+-- ═══════════════════════════════════════════════════════════
+
+local SawmillHandler = FunctionalDispatcher.getSawmillHandler()
+
+Remotes.SawmillDeposit.OnServerEvent:Connect(function(player, sawmillId, inventorySlotIndex)
+    if type(sawmillId) ~= "string" then
+        return
+    end
+    if type(inventorySlotIndex) ~= "number" then
+        return
+    end
+    SawmillHandler.depositToInput(player, sawmillId, inventorySlotIndex)
+end)
+
+Remotes.SawmillTakeItem.OnServerEvent:Connect(function(player, sawmillId, slotIndex)
+    if type(sawmillId) ~= "string" then
+        return
+    end
+    if type(slotIndex) ~= "number" then
+        return
+    end
+    SawmillHandler.takeFromOutput(player, sawmillId, slotIndex)
+end)
+
+Remotes.SawmillTakeAll.OnServerEvent:Connect(function(player, sawmillId)
+    if type(sawmillId) ~= "string" then
+        return
+    end
+    SawmillHandler.takeAllOutput(player, sawmillId)
+end)
+
+Remotes.SawmillToggleRecipe.OnServerEvent:Connect(function(player, sawmillId, recipeId)
+    if type(sawmillId) ~= "string" then
+        return
+    end
+    if type(recipeId) ~= "string" then
+        return
+    end
+    SawmillHandler.toggleRecipe(player, sawmillId, recipeId)
+end)
+
+Remotes.SawmillClose.OnServerEvent:Connect(function(player, sawmillId)
+    if type(sawmillId) ~= "string" then
+        return
+    end
+    SawmillHandler.closeSawmill(player, sawmillId)
+end)
+
 -- ═══════════════════════════════════════════════════════════
 -- RemoteFunctions (запрос данных)
 -- ═══════════════════════════════════════════════════════════
