@@ -298,6 +298,40 @@ function BuildingManager.initPlayer(player, savedData)
         end
     end
 
+        -- Восстановление лесопилок с данными из DataStore
+    local SawmillHandler = FunctionalDispatcher.getSawmillHandler()
+    if deserialized.containers and #deserialized.containers > 0 then
+        for refIndex, blockId in indexToBlockId do
+            local block = castle.blocks[blockId]
+            if not block then continue end
+            local bt = Config.Building.BlockTypes[block.typeId]
+            if bt and bt.Functional == "Sawmill" then
+                -- Ищем savedContainer с совпадающим Ref
+                for _, savedContainer in deserialized.containers do
+                    if savedContainer.Ref == refIndex and savedContainer.Type == "sawmill" then
+                        SawmillHandler.restoreContainer(block.part, block.typeId, blockId, castle, savedContainer)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    -- Инициализировать лесопилки без сохранённых данных (новые пустые)
+    for i, blockData in deserialized.blocks do
+        if blockData and blockData ~= false then
+            local blockId = indexToBlockId[i]
+            local bt = Config.Building.BlockTypes[blockData.typeId]
+            if bt and bt.Functional == "Sawmill" and blockId then
+                local block = castle.blocks[blockId]
+                if block and not block.sawmillId then
+                    FunctionalDispatcher.onPlace(block.part, blockData.typeId, blockId, castle)
+                end
+            end
+        end
+    end
+
+
     print("[BuildingManager] Restored castle for " .. player.Name
         .. ": " .. castle.blockCount .. " blocks, heart level " .. heartLevel)
 end
@@ -337,8 +371,9 @@ function BuildingManager.destroyCastle(player)
     local castle = castles[ownerId]
     if not castle then return false, "Нет замка" end
 
-    -- Phase 2: дроп лута из всех сундуков
+    -- Phase 2: дроп лута из всех сундуков и лесопилок
     FunctionalDispatcher.getChestHandler().dropAllLoot(castle)
+    FunctionalDispatcher.getSawmillHandler().dropAllLoot(castle)
 
     destroyAllBlocks(castle)
     CastleHeartManager.destroyHeart(castle)
@@ -557,6 +592,7 @@ function BuildingManager.onHeartDestroyedByDamage(ownerId, heartEntity, attacker
     if not castle then return end
 
     FunctionalDispatcher.getChestHandler().dropAllLoot(castle)
+    FunctionalDispatcher.getSawmillHandler().dropAllLoot(castle)
 
     destroyAllBlocks(castle)
 
@@ -588,8 +624,17 @@ function BuildingManager.collect(player)
     local castle = castles[player.UserId]
     if not castle then return nil end
     local claimData = CastleBorder.serializeClaim(player.UserId)
-    local containerSerializer = FunctionalDispatcher.getChestHandler().getSerializer()
-    return BuildingSerializer.serialize(castle, claimData, containerSerializer)
+    local chestSerializer = FunctionalDispatcher.getChestHandler().getSerializer()
+    local sawmillSerializer = FunctionalDispatcher.getSawmillHandler().getSerializer()
+
+    -- Комбинированный сериализатор: пробует chest, потом sawmill
+    local function combinedSerializer(containerId)
+        local result = chestSerializer(containerId)
+        if result then return result end
+        return sawmillSerializer(containerId)
+    end
+
+    return BuildingSerializer.serialize(castle, claimData, combinedSerializer)
 end
 
 function BuildingManager.getCoffinPos(player)

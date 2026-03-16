@@ -117,8 +117,10 @@ function BuildingSerializer.serialize(castleData, claimData, containerSerializer
 
         table.insert(result.Blocks, entry)
 
-        if block.containerId and containerSerializer then
-            local containerData = containerSerializer(block.containerId)
+        -- Сериализация контейнеров (сундуки) и станций (лесопилки)
+        local funcId = block.containerId or block.sawmillId
+        if funcId and containerSerializer then
+            local containerData = containerSerializer(funcId)
             if containerData then
                 containerData.Ref = blockIndex
                 table.insert(result.Containers, containerData)

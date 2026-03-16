@@ -6,6 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local DoorHandler = require(script.Parent:WaitForChild("DoorHandler"))
 local ChestHandler = require(script.Parent:WaitForChild("ChestHandler"))
+local SawmillHandler = require(script.Parent:WaitForChild("SawmillHandler"))
 -- Phase 2 — раскомментировать по мере создания:
 -- local WorkbenchHandler = require(script.Parent:WaitForChild("WorkbenchHandler"))
 -- local BloodAltarHandler = require(script.Parent:WaitForChild("BloodAltarHandler"))
@@ -25,6 +26,8 @@ function FunctionalDispatcher.onPlace(part, typeId, blockId, castle)
         DoorHandler.initDoor(part)
     elseif fn == "Chest" then
         ChestHandler.onCreate(part, typeId, blockId, castle)
+    elseif fn == "Sawmill" then
+        SawmillHandler.onCreate(part, typeId, blockId, castle)
     end
 end
 
@@ -40,6 +43,8 @@ function FunctionalDispatcher.onRemove(part, typeId, blockId)
         DoorHandler.cleanup(part)
     elseif fn == "Chest" then
         ChestHandler.onDestroy(part, blockId)
+    elseif fn == "Sawmill" then
+        SawmillHandler.onDestroy(part, blockId)
     end
 end
 
@@ -55,14 +60,20 @@ function FunctionalDispatcher.interact(player, part, typeId, castle, blockData)
         return DoorHandler.interact(player, part)
     elseif fn == "Chest" then
         return ChestHandler.interact(player, part, blockData, castle)
+    elseif fn == "Sawmill" then
+        return SawmillHandler.interact(player, part, blockData, castle)
     end
 
     return false, "Неизвестный тип: " .. tostring(fn)
 end
 
---- Доступ к ChestHandler для сериализации и восстановления.
+--- Доступ к хендлерам для сериализации и восстановления.
 function FunctionalDispatcher.getChestHandler()
     return ChestHandler
+end
+
+function FunctionalDispatcher.getSawmillHandler()
+    return SawmillHandler
 end
 
 return FunctionalDispatcher

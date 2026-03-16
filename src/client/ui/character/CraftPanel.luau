@@ -353,6 +353,9 @@ function CraftPanel.build(parent, contentY, craftRemote, screenGui)
     local totalH = recipePadding
 
     for idx, recipe in recipes do
+        if recipe.Station and recipe.Station ~= "Hand" then
+            continue
+        end
 
         local row = Instance.new("TextButton")
         if recipe.RequiresTech then

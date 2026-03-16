@@ -349,7 +349,34 @@
                 CanRotate = true,
                 Functional = "Coffin",
                 Icon = "rbxassetid://0"
+            },
+
+            sawmill = {
+                Name = "Лесопилка",
+                Description = "Автоматически обрабатывает древесину и другие ресурсы.",
+                Category = "Functional",
+                Size = Vector3.new(16, 4, 8), -- 2 клетки × 1 клетка (16×4×8)
+                Material = Enum.Material.WoodPlanks,
+                Color = Color3.fromRGB(140, 100, 50),
+                HP = 200,
+                Cost = {{
+                    ItemId = "wooden_plank",
+                    Amount = 12
+                }, {
+                    ItemId = "stone",
+                    Amount = 8
+                }},
+                PlacementRule = "OnFoundation",
+                CanRotate = true,
+                Functional = "Sawmill",
+                FunctionalData = {
+                    InputSlots = 8,
+                    OutputSlots = 8,
+                    InteractRange = 10
+                },
+                Icon = "rbxassetid://0"
             }
+
         }
     }
 }

@@ -1,6 +1,9 @@
 return {
     Crafting = {
-        Recipes = {{
+        Recipes = { -- ═══════════════════════════════════════
+        --  Ручной крафт (Station = nil → "Hand")
+        -- ═══════════════════════════════════════
+        {
             Id = "health_potion",
             Name = "Зелье восстановления",
             Description = "Восстанавливает 50 HP при использовании.",
@@ -128,21 +131,65 @@ return {
             }},
             CraftTime = 5,
             RequiresTech = "BloodWarrior"
-        }, {
-            Id = "wooden_plank",
-            Name = "Доска",
-            Description = "Обработанная деревянная доска.",
-            Icon = "rbxassetid://0", -- замени на свой ассет
-            Result = {
+        },
+
+        -- ═══════════════════════════════════════
+        --  Лесопилка (Station = "Sawmill")
+        -- ═══════════════════════════════════════
+        {
+            Id = "sawmill_plank",
+            Name = "Доска + Опилки",
+            Description = "Распилить древесину на доски. Побочный продукт — опилки.",
+            Icon = "rbxassetid://0",
+            Station = "Sawmill",
+            Results = {{
                 ItemId = "wooden_plank",
-                Amount = 1
-            },
+                Amount = 5
+            }, {
+                ItemId = "sawdust",
+                Amount = 10
+            }},
             Ingredients = {{
                 ItemId = "wood",
                 Amount = 10
             }},
-            CraftTime = 2,
-            RequiresTech = "SawmillBoss"
+            CraftTime = 3
+        }, {
+            Id = "sawmill_blood_plank",
+            Name = "Кровавая доска",
+            Description = "Пропитать доски кровавой эссенцией.",
+            Icon = "rbxassetid://0",
+            Station = "Sawmill",
+            Results = {{
+                ItemId = "blood_plank",
+                Amount = 10
+            }},
+            Ingredients = {{
+                ItemId = "wooden_plank",
+                Amount = 10
+            }, {
+                ItemId = "blood_essence",
+                Amount = 10
+            }},
+            CraftTime = 4
+        }, {
+            Id = "sawmill_trash",
+            Name = "Переработка в мусор",
+            Description = "Раздробить древесину и камень в строительный мусор.",
+            Icon = "rbxassetid://0",
+            Station = "Sawmill",
+            Results = {{
+                ItemId = "trash",
+                Amount = 20
+            }},
+            Ingredients = {{
+                ItemId = "wood",
+                Amount = 10
+            }, {
+                ItemId = "stone",
+                Amount = 10
+            }},
+            CraftTime = 2
         }}
     }
 }

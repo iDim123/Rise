@@ -44,5 +44,34 @@ return {
         ItemLevel = 0,
         Stackable = true,
         MaxStack = 500
+    },
+
+    -- ═══ Новые материалы (v1.9 — Sawmill) ═══
+    sawdust = {
+        Name = "Опилки",
+        Description = "Побочный продукт обработки древесины на лесопилке.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 500
+    },
+    blood_plank = {
+        Name = "Кровавая доска",
+        Description = "Доска, пропитанная кровавой эссенцией. Используется в продвинутом строительстве.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 500
+    },
+    trash = {
+        Name = "Мусор",
+        Description = "Отходы обработки материалов. Можно выбросить или переработать.",
+        Icon = "rbxassetid://0",
+        Type = "Resource",
+        ItemLevel = 0,
+        Stackable = true,
+        MaxStack = 500
     }
 }
