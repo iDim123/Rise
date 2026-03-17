@@ -90,6 +90,9 @@ local craftStartElapsed = 0
 local slotButtons = {}
 local recipeButtons = {} -- { [idx] = { frame, recipe, queueLabel, progressBg, progressFill } }
 
+local showTooltip
+local hideTooltip
+
 -- ═══ Главное окно ═══
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "CraftStationWindow"
@@ -773,19 +776,21 @@ end
 
 local function positionTooltip()
     if not tooltip then return end
-    -- Ставим справа от окна
-    local x = mainFrame.AbsolutePosition.X + WINDOW_WIDTH + 8
+    local x = mainFrame.AbsolutePosition.X - 280 - 8
+    if x < 0 then
+        x = mainFrame.AbsolutePosition.X + WINDOW_WIDTH + 8
+    end
     tooltip.Position = UDim2.new(0, x, 0, TOP_OFFSET)
 end
 
-local function showTooltip(recipe)
+showTooltip = function(recipe)
     if not tooltip then return end
     updateTooltip(recipe)
     positionTooltip()
     tooltip.Visible = true
 end
 
-local function hideTooltip()
+hideTooltip = function()
     if tooltip then
         tooltip.Visible = false
     end

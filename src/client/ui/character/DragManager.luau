@@ -130,11 +130,15 @@ function DragManager.unregisterDropTarget(slotFrame)
 end
 
 function DragManager.tryDrop(mousePos)
+    local GuiService = game:GetService("GuiService")
+    local inset = GuiService:GetGuiInset()
+    local adjustedPos = Vector2.new(mousePos.X - inset.X, mousePos.Y - inset.Y)
+
     for slotFrame, callback in dropTargets do
         local absPos = slotFrame.AbsolutePosition
         local absSize = slotFrame.AbsoluteSize
-        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and mousePos.Y <=
-            absPos.Y + absSize.Y then
+        if adjustedPos.X >= absPos.X and adjustedPos.X <= absPos.X + absSize.X and adjustedPos.Y >= absPos.Y and
+            adjustedPos.Y <= absPos.Y + absSize.Y then
             callback(DragManager.getDragData())
             return true
         end
