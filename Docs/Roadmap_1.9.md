@@ -1,16 +1,16 @@
 # Roadmap v1.9 — Castle Building
 
 > Дорожная карта для версии 1.9.
-> Система строительства замков с Castle Heart, кооперативным режимом, разрушаемыми блоками и функциональными элементами.
+> Система строительства замков с Castle Heart, кооперативным режимом, разрушаемыми блоками, функциональными элементами и перерабатывающими станциями.
 
 ## Фазы реализации
 
-| Фаза | Срок | Описание |
+| Фаза | Описание | Статус |
 |---|---|---|
-| Phase 0: Refactoring | 1 неделя | Подготовка существующих систем к интеграции |
-| Phase 1: Castle Foundation | 2 недели | Castle Heart, фундамент строительства, территории, кооп |
-| Phase 2: Castle Interiors | 1-2 недели | Функциональные блоки (двери, сундуки, верстак, алтарь, гроб) |
-| Phase 3: Integration & Polish | 1 неделя | UI, миникарта, stress test |
+| Phase 0: Refactoring | Подготовка существующих систем к интеграции | ✅ Завершена |
+| Phase 1: Castle Foundation | Castle Heart, фундамент строительства, территории, кооп | ✅ Завершена |
+| Phase 2: Castle Interiors | Функциональные блоки (двери, сундуки, станции) | 🔶 В процессе |
+| Phase 3: Integration & Polish | UI, миникарта, stress test | ⬜ Не начата |
 
 ---
 
@@ -20,7 +20,7 @@ Castle Heart — центральный элемент замка, вдохно�
 
 ### Правила
 - **Размещение:** ставится первым на землю (PlacementRule "Ground"), определяет centerPos и ClaimRadius территории. Только один на игрока. Без Castle Heart строить нельзя.
-- **Уничтожение:** Castle Heart может уничтожить **только владелец** через UI. При уничтожении весь замок мгновенно разрушается, содержимое всех сундуков выпадает на землю как лут.
+- **Уничтожение:** Castle Heart может уничтожить **только владелец** через UI. При уничтожении весь замок мгновенно разрушается, содержимое всех сундуков и станций выпадает на землю как лут.
 - **Уничтожение через урон:** Castle Heart может быть уничтожен NPC/другим игроком через урон → каскадное разрушение всего замка.
 - **Blood Essence decay:** не реализуем в v1.9 (сердце не расходует ресурсы для работы).
 - **Улучшения:** 3 уровня, для улучшения требуется Blood Essence.
@@ -53,460 +53,215 @@ Castle Heart — центральный элемент замка, вдохно�
 
 ---
 
-## Phase 0: Refactoring (develop_1.9_phase0) ✅ ЗАВЕРШЕНА
+## Phase 0: Refactoring ✅ ЗАВЕРШЕНА
 
 Цель: подготовить существующие системы (HealthManager, TargetFinder, LootManager, CraftHandler) к интеграции с замками.
 
 ### Задачи
 
-| # | Задача | Сложность | Файлы | Статус |
-|---|---|---|---|---|
-| 0.1 | **HealthManager** — ветвь `IsStructure`: remote `StructureDamageEvent`, `markCombat(attacker)`, `StructureDestroyed` event | Medium | `server/modules/HealthManager.luau` | ✅ |
-| 0.2 | **TargetFinder** — `staticEntities` set, `addStaticEntity`/`removeStaticEntity`, `isValidTarget` (BasePart + IsStructure), `getRootPosition` (BasePart fallback), порядок `rebuildGrid`: clear → enemies → players → static | Medium | `server/combat/TargetFinder.luau` | ✅ |
-| 0.3 | **LootManager** — приватные `_createLootPart`, `_calcLootOffset`, новый `dropItemAtPosition` | Medium | `server/modules/LootManager.luau` | ✅ |
-| 0.4 | **CraftHandler** — параметр `context` в `onCraftItem`, поддержка `RequiresWorkbench` | Low | `server/inventory/CraftHandler.luau` | ✅ |
-| 0.5 | **Remotes** — `StructureDamageEvent` | Low | `shared/Remotes.luau` | ✅ |
-
-> **Примечание:** Задачи 0.5–0.6 (ContainerManager/ContainerServer) из первоначального плана отменены — обнаружена существующая система контейнеров в `server/modules/container/`. Она будет расширена в Phase 2.
-
-### Критерии готовности Phase 0 ✅
-- [x] HealthManager корректно обрабатывает IsStructure (init, takeDamage без DamageEvent, die с StructureDestroyed)
-- [x] markCombat(attacker) вызывается при атаке структуры
-- [x] TargetFinder: addStaticEntity/removeStaticEntity работают, структуры находятся через inRadius
-- [x] TargetFinder: rebuildGrid не теряет статические объекты
-- [x] LootManager: `_createLootPart` переиспользуется в 3 публичных методах, `dropItemAtPosition` работает
-- [x] CraftHandler принимает context с hasWorkbench
-- [x] Все существующие системы не сломаны
+| # | Задача | Файлы | Статус |
+|---|---|---|---|
+| 0.1 | **HealthManager** — ветвь `IsStructure`: remote `StructureDamageEvent`, `markCombat(attacker)`, `StructureDestroyed` event | `server/modules/HealthManager.luau` | ✅ |
+| 0.2 | **TargetFinder** — `staticEntities` set, `addStaticEntity`/`removeStaticEntity`, `isValidTarget` (BasePart + IsStructure), `getRootPosition` (BasePart fallback), порядок `rebuildGrid`: clear → enemies → players → static | `server/combat/TargetFinder.luau` | ✅ |
+| 0.3 | **LootManager** — приватные `_createLootPart`, `_calcLootOffset`, новый `dropItemAtPosition` | `server/modules/LootManager.luau` | ✅ |
+| 0.4 | **CraftHandler** — параметр `context` в `onCraftItem`, поддержка `RequiresWorkbench` | `server/inventory/CraftHandler.luau` | ✅ |
+| 0.5 | **Remotes** — `StructureDamageEvent` | `shared/Remotes.luau` | ✅ |
 
 ---
 
-## Phase 1: Castle Foundation (develop_1.9_phase1)
+## Phase 1: Castle Foundation ✅ ЗАВЕРШЕНА
 
-Цель: игрок ставит Castle Heart → основывает замок → строит блоки (фундамент, стены, полы, крыши). Поддержка кооперативного строительства и территорий. Блоки разрушаемы. Castle Heart можно улучшать.
+Цель: игрок ставит Castle Heart → основывает замок → строит блоки (фундамент, стены, крыши). Поддержка кооперативного строительства и территорий. Блоки разрушаемы. Castle Heart можно улучшать.
 
 ### Задачи
 
-| # | Задача | Сложность | Файлы | Статус |
-|---|---|---|---|---|
-| 1.1 | **BuildingConfig** — CastleHeart (3 уровня), типы блоков, сетка, лимиты, DefaultPermissions, BlockCategories | Low | `shared/config/BuildingConfig.luau` | ✅ |
-| 1.2 | **CastleBorder** — территории с heartLevel, permissions, canUpgrade, getMaxBlocks/getMaxCoffins, serializeClaim | Medium | `server/modules/building/CastleBorder.luau` | ✅ |
-| 1.3 | **BuildingValidator** — коллизии (блоки + Castle Heart), PlacementRule, maxBlocks/maxCoffins из params, CanRotate | Medium | `server/modules/building/BuildingValidator.luau` | ✅ |
-| 1.4 | **BuildingSerializer** — контракт: CenterPos, Claim (HeartLevel + permissions), Blocks[], Containers[] | Medium | `server/modules/building/BuildingSerializer.luau` | ✅ |
-| 1.5 | **BlockHealth** — мост для обычных блоков: initBlock, StructureDestroyed → BlockDestroyedByDamage | Medium | `server/modules/building/BlockHealth.luau` | ✅ |
-| 1.6 | **BuildingManager** — ядро: placeCastleHeart, upgradeHeart, destroyCastle, placeBlock, removeBlock, initPlayer (восстановление heartPart + блоков), collect, cleanup, getCastleHeartInfo | High | `server/modules/building/BuildingManager.luau` | ✅ |
-| 1.7 | **BuildingServer** — remote-оркестратор: все building + Castle Heart remotes, rate-limit 0.3с | Medium | `server/building/BuildingServer.server.luau` | ✅ |
-| 1.8 | **Remotes** — +11 events, +2 functions для building/Castle Heart | Low | `shared/Remotes.luau` | ✅ |
-| 1.9 | **DataService** — BuildingData в getDefaultData, initPlayer в _applyData, collect в collect | Low | `server/modules/DataService.luau` | ✅ |
-| 1.10 | **PlayerLifecycle** — BuildingManager.cleanup в onPlayerRemoving (после save) | Low | `server/PlayerLifecycle.server.luau` | ✅ |
-| 1.11 | **Main.server** — BuildingManager.init() | Low | `server/Main.server.luau` | ✅ |
-| 1.12 | **BuildingPlacer** (client) — ghost preview, snap-to-grid, поворот (R), режим удаления (X), Highlight, HP | High | `client/ui/building/BuildingPlacer.luau` | ⬜ |
-| 1.13 | **BuildingMenu** (client) — UI строительства (B): блоки, стоимость, Castle Heart UI (уровень, HP, permissions, союзники) | Medium | `client/ui/building/BuildingMenu.client.luau` | ⬜ |
-| 1.14 | **BuildingConstants** — цвета ghost, размеры UI, клавиши | Low | `client/ui/building/BuildingConstants.luau` | ⬜ |
-| 1.15 | **BuildingDamageNumbers** — floating damage через StructureDamageEvent | Low | `client/ui/building/BuildingDamageNumbers.client.luau` | ⬜ |
-| 1.16 | **CastleHeartUI** (client) — UI при взаимодействии F с Castle Heart: уровень, HP, блоки/лимит, гробы/лимит, upgrade, permissions, союзники, destroy | Medium | `client/ui/building/CastleHeartUI.client.luau` | ⬜ |
-
-### BuildingConfig — структура
-
-```lua
-return {
-    Building = {
-        GridSize = 4,
-        SnapTolerance = 0.1,
-        MaxCastlesPerWorld = 4,
-        RemoveRefundRate = 0.5,
-
-        CastleHeart = {
-            Name = "Сердце замка",
-            Size = Vector3.new(4, 4, 4),
-            Material = Enum.Material.Basalt,
-            Color = Color3.fromRGB(60, 15, 15),
-            PlacementRule = "Ground",
-            CanRotate = false,
-            Levels = {
-                [1] = { HP = 1000, MaxBlocks = 200, ClaimRadius = 48, MaxCoffins = 1, UpgradeCost = nil },
-                [2] = { HP = 2000, MaxBlocks = 350, ClaimRadius = 56, MaxCoffins = 2,
-                         UpgradeCost = {{ ItemId = "blood_essence", Amount = 100 }} },
-                [3] = { HP = 3000, MaxBlocks = 500, ClaimRadius = 64, MaxCoffins = 3,
-                         UpgradeCost = {{ ItemId = "blood_essence", Amount = 250 }} },
-            },
-            MaxLevel = 3,
-        },
-
-        DefaultPermissions = { AllowCoopBuild = false, AllowCoopRemove = false, AllowCoopInteract = true },
-
-        BlockCategories = {
-            { Id = "Foundation", Name = "Фундамент", Order = 1 },
-            { Id = "Wall",       Name = "Стены",     Order = 2 },
-            { Id = "Floor",      Name = "Полы",      Order = 3 },
-            { Id = "Roof",       Name = "Крыша",     Order = 4 },
-            { Id = "Functional", Name = "Интерьер",  Order = 5 },
-        },
-
-        BlockTypes = {
-            stone_foundation  = { ... PlacementRule = "Ground" },
-            wooden_foundation = { ... PlacementRule = "Ground" },
-            stone_wall        = { ... PlacementRule = "OnFoundation", CanRotate = true },
-            wooden_wall       = { ... PlacementRule = "OnFoundation", CanRotate = true },
-            stone_pillar      = { ... PlacementRule = "OnFoundation" },
-            wooden_floor      = { ... PlacementRule = "OnWall" },
-            stone_floor       = { ... PlacementRule = "OnWall" },
-            wooden_roof       = { ... PlacementRule = "OnWall", IsShelter = true },
-            stone_roof        = { ... PlacementRule = "OnWall", IsShelter = true },
-            wooden_door       = { ... Functional = "Door" },
-            castle_chest      = { ... Functional = "Chest", FunctionalData = { Slots = 12 } },
-            workbench         = { ... Functional = "Workbench" },
-            blood_altar       = { ... Functional = "BloodAltar" },
-            coffin            = { ... Functional = "Coffin" },
-        },
-    }
-}
-Copy
-CastleBorder — claims с heartLevel
-Copy-- claims[ownerId] = {
---     ownerId, center, heartLevel,
---     permissions = { AllowCoopBuild, AllowCoopRemove, AllowCoopInteract, AllowedPlayers = {} }
--- }
--- Radius определяется из CastleHeart.Levels[heartLevel].ClaimRadius
--- API: registerClaim(ownerId, centerPos, heartLevel, savedPermissions)
---      setHeartLevel, canUpgrade, getMaxBlocks, getMaxCoffins, getHeartHP
---      serializeClaim → { HeartLevel, AllowCoopBuild, ..., AllowedPlayers }
-BuildingSerializer — контракт
-╔══════════════════════════════════════════════════════════════════╗
-║  КОНТРАКТ СЕРИАЛИЗАЦИИ                                          ║
-║                                                                  ║
-║  Сохраняются:                                                    ║
-║    CenterPos       — {x, y, z}                                   ║
-║    Claim           — {HeartLevel, AllowCoopBuild, AllowCoopRemove,║
-║                       AllowCoopInteract, AllowedPlayers: [id]}    ║
-║    Blocks[]        — {T=typeId, P={x,y,z}, R=rotation}           ║
-║    Containers[]    — {Id, Ref=blockIndex, Slots}                  ║
-║                                                                  ║
-║  НЕ сохраняются (из Config при загрузке):                        ║
-║    Size, Material, Color, Cost, PlacementRule, CanRotate, HP      ║
-║    Castle Heart Part (восстанавливается из CenterPos + HeartLevel)║
-║                                                                  ║
-║  HP блоков НЕ персистится — полное HP при загрузке.              ║
-╚══════════════════════════════════════════════════════════════════╝
-BuildingManager — Castle Heart логика
-Размещение Castle Heart:
-  1. Проверки: нет существующего замка, лимит замков, snap позиции
-  2. Raycast вниз для surfaceY
-  3. CastleBorder.registerClaim(ownerId, finalPos, 1)
-  4. Создать Part: createHeartPart + initHeartSystems (атрибуты, HealthManager, TargetFinder)
-  5. Создать castle в castles[ownerId]
-
-Размещение блока (placeBlock):
-  1. Определить castleOwnerId → требуется существующий Castle Heart
-  2. Без Castle Heart → return false, "Сначала поставьте Сердце замка"
-  3. validate: maxBlocks из CastleBorder.getMaxBlocks, коллизия с heartPart
-  4. Остальное без изменений
-
-Восстановление (initPlayer):
-  1. BuildingSerializer.deserialize → heartLevel, permissions, blocks
-  2. CastleBorder.registerClaim(ownerId, centerPos, heartLevel, permissions)
-  3. createHeartPart + initHeartSystems
-  4. Восстановить блоки через BlockHealth.initBlock
-
-Castle Heart уничтожен через урон:
-  EventBus "StructureDestroyed" → проверка IsCastleHeart →
-  каскадное уничтожение всех блоков → cleanupHeartSystems → CastleBorder.removeClaim
-BuildingManager.placeBlock — логика с Castle Heart
-1. Определить castle owner:
-   - position внутри claim → coop: CastleBorder.canBuild(actorId, ownerId)
-   - position не в claim, у player есть Castle Heart → проверить ClaimRadius
-   - position не в claim, у player нет Castle Heart → "Сначала поставьте Сердце замка"
-2. Получить castle (должен существовать)
-3. BuildingValidator.validate с params:
-   - maxBlocks = CastleBorder.getMaxBlocks(castleOwnerId)
-   - maxCoffins = CastleBorder.getMaxCoffins(castleOwnerId)
-   - heartPosition, heartSize (для проверки коллизии с Castle Heart)
-4. Проверить и списать ресурсы (из инвентаря СТРОИТЕЛЯ)
-5. Создать Part, BlockHealth.initBlock
-6. InventorySync.sendFullUpdate
-7. EventBus.fire("BlockPlaced", ...)
-Порядок инициализации при загрузке игрока
-DataService.load → _applyData:
-  1. LevelManager.initPlayer
-  2. InventoryManager.create
-  3. BloodManager.init
-  4. BossManager.initPlayer
-  5. ServantManager.init
-  6. SpellProgressManager.init
-  7. BuildingManager.initPlayer(player, data.BuildingData)  ← NEW
-     → CastleBorder.registerClaim
-     → createHeartPart + initHeartSystems
-     → восстановить блоки + BlockHealth.initBlock
-Порядок при выходе игрока
-onPlayerRemoving:
-  1. DataService.save → collect → BuildingManager.collect (сериализация)
-  2. EventBus.fire("PlayerCleanup")
-  3. ServantManager, BloodManager, BossManager, InventoryManager, StatsManager cleanup
-  4. BuildingManager.cleanup (уничтожает Parts, folder, claim)  ← NEW
-  5. HealthManager.cleanup(character)
-  6. DataService.cleanup
-Snap-to-grid система
-Все блоки размещаются на сетке GridSize (4 studs). Клиент показывает ghost-preview. Зелёный = можно ставить, красный = нельзя. Поворот: R (шаг 90°, только CanRotate = true).
-
-EventBus события
-Событие	Аргументы	Кто fire	Кто listen
-StructureDestroyed	entity, attacker	HealthManager	BlockHealth, BuildingManager (Castle Heart)
-BlockDestroyedByDamage	entity, attacker, ownerId, typeId, blockId	BlockHealth	BuildingManager
-BlockPlaced	player, blockTypeId, position	BuildingManager	—
-BlockRemoved	player/nil, position	BuildingManager	—
-CastleHeartPlaced	player, position	BuildingManager	—
-CastleDestroyed	player/nil	BuildingManager	—
-Критерии готовности Phase 1
- Castle Heart ставится первым, определяет территорию
- Castle Heart улучшается (3 уровня) за blood_essence
- Уничтожение Castle Heart → каскадное разрушение замка
- MaxBlocks и MaxCoffins зависят от уровня Castle Heart
- Стены, полы, крыши ставятся по PlacementRule
- Коллизия новых блоков с Castle Heart проверяется
- Сериализация включает HeartLevel в Claim
- initPlayer восстанавливает Castle Heart Part + блоки
- BuildingServer обрабатывает все remotes
- DataService интеграция (save/load BuildingData)
- PlayerLifecycle cleanup
- Ghost-preview с snap-to-grid, поворот R, отмена Esc
- UI строительства (B) с категориями блоков
- Castle Heart UI при нажатии F
- Floating damage numbers над блоками
- Расход и возврат материалов работает в UI
-Phase 2: Castle Interiors (develop_1.9_phase2)
-Цель: замок имеет функциональные элементы — двери, сундуки, верстак, алтарь крови, гроб.
-
-Задачи
-#	Задача	Сложность	Файлы	Статус
-2.1	DoorHandler — toggle open/close (F), canInteract permissions, TweenService поворот 90°, CanCollide toggle	Medium	server/modules/building/DoorHandler.luau	⬜
-2.2	ChestHandler — onCreate → ContainerManager.registerContainer, onInteract → open, onDestroy → dropItemAtPosition + removeContainer	Medium	server/modules/building/ChestHandler.luau	⬜
-2.3	ContainerConfig — добавить castle_chest тип (Slots=12, Persistent=true)	Low	shared/config/ContainerConfig.luau	⬜
-2.4	ContainerUI — сканирование workspace.Castles в дополнение к workspace.Containers	Low	client/ui/ContainerUI.client.luau	⬜
-2.5	WorkbenchHandler — onInteract → OpenCraftStation remote с {hasWorkbench=true}	Medium	server/modules/building/WorkbenchHandler.luau	⬜
-2.6	BloodAltarHandler — onInteract → OpenBloodAltar remote, blood_essence → +Quality%	Medium	server/modules/building/BloodAltarHandler.luau	⬜
-2.7	CoffinHandler — onCreate → castle.coffinPos, onDestroy → nil, лимит из MaxCoffins	Low	server/modules/building/CoffinHandler.luau	⬜
-2.8	HealthManager — respawnAtCoffin: CharacterAdded:Wait с защитой, WaitForChild timeout 5с	Medium	server/modules/HealthManager.luau	⬜
-2.9	InteractBlock remote — маршрутизация в BuildingServer по Functional типу	Low	server/building/BuildingServer.server.luau	⬜
-2.10	Укрытие от солнца — проверить DayNightManager.isInShelter() с крышей замка	Low	—	⬜
-2.11	BuildingManager — destroyCastle: дроп лута из всех сундуков при уничтожении Castle Heart	Medium	server/modules/building/BuildingManager.luau	⬜
-ChestHandler — уничтожение
-Copyfunction ChestHandler.onDestroy(part, blockData)
-    local containerId = blockData.containerId
-    if not containerId then return end
-    local container = ContainerManager.getContainer(containerId)
-    if not container then return end
-    for i = 1, container.slotCount do
-        local slot = container.slots[i]
-        if slot and slot ~= false then
-            LootManager.dropItemAtPosition(part.Position, slot.Id, slot.Amount or 1)
-        end
-    end
-    ContainerManager.removeContainer(containerId)
-end
-CoffinHandler — респавн
-Copylocal function respawnAtCoffin(player)
-    local coffinPos = BuildingManager.getCoffinPos(player)
-    if not coffinPos then return end
-    task.spawn(function()
-        local newChar = player.CharacterAdded:Wait()
-        if not player.Parent then return end
-        local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
-        if hrp then
-            hrp.CFrame = CFrame.new(coffinPos + Vector3.new(0, 3, 0))
-        end
-    end)
-end
-Новые Remotes (Phase 2)
-Remote	Тип	Направление	Phase
-InteractBlock	Event	Client → Server	2
-OpenCraftStation	Event	Server → Client	2
-OpenBloodAltar	Event	Server → Client	2
-Критерии готовности Phase 2
- Дверь открывается/закрывается (F), анимация, canInteract permissions
- Сундук хранит предметы, ContainerUI, данные в DataStore
- При уничтожении сундука — содержимое дропается как лут
- Уничтожение Castle Heart → содержимое всех сундуков дропается
- Верстак открывает расширенный крафт (RequiresWorkbench)
- Кровавый алтарь улучшает качество крови за blood_essence
- Гроб = точка респавна, лимит зависит от уровня Castle Heart
- Крыша замка защищает от sunlight_exposure
-Phase 3: Integration & Polish (develop_1.9_phase3)
-Задачи
-#	Задача	Сложность	Статус
-3.1	BlockCategoryTabs — категории в BuildingMenu	Medium	⬜
-3.2	MenuBar — кнопка Build (B)	Low	⬜
-3.3	Minimap — отображение замков (dot на центр)	Low	⬜
-3.4	DataStore stress test — 500 блоков + 100 врагов + 4 игрока	High	⬜
-3.5	Visual polish — эффекты размещения/удаления, звуки	Medium	⬜
-3.6	Регрессионное тестирование — все системы 1.0–1.8	High	⬜
-Критерии готовности Phase 3
- Категории блоков в меню строительства
- Кнопка B в MenuBar
- Замки видны на миникарте
- DataStore: save/load 500 блоков < 100мс, размер < 100КБ
- FPS: 500 блоков + 100 врагов + 4 игрока ≥ 30 FPS
- Все системы 1.0–1.8 работают без регрессий
-Техническая архитектура (v1.9)
-Структура файлов
-src/
-├── shared/
-│   ├── Remotes.luau                              # MODIFY (Phase 0+1+2)
-│   └── config/
-│       ├── BuildingConfig.luau                   # NEW (Phase 1) ✅
-│       └── ContainerConfig.luau                  # MODIFY (Phase 2)
-│
-├── server/
-│   ├── Main.server.luau                          # MODIFY (Phase 1) ✅
-│   ├── PlayerLifecycle.server.luau               # MODIFY (Phase 1) ✅
-│   ├── modules/
-│   │   ├── HealthManager.luau                   # MODIFY (Phase 0 ✅, Phase 2)
-│   │   ├── LootManager.luau                     # REFACTOR (Phase 0) ✅
-│   │   ├── DataService.luau                     # MODIFY (Phase 1) ✅
-│   │   └── building/
-│   │       ├── BuildingManager.luau              # NEW (Phase 1) ✅
-│   │       ├── BuildingValidator.luau            # NEW (Phase 1) ✅
-│   │       ├── CastleBorder.luau                 # NEW (Phase 1) ✅
-│   │       ├── BuildingSerializer.luau           # NEW (Phase 1) ✅
-│   │       ├── BlockHealth.luau                  # NEW (Phase 1) ✅
-│   │       ├── DoorHandler.luau                  # NEW (Phase 2)
-│   │       ├── ChestHandler.luau                 # NEW (Phase 2)
-│   │       ├── WorkbenchHandler.luau             # NEW (Phase 2)
-│   │       ├── BloodAltarHandler.luau            # NEW (Phase 2)
-│   │       └── CoffinHandler.luau                # NEW (Phase 2)
-│   ├── building/
-│   │   └── BuildingServer.server.luau            # NEW (Phase 1) ✅
-│   ├── combat/
-│   │   └── TargetFinder.luau                    # MODIFY (Phase 0) ✅
-│   └── inventory/
-│       └── CraftHandler.luau                    # MODIFY (Phase 0) ✅
-│
-└── client/
-    └── ui/
-        ├── ContainerUI.client.luau               # MODIFY (Phase 2)
-        ├── Minimap.client.luau                   # MODIFY (Phase 3)
-        ├── MenuBar.luau                          # MODIFY (Phase 3)
-        └── building/
-            ├── BuildingMenu.client.luau          # NEW (Phase 1)
-            ├── BuildingPlacer.luau                # NEW (Phase 1)
-            ├── BuildingConstants.luau             # NEW (Phase 1)
-            ├── BuildingDamageNumbers.client.luau  # NEW (Phase 1)
-            ├── CastleHeartUI.client.luau          # NEW (Phase 1)
-            └── BlockCategoryTabs.luau             # NEW (Phase 3)
-Зависимости модулей
-BuildingServer.server.luau
-├── BuildingManager
-├── CastleBorder
-├── Remotes
-└── EventBus
-
-BuildingManager
-├── BuildingValidator
-├── BuildingSerializer
-├── CastleBorder
-├── BlockHealth
-├── HealthManager         ← Castle Heart напрямую
-├── TargetFinder (lazy)   ← Castle Heart напрямую
-├── InventoryManager (lazy)
-├── InventorySync (lazy)
-├── EventBus
-├── Config
-└── Remotes
-
-BuildingValidator
-├── Config
-└── CastleBorder (lazy)
-
-CastleBorder
-└── Config
-
-BlockHealth
-├── HealthManager
-├── TargetFinder (lazy)
-└── EventBus
-
-BuildingSerializer
-└── Config
-
-BuildingMenu.client.luau
-├── Config
-├── BuildingPlacer
-├── BuildingConstants
-├── CastleHeartUI
-└── Remotes
-Полный список Remotes (v1.9)
-Remote	Тип	Направление	Phase
-StructureDamageEvent	Event	Server → All Clients	0
-PlaceCastleHeart	Event	Client → Server	1
-UpgradeCastleHeart	Event	Client → Server	1
-DestroyCastle	Event	Client → Server	1
-CastleHeartInfo	Event	Server → Client	1
-PlaceBlock	Event	Client → Server	1
-RemoveBlock	Event	Client → Server	1
-BuildingSync	Event	Server → Client	1
-SetBuildPermission	Event	Client → Server	1
-AddBuildAlly	Event	Client → Server	1
-RemoveBuildAlly	Event	Client → Server	1
-GetBuildings	Function	Client → Server	1
-GetCastleHeartInfo	Function	Client → Server	1
-InteractBlock	Event	Client → Server	2
-OpenCraftStation	Event	Server → Client	2
-OpenBloodAltar	Event	Server → Client	2
-Горячие клавиши
-Клавиша	Действие	Контекст
-B	Окно строительства / закрыть	Глобальная
-R	Поворот блока 90°	Режим строительства
-X	Режим удаления	Режим строительства
-Escape	Отмена размещения	Режим строительства
-LMB	Разместить / Удалить блок	Режим строительства
-F	Взаимодействие (Castle Heart/дверь/сундук/верстак/алтарь)	Рядом с объектом
-Порядок реализации
-Phase 0 (5 дней) ✅
-День	Задачи	Статус
-1	HealthManager (IsStructure), Remotes (+StructureDamageEvent)	✅
-2	TargetFinder (staticEntities, add/remove, isValidTarget, getRootPosition, порядок rebuild)	✅
-3	LootManager рефакторинг (_createLootPart, _calcLootOffset, dropItemAtPosition)	✅
-4	CraftHandler (context + RequiresWorkbench)	✅
-5	Регрессионное тестирование	✅
-Phase 1 (10 дней)
-День	Задачи	Статус
-1	BuildingConfig (с CastleHeart секцией)	✅
-2	CastleBorder (heartLevel, canUpgrade, getMaxBlocks, serializeClaim)	✅
-3	BuildingValidator (maxBlocks/maxCoffins из params, коллизия с Castle Heart)	✅
-4	BuildingSerializer (Claim с HeartLevel)	✅
-5	BlockHealth	✅
-6-7	BuildingManager (Castle Heart: place, upgrade, destroy + блоки: place, remove, initPlayer, collect)	✅
-8	BuildingServer + Remotes + DataService + PlayerLifecycle + Main интеграция	✅
-9	BuildingConstants + BuildingPlacer + BuildingDamageNumbers + CastleHeartUI (клиент)	⬜
-10	BuildingMenu (клиент) + интеграция + тестирование	⬜
-Phase 2 (7-10 дней)
-День	Задачи	Статус
-1	InteractBlock remote + маршрутизация в BuildingServer	⬜
-2	DoorHandler	⬜
-3-4	ChestHandler + ContainerConfig(castle_chest) + ContainerUI(scanFolders)	⬜
-5	WorkbenchHandler + OpenCraftStation	⬜
-6	BloodAltarHandler + OpenBloodAltar + мини-UI	⬜
-7	CoffinHandler + HealthManager respawnAtCoffin	⬜
-8	destroyCastle дроп лута из сундуков + проверка укрытия от солнца + тестирование	⬜
-Phase 3 (5 дней)
-День	Задачи	Статус
-1	BlockCategoryTabs	⬜
-2	MenuBar (B) + Minimap (замки)	⬜
-3-4	DataStore stress test + оптимизация	⬜
-5	Visual polish + регрессия	⬜
+| # | Задача | Файлы | Статус |
+|---|---|---|---|
+| 1.1 | **BuildingConfig** — CastleHeart (3 уровня), типы блоков, сетка, лимиты, DefaultPermissions, BlockCategories | `shared/config/BuildingConfig.luau` | ✅ |
+| 1.2 | **CastleBorder** — территории с heartLevel, permissions, canUpgrade, getMaxBlocks/getMaxCoffins, serializeClaim | `server/modules/building/CastleBorder.luau` | ✅ |
+| 1.3 | **BuildingValidator** — коллизии, PlacementRule, maxBlocks/maxCoffins из params, CanRotate | `server/modules/building/BuildingValidator.luau` | ✅ |
+| 1.4 | **BuildingSerializer** — CenterPos, Claim, Blocks[], Containers[], Stations[] | `server/modules/building/BuildingSerializer.luau` | ✅ |
+| 1.5 | **BlockHealth** — мост для блоков: initBlock, StructureDestroyed → BlockDestroyedByDamage | `server/modules/building/BlockHealth.luau` | ✅ |
+| 1.6 | **BuildingManager** — ядро: placeCastleHeart, upgradeHeart, destroyCastle, placeBlock, removeBlock, initPlayer, collect, cleanup, getCastleHeartInfo | `server/modules/building/BuildingManager.luau` | ✅ |
+| 1.7 | **BuildingServer** — remote-оркестратор: все building + Castle Heart + Station remotes, rate-limit 0.3с | `server/building/BuildingServer.server.luau` | ✅ |
+| 1.8 | **Remotes** — building/Castle Heart/Station events + functions | `shared/Remotes.luau` | ✅ |
+| 1.9 | **DataService** — BuildingData в getDefaultData, initPlayer в _applyData, collect | `server/modules/DataService.luau` | ✅ |
+| 1.10 | **PlayerLifecycle** — BuildingManager.cleanup в onPlayerRemoving | `server/PlayerLifecycle.server.luau` | ✅ |
+| 1.11 | **Main.server** — BuildingManager.init() | `server/Main.server.luau` | ✅ |
+| 1.12 | **BuildingPlacer** (client) — ghost preview, snap-to-grid, edge-snap стен, режим удаления, isActive() | `client/ui/building/BuildingPlacer.luau` | ✅ |
+| 1.13 | **BuildingMenu** (client) — UI строительства (B): категории блоков, Castle Heart, безопасное закрытие | `client/ui/building/BuildingMenu.client.luau` | ✅ |
+| 1.14 | **CastleHeartManager** — визуал Castle Heart: платформа, пьедестал, орб, свет | `server/modules/building/CastleHeartManager.luau` | ✅ |
+| 1.15 | ~~BuildingConstants~~ | — | ❌ Отменена (константы встроены в BuildingPlacer/BuildingMenu) |
+| 1.16 | ~~BuildingDamageNumbers~~ — floating damage через StructureDamageEvent | — | ⬜ Отложена на Phase 3 |
+| 1.17 | ~~CastleHeartUI~~ — UI при взаимодействии F с Castle Heart | — | ⬜ Отложена на Phase 3 |
 
 ---
 
-## Что изменилось по сравнению с прежним Roadmap
+## Phase 2: Castle Interiors 🔶 В ПРОЦЕССЕ
 
-Вот ключевые отличия от предыдущей версии:
+Цель: замок имеет функциональные элементы — двери, сундуки, перерабатывающие станции. Маршрутизация через FunctionalDispatcher.
 
-**Добавлена секция "Ключевая механика: Castle Heart"** — полное описание механики, уровни, UI, архитектурные решения (отдельная сущность, не в BlockTypes, не через BlockHealth).
+### Задачи
 
-**Phase 0 отмечена как завершённая** — все задачи имеют статус ✅. Удалены задачи 0.5–0.6 (ContainerManager/ContainerServer) с примечанием что обнаружена существующая система.
+| # | Задача | Файлы | Статус |
+|---|---|---|---|
+| 2.1 | **FunctionalDispatcher** — маршрутизатор: по `bt.Functional` направляет в Door/Chest/Station хендлеры | `server/modules/building/FunctionalDispatcher.luau` | ✅ |
+| 2.2 | **InteractBlock** remote — маршрутизация в BuildingServer через FunctionalDispatcher | `server/building/BuildingServer.server.luau` | ✅ |
+| 2.3 | **DoorHandler** — toggle open/close (F), TweenService поворот 90° | `server/modules/building/DoorHandler.luau` | ✅ |
+| 2.4 | **ChestHandler** — onCreate → слоты, onInteract → ContainerUI, onDestroy → dropItemAtPosition | `server/modules/building/ChestHandler.luau` | ✅ |
+| 2.5 | **StationConfig** — Sawmill, Crusher: Name, InputSlots, OutputSlots, InteractRange, CraftingColor | `shared/config/StationConfig.luau` | ✅ |
+| 2.6 | **StationHandler** — универсальный обработчик станций: onCreate, interact, onDestroy, Heartbeat крафт-цикл, deposit/takeFromInput/takeFromOutput/takeAll/toggle, сериализация | `server/modules/building/StationHandler.luau` | ✅ |
+| 2.7 | **CraftConfig** — рецепты с полем Station (Sawmill: 3, Crusher: 1). CraftPanel фильтрует станционные | `shared/config/CraftConfig.luau` | ✅ |
+| 2.8 | **ResourceItems** — Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick | `shared/config/items/ResourceItems.luau` | ✅ |
+| 2.9 | **BuildingConfig** — sawmill и crusher блоки с `Functional = "Station"`, `FunctionalData.StationType` | `shared/config/BuildingConfig.luau` | ✅ |
+| 2.10 | **StationUI** (client) — универсальный UI станций: рецепты с toggle, input/output с drag-and-drop, progress bar с клиентской интерполяцией, ПКМ take, WindowManager интеграция | `client/ui/building/StationUI.client.luau` | ✅ |
+| 2.11 | **BlockInteract** (client) — сканирование функциональных блоков, billboard-подсказка [F], InteractBlock remote | `client/ui/building/BlockInteract.client.luau` | ✅ |
+| 2.12 | **SlotBehavior** — ПКМ deposit в станцию (приоритет 1) и сундук (приоритет 2) | `client/ui/character/SlotBehavior.luau` | ✅ |
+| 2.13 | **DragManager** — расширен: source/extraData в startDrag, getSource(), DragLayer ScreenGui (DisplayOrder 1000) | `client/ui/character/DragManager.luau` | ✅ |
+| 2.14 | **InventoryGrid** — обработка drag из station source (stationInput/stationOutput → take remotes) | `client/ui/character/InventoryGrid.luau` | ✅ |
+| 2.15 | **Station Remotes** — StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose | `shared/Remotes.luau` | ✅ |
+| 2.16 | **WorkbenchHandler** — onInteract → крафт с hasWorkbench | `server/modules/building/WorkbenchHandler.luau` | ⬜ |
+| 2.17 | **BloodAltarHandler** — blood_essence → улучшение качества крови | `server/modules/building/BloodAltarHandler.luau` | ⬜ |
+| 2.18 | **CoffinHandler** — точка респавна, лимит от уровня Castle Heart | `server/modules/building/CoffinHandler.luau` | ⬜ |
+| 2.19 | **HealthManager** — respawnAtCoffin | `server/modules/HealthManager.luau` | ⬜ |
+| 2.20 | **destroyCastle** — дроп лута из всех сундуков и станций | `server/modules/building/BuildingManager.luau` | ⬜ |
+| 2.21 | Укрытие от солнца — DayNightManager.isInShelter() с крышей замка | — | ⬜ |
 
-**Phase 1 полностью переработана.** Все задачи 1.1–1.11 (серверная часть) отмечены ✅. Описания задач обновлены с учётом Castle Heart: CastleBorder теперь хранит heartLevel, BuildingValidator принимает maxBlocks/maxCoffins/heartPosition через params, BuildingSerializer сохраняет HeartLevel в Claim, BuildingManager содержит placeCastleHeart/upgradeHeart/destroyCastle. Добавлена задача 1.16 (CastleHeartUI). Таблица Remotes расширена на 11 events + 2 functions. Описаны порядки инициализации и cleanup. Добавлены новые EventBus события (CastleHeartPlaced, CastleDestroyed).
+### Исправленные баги (Phase 2)
 
-**Phase 2 добавлена задача 2.11** — дроп лута из сундуков при уничтожении Castle Heart. В критерии готовности добавлен пункт про каскадный дроп. Лимит гробов теперь привязан к уровню Castle Heart.
+| Баг | Причина | Фикс |
+|---|---|---|
+| Castle Heart ghost не появляется | `closeBuildingMenu()` вызывал `BuildingPlacer.cleanup()` сразу после `startPlacingHeart()` | Проверка `BuildingPlacer.isActive()` перед cleanup |
+| `StationHandler:501 attempt to call nil` | `removeItemBySlot` вместо `removeItem` | Замена на `InventoryManager.removeItem(player, slotIndex, amount)` |
+| Drag-and-drop из инвентаря в station не работал | Input-слоты не были зарегистрированы как drop targets | `DragManager.registerDropTarget()` для input-слотов в StationUI |
+| Нельзя забрать предмет из input/output станции | Слоты не имели обработчиков ЛКМ/ПКМ для забирания | ЛКМ = drag (source stationInput/stationOutput), ПКМ = take remote, новый remote StationTakeInput |
+| Drag ghost скрыт за StationUI | Ghost в CharacterGui (DisplayOrder 10), StationGui DisplayOrder 815 | DragLayer — отдельный ScreenGui (DisplayOrder 1000) |
+| Зелёная подсветка drop не сбрасывалась | MouseLeave условие не срабатывало при drag из инвентаря | Безусловный сброс цвета в MouseLeave |
+| Progress bar не обновлялся | `currentCrafting.Elapsed` обновлялся только при StationUpdate | Клиентская интерполяция через RenderStepped + os.clock() |
 
-**Структура файлов обновлена** — добавлен `CastleHeartUI.client.luau`, все статусы файлов актуализированы. Зависимости BuildingManager расширены на HealthManager и TargetFinder (для Castle Heart напрямую). Убрана зависимость BuildingManager → ContainerManager (перенесена в Phase 2).
+### Критерии готовности Phase 2
 
-**Удалены устаревшие фрагменты.** Старый BuildingConfig с `MaxBlocks = 500` и `ClaimRadius = 64` как глобальными константами заменён на CastleHeart.Levels. Логика "первый foundation = centerPos" заменена на "Castle Heart = centerPos". placeBlock больше не создаёт замок автоматически.
+- [x] FunctionalDispatcher маршрутизирует Door, Chest, Station
+- [x] Дверь открывается/закрывается (F), анимация
+- [x] Сундук хранит предметы, ContainerUI, данные в DataStore
+- [x] Станции (Sawmill, Crusher) крафтят по рецептам с Heartbeat-циклом
+- [x] StationUI: рецепты с toggle, input/output drag-and-drop, progress bar
+- [x] ПКМ deposit из инвентаря в станцию
+- [x] Drag из инвентаря в input-слоты станции
+- [x] ЛКМ drag / ПКМ take из input и output слотов станции
+- [x] Progress bar с клиентской интерполяцией
+- [x] При уничтожении станции содержимое дропается
+- [x] Сериализация станций в DataStore
+- [ ] Верстак открывает расширенный крафт (RequiresWorkbench)
+- [ ] Кровавый алтарь улучшает качество крови
+- [ ] Гроб = точка респавна, лимит от уровня Castle Heart
+- [ ] Уничтожение Castle Heart → содержимое всех сундуков и станций дропается
+- [ ] Крыша замка защищает от sunlight_exposure
+
+---
+
+## Phase 3: Integration & Polish ⬜ НЕ НАЧАТА
+
+### Задачи
+
+| # | Задача | Сложность | Статус |
+|---|---|---|---|
+| 3.1 | **CastleHeartUI** — UI при взаимодействии F: уровень, HP, блоки/лимит, upgrade, permissions, союзники, destroy | Medium | ⬜ |
+| 3.2 | **BuildingDamageNumbers** — floating damage над блоками через StructureDamageEvent | Low | ⬜ |
+| 3.3 | **Minimap** — отображение замков (dot на центр) | Low | ⬜ |
+| 3.4 | **MenuBar** — кнопка Build (B) | Low | ⬜ |
+| 3.5 | **DataStore stress test** — 500 блоков + 100 врагов + 4 игрока | High | ⬜ |
+| 3.6 | **Visual polish** — эффекты размещения/удаления, звуки | Medium | ⬜ |
+| 3.7 | **Регрессионное тестирование** — все системы 1.0–1.8 | High | ⬜ |
+
+### Критерии готовности Phase 3
+
+- [ ] Castle Heart UI при нажатии F (уровень, HP, upgrade, permissions, союзники, destroy)
+- [ ] Floating damage numbers над блоками
+- [ ] Замки видны на миникарте
+- [ ] Кнопка B в MenuBar
+- [ ] DataStore: save/load 500 блоков < 100мс, размер < 100КБ
+- [ ] FPS: 500 блоков + 100 врагов + 4 игрока ≥ 30 FPS
+- [ ] Все системы 1.0–1.8 работают без регрессий
+
+---
+
+## Техническая архитектура (актуальная)
+
+### Структура файлов
+
+Copy
+src/ ├── shared/ │ ├── Remotes.luau # MODIFY ✅ │ └── config/ │ ├── BuildingConfig.luau # NEW ✅ │ ├── StationConfig.luau # NEW ✅ │ ├── CraftConfig.luau # MODIFY ✅ (Station field) │ └── items/ResourceItems.luau # MODIFY ✅ (plank, sawdust, etc.) │ ├── server/ │ ├── Main.server.luau # MODIFY ✅ │ ├── PlayerLifecycle.server.luau # MODIFY ✅ │ ├── modules/ │ │ ├── HealthManager.luau # MODIFY ✅ (Phase 0) │ │ ├── LootManager.luau # REFACTOR ✅ (Phase 0) │ │ ├── DataService.luau # MODIFY ✅ │ │ └── building/ │ │ ├── BuildingManager.luau # NEW ✅ │ │ ├── BuildingValidator.luau # NEW ✅ │ │ ├── CastleBorder.luau # NEW ✅ │ │ ├── BuildingSerializer.luau # NEW ✅ │ │ ├── BlockHealth.luau # NEW ✅ │ │ ├── CastleHeartManager.luau # NEW ✅ │ │ ├── FunctionalDispatcher.luau # NEW ✅ │ │ ├── DoorHandler.luau # NEW ✅ │ │ ├── ChestHandler.luau # NEW ✅ │ │ ├── StationHandler.luau # NEW ✅ │ │ ├── WorkbenchHandler.luau # NEW ⬜ │ │ ├── BloodAltarHandler.luau # NEW ⬜ │ │ └── CoffinHandler.luau # NEW ⬜ │ ├── building/ │ │ └── BuildingServer.server.luau # NEW ✅ │ ├── combat/ │ │ └── TargetFinder.luau # MODIFY ✅ (Phase 0) │ └── inventory/ │ └── CraftHandler.luau # MODIFY ✅ (Phase 0) │ └── client/ └── ui/ ├── WindowManager.luau # NEW ✅ ├── building/ │ ├── BuildingMenu.client.luau # NEW ✅ │ ├── BuildingPlacer.luau # NEW ✅ │ ├── StationUI.client.luau # NEW ✅ │ ├── BlockInteract.client.luau # NEW ✅ │ ├── BuildingDamageNumbers.client.luau # NEW ⬜ (Phase 3) │ └── CastleHeartUI.client.luau # NEW ⬜ (Phase 3) └── character/ ├── SlotBehavior.luau # MODIFY ✅ (station deposit) ├── DragManager.luau # MODIFY ✅ (source, DragLayer) └── InventoryGrid.luau # MODIFY ✅ (station drag)
+
+
+### Зависимости модулей
+
+BuildingServer.server.luau ├── BuildingManager ├── CastleBorder ├── FunctionalDispatcher ├── Remotes └── EventBus
+
+BuildingManager ├── BuildingValidator ├── BuildingSerializer ├── CastleBorder ├── BlockHealth ├── CastleHeartManager ├── FunctionalDispatcher ├── HealthManager (Castle Heart) ├── TargetFinder (lazy, Castle Heart) ├── InventoryManager (lazy) ├── InventorySync (lazy) ├── EventBus ├── Config └── Remotes
+
+FunctionalDispatcher ├── Config ├── DoorHandler ├── ChestHandler └── StationHandler
+
+StationHandler ├── Config (StationConfig, CraftConfig, Items) ├── Remotes ├── CastleBorder ├── LootManager (lazy) ├── InventoryManager (lazy) └── InventorySync (lazy)
+
+StationUI.client.luau ├── Config ├── Remotes ├── UIConstants ├── ItemTooltip ├── WindowManager ├── DragManager └── RunService
+
+BuildingMenu.client.luau ├── Config ├── Remotes ├── BuildingPlacer └── WindowManager
+
+BuildingPlacer.luau ├── Config ├── Remotes └── RunService
+
+
+### Полный список Station Remotes
+
+| Remote | Тип | Направление | Описание |
+|---|---|---|---|
+| StationOpened | Event | Server → Client | Станция открыта, передать состояние |
+| StationUpdate | Event | Server → Client | Обновление слотов/крафта |
+| StationClosed | Event | Server → Client | Станция закрыта сервером |
+| StationDeposit | Event | Client → Server | Положить из инвентаря в input |
+| StationTakeItem | Event | Client → Server | Забрать из output |
+| StationTakeInput | Event | Client → Server | Забрать из input |
+| StationTakeAll | Event | Client → Server | Забрать весь output |
+| StationToggleRecipe | Event | Client → Server | Вкл/выкл рецепт |
+| StationClose | Event | Client → Server | Закрыть UI станции |
+
+### Горячие клавиши
+
+| Клавиша | Действие | Контекст |
+|---|---|---|
+| B | Меню строительства / закрыть | Глобальная |
+| R | Поворот блока 90° | Режим строительства |
+| X | Режим удаления | Режим строительства |
+| Escape | Отмена размещения / закрыть окно | Режим строительства / WindowManager |
+| LMB | Разместить / Удалить блок | Режим строительства |
+| F | Взаимодействие (Castle Heart/дверь/станция) | Рядом с объектом |
+| ПКМ на слоте инвентаря | Deposit в станцию (приоритет 1) / сундук (приоритет 2) | Станция или сундук открыт |
+| ПКМ на слоте станции | Забрать в инвентарь | StationUI открыт |
+| ЛКМ на слоте станции | Начать drag | StationUI открыт |
+
+---
+
+## Что осталось до завершения v1.9
+
+### Phase 2 — незавершённые задачи
+
+| Задача | Приоритет | Сложность |
+|---|---|---|
+| WorkbenchHandler — крафт с hasWorkbench | Medium | Medium |
+| BloodAltarHandler — улучшение крови за blood_essence | Medium | Medium |
+| CoffinHandler — точка респавна + лимит | Medium | Low-Medium |
+| HealthManager respawnAtCoffin | Medium | Medium |
+| destroyCastle — дроп лута из сундуков и станций | High | Medium |
+| Укрытие от солнца (крыша) | Low | Low |
+
+### Phase 3 — все задачи
+
+| Задача | Приоритет | Сложность |
+|---|---|---|
+| CastleHeartUI (F на сердце) | High | Medium |
+| BuildingDamageNumbers | Low | Low |
+| Minimap — замки | Low | Low |
+| MenuBar — кнопка B | Low | Low |
+| DataStore stress test | High | High |
+| Visual polish | Low | Medium |
+| Регрессионное тестирование | High | High |
