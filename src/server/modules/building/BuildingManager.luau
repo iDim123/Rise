@@ -97,6 +97,92 @@ local function createBlockPart(typeId, position, rotation, folder)
         size = Vector3.new(size.Z, size.Y, size.X)
     end
 
+    -- Doorway: создаём Model с двумя колоннами и перемычкой (проём 4×5 по центру)
+    if bt.Functional == "Doorway" then
+        local model = Instance.new("Model")
+        model.Name = "Block_" .. typeId
+
+        -- Размеры проёма
+        local doorWidth = 4
+        local doorHeight = 5
+        local wallWidth = size.X
+        local wallHeight = size.Y
+        local wallDepth = size.Z
+        local pillarWidth = (wallWidth - doorWidth) / 2
+
+        -- Общий CFrame стены
+        local wallCF = CFrame.new(position)
+        if rotation == 90 then
+            wallCF = wallCF * CFrame.Angles(0, math.rad(90), 0)
+        elseif rotation == 180 then
+            wallCF = wallCF * CFrame.Angles(0, math.rad(180), 0)
+        elseif rotation == 270 then
+            wallCF = wallCF * CFrame.Angles(0, math.rad(270), 0)
+        end
+
+        -- Левая колонна
+        local leftPillar = Instance.new("Part")
+        leftPillar.Name = "LeftPillar"
+        leftPillar.Size = Vector3.new(pillarWidth, wallHeight, wallDepth)
+        leftPillar.Material = bt.Material or Enum.Material.SmoothPlastic
+        leftPillar.Color = bt.Color or Color3.fromRGB(128, 128, 128)
+        leftPillar.Anchored = true
+        leftPillar.CanCollide = true
+        local leftOffset = CFrame.new(-(doorWidth / 2 + pillarWidth / 2), 0, 0)
+        leftPillar.CFrame = wallCF * leftOffset
+        leftPillar.Parent = model
+
+        -- Правая колонна
+        local rightPillar = Instance.new("Part")
+        rightPillar.Name = "RightPillar"
+        rightPillar.Size = Vector3.new(pillarWidth, wallHeight, wallDepth)
+        rightPillar.Material = bt.Material or Enum.Material.SmoothPlastic
+        rightPillar.Color = bt.Color or Color3.fromRGB(128, 128, 128)
+        rightPillar.Anchored = true
+        rightPillar.CanCollide = true
+        local rightOffset = CFrame.new(doorWidth / 2 + pillarWidth / 2, 0, 0)
+        rightPillar.CFrame = wallCF * rightOffset
+        rightPillar.Parent = model
+
+        -- Перемычка (верх проёма)
+        local lintelHeight = wallHeight - doorHeight
+        if lintelHeight > 0 then
+            local lintel = Instance.new("Part")
+            lintel.Name = "Lintel"
+            lintel.Size = Vector3.new(doorWidth, lintelHeight, wallDepth)
+            lintel.Material = bt.Material or Enum.Material.SmoothPlastic
+            lintel.Color = bt.Color or Color3.fromRGB(128, 128, 128)
+            lintel.Anchored = true
+            lintel.CanCollide = true
+            local lintelOffset = CFrame.new(0, (doorHeight + lintelHeight) / 2 - wallHeight / 2 + lintelHeight / 2, 0)
+            -- Исправленный расчёт: центр перемычки
+            local lintelY = wallHeight / 2 - lintelHeight / 2
+            lintelOffset = CFrame.new(0, lintelY, 0)
+            lintel.CFrame = wallCF * lintelOffset
+            lintel.Parent = model
+        end
+
+        -- PrimaryPart для позиционирования и атрибутов
+        -- Создаём невидимую часть-якорь
+        local anchor = Instance.new("Part")
+        anchor.Name = "Anchor"
+        anchor.Size = size
+        anchor.Transparency = 1
+        anchor.CanCollide = false
+        anchor.Anchored = true
+        anchor.CFrame = wallCF
+        anchor.Parent = model
+
+        model.PrimaryPart = anchor
+
+        -- Атрибуты ставим на anchor (как для обычного Part)
+        anchor:SetAttribute("IsStructure", true)
+
+        model.Parent = folder
+        return anchor -- возвращаем anchor как "part" для остальной системы
+    end
+
+    -- Обычный блок
     local part = Instance.new("Part")
     part.Name = "Block_" .. typeId
     part.Size = size
@@ -105,10 +191,6 @@ local function createBlockPart(typeId, position, rotation, folder)
     part.Anchored = true
     part.CanCollide = true
     part.Position = position
-
-    if bt.IsShelter then
-        part:SetAttribute("IsShelter", true)
-    end
 
     part.Parent = folder
     return part
@@ -173,7 +255,13 @@ local function destroyAllBlocks(castle)
         if block.part and block.part.Parent then
             FunctionalDispatcher.onRemove(block.part, block.typeId, blockId)
             BlockHealth.cleanupBlock(block.part)
-            block.part:Destroy()
+            -- Doorway: удалить Model-родитель
+            local parent = block.part.Parent
+            if parent and parent:IsA("Model") and parent.Name:find("Block_") then
+                parent:Destroy()
+            else
+                block.part:Destroy()
+            end
         end
     end
 end
@@ -535,7 +623,12 @@ function BuildingManager.removeBlock(player, blockId)
     if foundBlock.part and foundBlock.part.Parent then
         FunctionalDispatcher.onRemove(foundBlock.part, foundBlock.typeId, blockId)
         BlockHealth.cleanupBlock(foundBlock.part)
-        foundBlock.part:Destroy()
+        local parent = foundBlock.part.Parent
+        if parent and parent:IsA("Model") and parent.Name:find("Block_") then
+            parent:Destroy()
+        else
+            foundBlock.part:Destroy()
+        end
     end
 
     castle.blocks[blockId] = nil
@@ -563,6 +656,15 @@ EventBus.on("BlockDestroyedByDamage", function(entity, attacker, ownerId, typeId
     if castle.coffinBlockId == blockId then
         castle.coffinPos = nil
         castle.coffinBlockId = nil
+    end
+
+    if entity and entity.Parent then
+        local parent = entity.Parent
+        if parent and parent:IsA("Model") and parent.Name:find("Block_") then
+            parent:Destroy()
+        else
+            entity:Destroy()
+        end
     end
 
     FunctionalDispatcher.onRemove(entity, typeId, blockId)

@@ -18,26 +18,23 @@
         CastleHeart = {
             Name = "Сердце замка",
             Description = "Основа вашего замка. Определяет территорию и лимиты.",
-            Size = Vector3.new(8, 2, 8), -- bounding box для валидации коллизий
+            Size = Vector3.new(8, 2, 8),
             PlacementRule = "Ground",
             CanRotate = false,
             Icon = "rbxassetid://0",
 
             Visual = {
-                -- Платформа = фундамент (сердце стоит прямо на нём)
                 Platform = {
                     Size = Vector3.new(8, 2, 8),
                     Material = Enum.Material.Slate,
                     Color = Color3.fromRGB(90, 85, 85)
                 },
-                -- Цилиндр-пьедестал
                 Pedestal = {
                     Diameter = 2.4,
                     Height = 3.6,
                     Material = Enum.Material.Basalt,
                     Color = Color3.fromRGB(55, 15, 15)
                 },
-                -- Сфера
                 Orb = {
                     MinDiameter = 1.6,
                     MaxDiameter = 3.2,
@@ -106,23 +103,18 @@
             Icon = "rbxassetid://0",
             Order = 2
         }, {
-            Id = "Roof",
-            Name = "Крыша",
-            Icon = "rbxassetid://0",
-            Order = 3
-        }, {
             Id = "Functional",
             Name = "Интерьер",
             Icon = "rbxassetid://0",
-            Order = 4
+            Order = 3
         }},
 
-        -- ═══ Типы блоков (все размеры ×2) ═══
+        -- ═══ Типы блоков ═══
         BlockTypes = {
             -- ═══ Foundation ═══
             stone_foundation = {
                 Name = "Каменный фундамент",
-                Description = "Прочное основание замка.",
+                Description = "Прочное основание замка. Защищает от солнца.",
                 Category = "Foundation",
                 Size = Vector3.new(8, 2, 8),
                 Material = Enum.Material.Slate,
@@ -139,7 +131,7 @@
 
             wooden_foundation = {
                 Name = "Деревянный фундамент",
-                Description = "Лёгкое основание из дерева.",
+                Description = "Лёгкое основание из дерева. Защищает от солнца.",
                 Category = "Foundation",
                 Size = Vector3.new(8, 2, 8),
                 Material = Enum.Material.WoodPlanks,
@@ -189,9 +181,45 @@
                 Icon = "rbxassetid://0"
             },
 
+            stone_wall_doorway = {
+                Name = "Каменная арка",
+                Description = "Каменная стена с проёмом для прохода.",
+                Category = "Wall",
+                Size = Vector3.new(8, 8, 2),
+                Material = Enum.Material.Slate,
+                Color = Color3.fromRGB(130, 130, 130),
+                HP = 350,
+                Cost = {{
+                    ItemId = "stone",
+                    Amount = 6
+                }},
+                PlacementRule = "OnFoundation",
+                CanRotate = true,
+                Functional = "Doorway",
+                Icon = "rbxassetid://0"
+            },
+
+            wooden_wall_doorway = {
+                Name = "Деревянная арка",
+                Description = "Деревянная стена с проёмом для прохода.",
+                Category = "Wall",
+                Size = Vector3.new(8, 8, 2),
+                Material = Enum.Material.WoodPlanks,
+                Color = Color3.fromRGB(150, 100, 50),
+                HP = 200,
+                Cost = {{
+                    ItemId = "wooden_plank",
+                    Amount = 3
+                }},
+                PlacementRule = "OnFoundation",
+                CanRotate = true,
+                Functional = "Doorway",
+                Icon = "rbxassetid://0"
+            },
+
             stone_pillar = {
                 Name = "Каменная колонна",
-                Description = "Колонна для поддержки крыши.",
+                Description = "Колонна для декора.",
                 Category = "Wall",
                 Size = Vector3.new(2, 8, 2),
                 Material = Enum.Material.Slate,
@@ -203,43 +231,6 @@
                 }},
                 PlacementRule = "OnFoundation",
                 CanRotate = false,
-                Icon = "rbxassetid://0"
-            },
-
-            -- ═══ Roof ═══
-            wooden_roof = {
-                Name = "Деревянная крыша",
-                Description = "Крыша из досок. Защищает от солнца.",
-                Category = "Roof",
-                Size = Vector3.new(8, 1, 8),
-                Material = Enum.Material.WoodPlanks,
-                Color = Color3.fromRGB(100, 65, 30),
-                HP = 200,
-                Cost = {{
-                    ItemId = "wooden_plank",
-                    Amount = 4
-                }},
-                PlacementRule = "OnWall",
-                CanRotate = false,
-                IsShelter = true,
-                Icon = "rbxassetid://0"
-            },
-
-            stone_roof = {
-                Name = "Каменная крыша",
-                Description = "Прочная каменная крыша.",
-                Category = "Roof",
-                Size = Vector3.new(8, 1, 8),
-                Material = Enum.Material.Slate,
-                Color = Color3.fromRGB(100, 100, 100),
-                HP = 400,
-                Cost = {{
-                    ItemId = "stone",
-                    Amount = 8
-                }},
-                PlacementRule = "OnWall",
-                CanRotate = false,
-                IsShelter = true,
                 Icon = "rbxassetid://0"
             },
 
@@ -371,12 +362,13 @@
                 }},
                 PlacementRule = "OnFoundation",
                 CanRotate = true,
-                Functional = "Station", -- ← было "Sawmill"
+                Functional = "Station",
                 FunctionalData = {
-                    StationType = "Sawmill" -- ← новое поле
+                    StationType = "Sawmill"
                 },
                 Icon = "rbxassetid://0"
             },
+
             crusher = {
                 Name = "Дробилка",
                 Description = "Перерабатывает камень в строительные материалы.",
@@ -400,7 +392,6 @@
                 },
                 Icon = "rbxassetid://0"
             }
-
         }
     }
 }

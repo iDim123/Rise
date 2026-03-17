@@ -62,11 +62,18 @@ local FUNCTIONAL_HINTS = {
     Door = "[F] Открыть / Закрыть",
     Chest = "[F] Открыть сундук",
     Station = "[F] Открыть станцию",
-    Workbench = "[F] Верстак",
+    CraftStation = "[F] Открыть станцию",
     BloodAltar = "[F] Алтарь крови",
-    Coffin = "[F] Гроб",
+    Coffin = "[F] Привязаться к гробу",
 }
 
+local INTERACTIVE_TYPES = {
+    Door = true,
+    Station = true,
+    CraftStation = true,
+    BloodAltar = true,
+    Coffin = true,
+}
 -- ═══ Сканирование ═══
 
 RunService.Heartbeat:Connect(function(dt)
@@ -97,7 +104,7 @@ RunService.Heartbeat:Connect(function(dt)
                 local typeId = obj:GetAttribute("BlockTypeId")
                 if typeId then
                     local bt = Config.Building.BlockTypes[typeId]
-                    if bt and bt.Functional and bt.Functional ~= "Chest" then
+                    if bt and bt.Functional and INTERACTIVE_TYPES[bt.Functional] then
                         local dist = (hrp.Position - obj.Position).Magnitude
                         local range = (bt.FunctionalData and bt.FunctionalData.InteractRange) or INTERACT_RANGE
                         if dist <= range and dist < closestDist then

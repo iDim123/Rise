@@ -24,6 +24,9 @@ function FunctionalDispatcher.onPlace(part, typeId, blockId, castle)
         StationHandler.onCreate(part, typeId, blockId, castle)
     elseif fn == "CraftStation" then
         CraftStationHandler.onCreate(part, typeId, blockId, castle)
+    elseif fn == "Doorway" then
+        -- Арка: нет логики, просто декоративная стена с проёмом
+        return
     elseif fn == "Coffin" then
         CoffinHandler.onCreate(part, typeId, blockId, castle)
     end
@@ -44,6 +47,9 @@ function FunctionalDispatcher.onRemove(part, typeId, blockId)
         StationHandler.onDestroy(part, blockId)
     elseif fn == "CraftStation" then
         CraftStationHandler.onDestroy(part, blockId)
+    elseif fn == "Doorway" then
+        -- Арка: нет логики, просто декоративная стена с проёмом
+        return
     elseif fn == "Coffin" then
         CoffinHandler.onDestroy(part, blockId)
     end
@@ -64,6 +70,8 @@ function FunctionalDispatcher.interact(player, part, typeId, castle, blockData)
         return StationHandler.interact(player, part, blockData, castle)
     elseif fn == "CraftStation" then
         return CraftStationHandler.interact(player, part, blockData, castle)
+    elseif fn == "Doorway" then
+        return false, "Арка не интерактивна"
     elseif fn == "Coffin" then
         return CoffinHandler.interact(player, part, blockData, castle)
     end

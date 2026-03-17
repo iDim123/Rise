@@ -159,18 +159,45 @@ local function isInShelter(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    local origin = hrp.Position + Vector3.new(0, 2, 0)
-    local sunDir = Lighting:GetSunDirection()
-    if sunDir.Y <= 0.05 then return true end
-
-    local direction = sunDir * DNC.SunlightDebuff.RaycastHeight
+    -- Проверка: стоит ли персонаж на фундаменте замка или Castle Heart
+    local origin = hrp.Position + Vector3.new(0, 0.5, 0)
+    local direction = Vector3.new(0, -10, 0) -- raycast вниз на 10 studs
 
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { character }
 
     local result = workspace:Raycast(origin, direction, params)
-    return result ~= nil
+    if not result or not result.Instance then
+        return false
+    end
+
+    local hit = result.Instance
+
+    -- Castle Heart platform
+    if hit:GetAttribute("IsCastleHeart") then
+        return true
+    end
+
+    -- Любой блок замка категории Foundation
+    if hit:GetAttribute("IsStructure") then
+        local typeId = hit:GetAttribute("BlockTypeId")
+        if typeId then
+            local bt = Config.Building and Config.Building.BlockTypes
+                and Config.Building.BlockTypes[typeId]
+            if bt and bt.Category == "Foundation" then
+                return true
+            end
+        end
+    end
+
+    -- Родитель может быть Model (Castle Heart)
+    local parent = hit.Parent
+    if parent and parent:IsA("Model") and parent:GetAttribute("IsCastleHeart") then
+        return true
+    end
+
+    return false
 end
 
 local function updateSunlightDebuff(dt)
