@@ -159,41 +159,44 @@ local function isInShelter(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    -- Проверка: стоит ли персонаж на фундаменте замка или Castle Heart
-    local origin = hrp.Position + Vector3.new(0, 0.5, 0)
-    local direction = Vector3.new(0, -10, 0) -- raycast вниз на 10 studs
-
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { character }
 
-    local result = workspace:Raycast(origin, direction, params)
-    if not result or not result.Instance then
-        return false
-    end
-
-    local hit = result.Instance
-
-    -- Castle Heart platform
-    if hit:GetAttribute("IsCastleHeart") then
-        return true
-    end
-
-    -- Любой блок замка категории Foundation
-    if hit:GetAttribute("IsStructure") then
-        local typeId = hit:GetAttribute("BlockTypeId")
-        if typeId then
-            local bt = Config.Building and Config.Building.BlockTypes
-                and Config.Building.BlockTypes[typeId]
-            if bt and bt.Category == "Foundation" then
-                return true
+    -- 1. Стоит на фундаменте замка или Castle Heart
+    local downOrigin = hrp.Position + Vector3.new(0, 0.5, 0)
+    local downResult = workspace:Raycast(downOrigin, Vector3.new(0, -10, 0), params)
+    if downResult and downResult.Instance then
+        local hit = downResult.Instance
+        -- Castle Heart platform
+        if hit:GetAttribute("IsCastleHeart") then
+            return true
+        end
+        -- Блок категории Foundation
+        if hit:GetAttribute("IsStructure") then
+            local typeId = hit:GetAttribute("BlockTypeId")
+            if typeId then
+                local bt = Config.Building and Config.Building.BlockTypes
+                    and Config.Building.BlockTypes[typeId]
+                if bt and bt.Category == "Foundation" then
+                    return true
+                end
             end
+        end
+        -- Родитель = Castle Heart Model
+        local parent = hit.Parent
+        if parent and parent:IsA("Model") and parent:GetAttribute("IsCastleHeart") then
+            return true
         end
     end
 
-    -- Родитель может быть Model (Castle Heart)
-    local parent = hit.Parent
-    if parent and parent:IsA("Model") and parent:GetAttribute("IsCastleHeart") then
+    -- 2. Любая тень сверху (дерево, скала, структура и т.д.)
+    local sunDir = Lighting:GetSunDirection()
+    if sunDir.Y <= 0.05 then return true end -- солнце низко/ниже горизонта
+
+    local upOrigin = hrp.Position + Vector3.new(0, 2, 0)
+    local sunResult = workspace:Raycast(upOrigin, sunDir * DNC.SunlightDebuff.RaycastHeight, params)
+    if sunResult then
         return true
     end
 

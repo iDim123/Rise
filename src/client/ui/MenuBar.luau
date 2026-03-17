@@ -30,6 +30,11 @@ local menuItems = {{
     Description = "Управление слугой (V)",
     Icon = "rbxassetid://0"
 }, {
+    Id = "BuildingMenu",
+    Name = "Строительство",
+    Description = "Меню строительства (B)",
+    Icon = "rbxassetid://0"
+}, {
     Id = "BossJournal",
     Name = "Журнал боссов",
     Description = "Список поверженных боссов (J)",

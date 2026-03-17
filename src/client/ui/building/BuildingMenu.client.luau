@@ -349,3 +349,13 @@ end)
 
 -- Начальное построение
 buildBlockGrid()
+
+-- ═══ MenuBar интеграция ═══
+local MenuBar = require(script.Parent.Parent:WaitForChild("MenuBar"))
+MenuBar.onButtonClick("BuildingMenu", function()
+    if window.Visible then
+        closeBuildingMenu()
+    else
+        openBuildingMenu()
+    end
+end)
