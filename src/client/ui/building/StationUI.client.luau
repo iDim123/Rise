@@ -390,9 +390,7 @@ local function rebuildInputSlots()
         end)
         btn.MouseLeave:Connect(function()
             local slot = currentInputSlots[si]
-            if not DragManager.isDragging() or DragManager.dragFrom == si then
-                btn.BackgroundColor3 = (slot and slot ~= false) and SLOT_FILLED or SLOT_BG
-            end
+            btn.BackgroundColor3 = (slot and slot ~= false) and SLOT_FILLED or SLOT_BG
         end)
 
         -- Drop target (deposit из инвентаря)

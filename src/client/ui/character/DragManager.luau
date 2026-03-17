@@ -46,6 +46,19 @@ end
 function DragManager.createGhost(itemData)
     DragManager.destroyGhost()
 
+    local Players = game:GetService("Players")
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Отдельный ScreenGui поверх всех окон
+    local dragLayer = playerGui:FindFirstChild("DragLayer")
+    if not dragLayer then
+        dragLayer = Instance.new("ScreenGui")
+        dragLayer.Name = "DragLayer"
+        dragLayer.DisplayOrder = 1000
+        dragLayer.ResetOnSpawn = false
+        dragLayer.Parent = playerGui
+    end
+
     local mousePos = UserInputService:GetMouseLocation()
 
     local ghost = Instance.new("Frame")
@@ -54,9 +67,8 @@ function DragManager.createGhost(itemData)
     ghost.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
     ghost.BackgroundTransparency = 0.3
     ghost.BorderSizePixel = 0
-    ghost.ZIndex = 100
     ghost.Position = UDim2.new(0, mousePos.X - UC.slotSize / 2, 0, mousePos.Y - UC.slotSize / 2)
-    ghost.Parent = screenGui
+    ghost.Parent = dragLayer
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 4)
@@ -74,7 +86,6 @@ function DragManager.createGhost(itemData)
         icon.BackgroundTransparency = 1
         icon.ScaleType = Enum.ScaleType.Fit
         icon.Image = itemData.Icon
-        icon.ZIndex = 101
         icon.Parent = ghost
     else
         local label = Instance.new("TextLabel")
@@ -86,13 +97,11 @@ function DragManager.createGhost(itemData)
         label.Font = Enum.Font.GothamBold
         label.TextWrapped = true
         label.Text = itemData.Name
-        label.ZIndex = 101
         label.Parent = ghost
     end
 
     dragGhost = ghost
 end
-
 function DragManager.updateGhostPosition()
     if not dragGhost then
         return
