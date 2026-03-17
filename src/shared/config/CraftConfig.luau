@@ -208,6 +208,42 @@ return {
                 Amount = 20
             }},
             CraftTime = 3
+        }, -- ═══════════════════════════════════════
+        --  Верстак (Station = "Workbench")
+        -- ═══════════════════════════════════════
+        {
+            Id = "workbench_blood_plank",
+            Name = "Кровавая доска",
+            Description = "Пропитать доски кровавой эссенцией на верстаке.",
+            Icon = "rbxassetid://0",
+            Station = "Workbench",
+            Result = {
+                ItemId = "blood_plank",
+                Amount = 10
+            },
+            Ingredients = {{
+                ItemId = "wooden_plank",
+                Amount = 10
+            }, {
+                ItemId = "blood_essence",
+                Amount = 10
+            }},
+            CraftTime = 4
+        }, {
+            Id = "workbench_stone_brick",
+            Name = "Каменный кирпич",
+            Description = "Обработать камень в кирпичи на верстаке.",
+            Icon = "rbxassetid://0",
+            Station = "Workbench",
+            Result = {
+                ItemId = "stone_brick",
+                Amount = 5
+            },
+            Ingredients = {{
+                ItemId = "stone",
+                Amount = 20
+            }},
+            CraftTime = 3
         }}
     }
 }

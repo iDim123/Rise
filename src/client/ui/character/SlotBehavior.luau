@@ -65,7 +65,19 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             return
         end
 
-        -- Приоритет 1: Если открыта станция → deposit в input
+        -- Приоритет 1: CraftStation (Workbench, Forge, ...)
+        local csGui = player:WaitForChild("PlayerGui"):FindFirstChild("CraftStationGui")
+        if csGui then
+            local isCSOpen = csGui:FindFirstChild("CraftStationOpen")
+            local csIdVal = csGui:FindFirstChild("CraftStationOpenId")
+            if isCSOpen and isCSOpen.Value and csIdVal and csIdVal.Value ~= "" then
+                local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+                Remotes.CraftStationDeposit:FireServer(csIdVal.Value, index)
+                return
+            end
+        end
+
+        -- Приоритет 2: Processing Station (Sawmill, Crusher, ...)
         local stationGui = player:WaitForChild("PlayerGui"):FindFirstChild("StationGui")
         if stationGui then
             local isStationOpen = stationGui:FindFirstChild("StationOpen")
@@ -77,7 +89,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             end
         end
 
-        -- Приоритет 2: Если открыт сундук → deposit в сундук
+        -- Приоритет 3: Chest
         local containerGui = player:WaitForChild("PlayerGui"):FindFirstChild("ContainerUI")
         if containerGui then
             local isContainerOpen = containerGui:FindFirstChild("ContainerOpen")
@@ -89,7 +101,7 @@ function SlotBehavior.connect(slot, index, getItemFn, options)
             end
         end
 
-        -- Приоритет 3: Стандартное поведение
+        -- Приоритет 4: Default
         if item.EquipSlot and options.equipRemote then
             options.equipRemote:FireServer(index)
         elseif item.Type == "Consumable" and options.useItemRemote then

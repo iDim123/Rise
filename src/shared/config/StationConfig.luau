@@ -5,7 +5,6 @@ return {
             InputSlots = 8,
             OutputSlots = 8,
             InteractRange = 10,
-            -- Цвет модели при крафте
             CraftingColor = Color3.fromRGB(180, 140, 60)
         },
         Crusher = {
@@ -15,5 +14,19 @@ return {
             InteractRange = 10,
             CraftingColor = Color3.fromRGB(140, 140, 180)
         }
+    },
+
+    -- ═══ Крафтовые станции (Workbench, Forge, ...) ═══
+    CraftStations = {
+        Workbench = {
+            Name = "Верстак",
+            Slots = 9,
+            InteractRange = 10
+        }
+        -- Forge = {
+        --     Name = "Кузница",
+        --     Slots = 9,
+        --     InteractRange = 10,
+        -- },
     }
 }

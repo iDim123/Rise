@@ -305,7 +305,10 @@
                 }},
                 PlacementRule = "OnFoundation",
                 CanRotate = true,
-                Functional = "Workbench",
+                Functional = "CraftStation",
+                FunctionalData = {
+                    StationType = "Workbench"
+                },
                 Icon = "rbxassetid://0"
             },
 

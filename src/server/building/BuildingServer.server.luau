@@ -246,6 +246,49 @@ Remotes.InteractBlock.OnServerEvent:Connect(function(player, blockId)
 end)
 
 -- ═══════════════════════════════════════════════════════════
+-- CraftStation Remotes (Workbench, Forge, ...)
+-- ═══════════════════════════════════════════════════════════
+
+local CraftStationHandler = FunctionalDispatcher.getCraftStationHandler()
+
+Remotes.CraftStationDeposit.OnServerEvent:Connect(function(player, csId, inventorySlotIndex)
+    if type(csId) ~= "string" then
+        return
+    end
+    if type(inventorySlotIndex) ~= "number" then
+        return
+    end
+    CraftStationHandler.depositItem(player, csId, inventorySlotIndex)
+end)
+
+Remotes.CraftStationTakeItem.OnServerEvent:Connect(function(player, csId, slotIndex)
+    if type(csId) ~= "string" then
+        return
+    end
+    if type(slotIndex) ~= "number" then
+        return
+    end
+    CraftStationHandler.takeItem(player, csId, slotIndex)
+end)
+
+Remotes.CraftStationCraft.OnServerEvent:Connect(function(player, csId, recipeId)
+    if type(csId) ~= "string" then
+        return
+    end
+    if type(recipeId) ~= "string" then
+        return
+    end
+    CraftStationHandler.craft(player, csId, recipeId)
+end)
+
+Remotes.CraftStationClose.OnServerEvent:Connect(function(player, csId)
+    if type(csId) ~= "string" then
+        return
+    end
+    CraftStationHandler.closeStation(player, csId)
+end)
+
+-- ═══════════════════════════════════════════════════════════
 -- Station Remotes (Sawmill, Crusher, ...)
 -- ═══════════════════════════════════════════════════════════
 
@@ -269,16 +312,6 @@ Remotes.StationTakeItem.OnServerEvent:Connect(function(player, stationId, slotIn
         return
     end
     StationHandler.takeFromOutput(player, stationId, slotIndex)
-end)
-
-Remotes.StationTakeInput.OnServerEvent:Connect(function(player, stationId, slotIndex)
-    if type(stationId) ~= "string" then
-        return
-    end
-    if type(slotIndex) ~= "number" then
-        return
-    end
-    StationHandler.takeFromInput(player, stationId, slotIndex)
 end)
 
 Remotes.StationTakeInput.OnServerEvent:Connect(function(player, stationId, slotIndex)

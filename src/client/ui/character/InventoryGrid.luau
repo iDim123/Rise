@@ -100,11 +100,10 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local dd = DragManager.getDragData()
             local source = dd and dd.source or "inventory"
 
-            -- Drag из станции → при отпускании на слоте инвентаря забираем предмет
+            -- Drag из processing station
             if source == "stationInput" or source == "stationOutput" then
                 local dropped = DragManager.tryDrop(mousePos)
                 if not dropped then
-                    -- Отпустили над слотом инвентаря или просто в пустоту — забрать в инвентарь
                     local extra = dd and dd.extraData
                     local stId = extra and extra.stationId
                     if stId then
@@ -119,17 +118,33 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                 return
             end
 
+            -- Drag из craft station (Workbench, Forge, ...)
+            if source == "craftStationSlot" then
+                local dropped = DragManager.tryDrop(mousePos)
+                if not dropped then
+                    local extra = dd and dd.extraData
+                    local csId = extra and extra.csId
+                    if csId then
+                        Remotes.CraftStationTakeItem:FireServer(csId, dragFrom)
+                    end
+                end
+                DragManager.reset(slotFrames)
+                return
+            end
+
+            -- Стандартный drag из инвентаря
             local dropped = DragManager.tryDrop(mousePos)
 
             if not dropped then
                 if overIndex and overIndex == dragFrom then
+                    -- dropped on self
                 elseif overIndex and overIndex ~= dragFrom then
                     if overIndex > currentUnlockedSlots then
+                        -- locked slot
                     else
                         savedSwapRemote:FireServer(dragFrom, overIndex)
                     end
                 elseif not overIndex then
-
                     local isOverSlot = false
                     for idx, sf in slotFrames do
                         local absPos = sf.AbsolutePosition
@@ -170,7 +185,6 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                         if abFrame then
                             local absPos = abFrame.AbsolutePosition
                             local absSize = abFrame.AbsoluteSize
-                            -- Добавляем 30px вниз для bind labels
                             if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and
                                 mousePos.Y <= absPos.Y + absSize.Y + 30 then
                                 isOutside = false
