@@ -769,4 +769,27 @@ function StationHandler.getStationId(blockId)
     return data and data.stationId or nil
 end
 
+--- Проверить, есть ли предметы в input/output слотах или активный крафт.
+--- @param blockId string
+--- @return boolean
+function StationHandler.hasItems(blockId)
+    local data = stationData[blockId]
+    if not data then return false end
+
+    for _, slot in data.inputSlots do
+        if slot and slot ~= false then
+            return true
+        end
+    end
+    for _, slot in data.outputSlots do
+        if slot and slot ~= false then
+            return true
+        end
+    end
+    if data.crafting then
+        return true
+    end
+    return false
+end
+
 return StationHandler

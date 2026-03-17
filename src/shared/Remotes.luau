@@ -19,14 +19,15 @@ local events = { -- === Existing ===
 "CastleHeartInfo", "PlaceBlock", "RemoveBlock", "BuildingSync", "SetBuildPermission", "AddBuildAlly", "RemoveBuildAlly",
 "InteractBlock", "StationOpened", "StationUpdate", "StationClosed", "StationDeposit", "StationTakeItem",
 "StationTakeAll", "StationToggleRecipe", "StationClose", "StationTakeInput", "CraftStationOpened", "CraftStationUpdate",
-"CraftStationClosed", "CraftStationDeposit", "CraftStationTakeItem", "CraftStationCraft", "CraftStationClose"}
+"CraftStationClosed", "CraftStationDeposit", "CraftStationTakeItem", "CraftStationCraft", "CraftStationClose",
+"DismantleBlock"}
 
 -- RemoteFunctions
 local functions = { -- === Existing ===
 "GetInventory", "GetServants", "GetPlayerStats", "GetBossData", "GetSpellData", -- === Phase 1: Building ===
 "GetBuildings", -- Client → Server: returns blocks array
-"GetCastleHeartInfo" -- Client → Server: returns heartInfo table
-}
+"GetCastleHeartInfo", -- Client → Server: returns heartInfo table
+"CanDismantleBlock"}
 
 if RunService:IsServer() then
     for _, name in events do

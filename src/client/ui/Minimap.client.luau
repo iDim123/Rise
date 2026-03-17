@@ -23,6 +23,8 @@ local MAP_ZOOM_STEP = 15
 local PLAYER_ICON = "rbxassetid://100520573334113"
 local PLAYER_ICON_SIZE = 18
 
+local CASTLE_DOT_SIZE = 12
+
 local COLORS = {
     Background = Color3.fromRGB(15, 15, 25),
     Border = Color3.fromRGB(80, 80, 100),
@@ -35,6 +37,8 @@ local COLORS = {
     NorthColor = Color3.fromRGB(200, 50, 50),
     ButtonBG = Color3.fromRGB(35, 35, 50),
     ButtonText = Color3.fromRGB(200, 200, 200),
+    CastleOwn = Color3.fromRGB(220, 180, 50),     -- свой замок
+    CastleOther = Color3.fromRGB(160, 100, 200),   -- чужой замок
 }
 
 -- ═══ BUILD UI ═══
@@ -302,6 +306,26 @@ local function update()
             end
         end
     end
+
+    -- Замки
+    local castlesFolder = workspace:FindFirstChild("Castles")
+    if castlesFolder then
+        for _, folder in castlesFolder:GetChildren() do
+            -- Ищем Castle Heart (Model с IsCastleHeart)
+            for _, obj in folder:GetChildren() do
+                if obj:IsA("Model") and obj:GetAttribute("IsCastleHeart") then
+                    local primary = obj.PrimaryPart
+                    if primary then
+                        -- Определяем владельца по имени папки: "Castle_<userId>"
+                        local isOwn = folder.Name == "Castle_" .. tostring(player.UserId)
+                        local color = isOwn and COLORS.CastleOwn or COLORS.CastleOther
+                        placeDot(primary.Position, playerPos, color, CASTLE_DOT_SIZE)
+                    end
+                end
+            end
+        end
+    end
+
 
     -- Другие игроки
     for _, otherPlayer in Players:GetPlayers() do

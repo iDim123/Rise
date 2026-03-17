@@ -349,4 +349,28 @@ function ChestHandler.getContainerId(blockId)
     return data and data.containerId or nil
 end
 
+--- Проверить, есть ли предметы в сундуке.
+--- @param blockId string
+--- @return boolean
+function ChestHandler.hasItems(blockId)
+    local data = chestData[blockId]
+    if not data then
+        return false
+    end
+
+    local CM = getContainerManager()
+    local containers = CM.getAll()
+    local container = containers[data.containerId]
+    if not container then
+        return false
+    end
+
+    for _, slot in container.slots do
+        if slot and slot ~= false then
+            return true
+        end
+    end
+    return false
+end
+
 return ChestHandler

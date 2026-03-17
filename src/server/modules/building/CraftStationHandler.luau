@@ -621,4 +621,27 @@ function CraftStationHandler.restoreContainer(part, typeId, blockId, castle, sav
     print("[CraftStationHandler] Restored " .. stationType .. " (" .. csId .. ") for block " .. blockId)
 end
 
+
+--- Проверить, есть ли предметы в контейнере станции или активный крафт.
+--- @param blockId string
+--- @return boolean
+function CraftStationHandler.hasItems(blockId)
+    local data = csData[blockId]
+    if not data then return false end
+
+    -- Проверяем слоты
+    for _, slot in data.slots do
+        if slot and slot ~= false then
+            return true
+        end
+    end
+
+    -- Проверяем очередь крафта
+    if data.craftQueue and #data.craftQueue > 0 then
+        return true
+    end
+
+    return false
+end
+
 return CraftStationHandler

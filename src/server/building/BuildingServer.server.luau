@@ -13,7 +13,7 @@ local modules = ServerScriptService:WaitForChild("modules")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local EventBus = require(modules:WaitForChild("EventBus"))
-
+local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
 local CastleBorder = require(modules:WaitForChild("building"):WaitForChild("CastleBorder"))
 local FunctionalDispatcher = require(modules:WaitForChild("building"):WaitForChild("FunctionalDispatcher"))
@@ -127,6 +127,98 @@ Remotes.RemoveBlock.OnServerEvent:Connect(function(player, blockId)
     end
 end)
 
+-- ═══════════════════════════════════════════════════════════
+-- Dismantle (ПКМ зажатие)
+-- ═══════════════════════════════════════════════════════════
+
+Remotes.DismantleBlock.OnServerEvent:Connect(function(player, blockId)
+    if isRateLimited(player) then
+        return
+    end
+
+    if type(blockId) ~= "string" then
+        return
+    end
+
+    -- Специальный blockId для Castle Heart
+    if blockId == "__CASTLE_HEART__" then
+        local ok, err = BuildingManager.dismantleHeart(player)
+        if not ok then
+            Remotes.Notify:FireClient(player, err or "Не удалось разобрать Сердце замка",
+                "warning")
+        else
+            Remotes.Notify:FireClient(player, "Сердце замка разобрано", "success")
+        end
+        return
+    end
+
+    local ok, err = BuildingManager.dismantleBlock(player, blockId)
+    if not ok then
+        Remotes.Notify:FireClient(player, err or "Не удалось разобрать блок", "warning")
+    end
+end)
+
+Remotes.CanDismantleBlock.OnServerInvoke = function(player, blockId)
+    if type(blockId) ~= "string" then
+        return false, "Неверные данные"
+    end
+
+    -- Castle Heart
+    if blockId == "__CASTLE_HEART__" then
+        local castle = BuildingManager.getCastle(player.UserId)
+        if not castle then
+            return false, "Нет замка"
+        end
+        if player.UserId ~= castle.ownerId then
+            return false, "Только владелец может разобрать Сердце замка"
+        end
+        if castle.blockCount > 0 then
+            return false, "Сначала разберите все блоки замка"
+        end
+        return true
+    end
+
+    -- Обычный блок
+    local castle, foundBlock
+    for ownerId, c in pairs(BuildingManager.getAllCastles()) do
+        if c.blocks[blockId] then
+            castle = c
+            foundBlock = c.blocks[blockId]
+            break
+        end
+    end
+
+    if not castle or not foundBlock then
+        return false, "Блок не найден"
+    end
+
+    if not CastleBorder.canRemove(player.UserId, castle.ownerId) then
+        return false, "Нет прав на разбор"
+    end
+
+    local bt = Config.Building.BlockTypes[foundBlock.typeId]
+    if bt and bt.Functional then
+        local fn = bt.Functional
+        if fn == "Chest" then
+            local ChestHandler = FunctionalDispatcher.getChestHandler()
+            if ChestHandler.hasItems and ChestHandler.hasItems(blockId) then
+                return false, "В сундуке есть предметы. Заберите их."
+            end
+        elseif fn == "Station" then
+            local StationHandler = FunctionalDispatcher.getStationHandler()
+            if StationHandler.hasItems and StationHandler.hasItems(blockId) then
+                return false, "В станции есть предметы. Заберите их."
+            end
+        elseif fn == "CraftStation" then
+            local CraftStationHandler = FunctionalDispatcher.getCraftStationHandler()
+            if CraftStationHandler.hasItems and CraftStationHandler.hasItems(blockId) then
+                return false, "В станции есть предметы. Заберите их."
+            end
+        end
+    end
+
+    return true
+end
 -- ═══════════════════════════════════════════════════════════
 -- Permissions
 -- ═══════════════════════════════════════════════════════════

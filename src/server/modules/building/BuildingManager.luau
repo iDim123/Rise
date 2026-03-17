@@ -688,6 +688,119 @@ end)
 -- Публичное API: вызывается CastleHeartManager при StructureDestroyed
 -- ═══════════════════════════════════════════════════════════
 
+function BuildingManager.dismantleBlock(player, blockId)
+    local actorId = player.UserId
+
+    local castle, foundBlock
+    for ownerId, c in castles do
+        if c.blocks[blockId] then
+            castle = c
+            foundBlock = c.blocks[blockId]
+            break
+        end
+    end
+
+    if not castle or not foundBlock then
+        return false, "Блок не найден"
+    end
+
+    if not CastleBorder.canRemove(actorId, castle.ownerId) then
+        return false, "Нет прав на разбор"
+    end
+
+    local bt = Config.Building.BlockTypes[foundBlock.typeId]
+
+    -- Проверка: функциональный блок с инвентарём должен быть пустым
+    if bt and bt.Functional then
+        local fn = bt.Functional
+
+        if fn == "Chest" then
+            local ChestHandler = FunctionalDispatcher.getChestHandler()
+            if ChestHandler.hasItems and ChestHandler.hasItems(blockId) then
+                return false, "В сундуке есть предметы. Заберите их."
+            end
+        elseif fn == "Station" then
+            local StationHandler = FunctionalDispatcher.getStationHandler()
+            if StationHandler.hasItems and StationHandler.hasItems(blockId) then
+                return false, "В станции есть предметы. Заберите их."
+            end
+        elseif fn == "CraftStation" then
+            local CraftStationHandler = FunctionalDispatcher.getCraftStationHandler()
+            if CraftStationHandler.hasItems and CraftStationHandler.hasItems(blockId) then
+                return false, "В станции есть предметы. Заберите их."
+            end
+        end
+    end
+
+    -- Возврат 100% ресурсов
+    if bt and bt.Cost then
+        local invMgr = getInventoryManager()
+        for _, cost in bt.Cost do
+            invMgr.addItemFromConfig(player, cost.ItemId, cost.Amount)
+        end
+        getInventorySync().sendFullUpdate(player)
+    end
+
+    -- Coffin cleanup
+    if castle.coffinBlockId == blockId then
+        castle.coffinPos = nil
+        castle.coffinBlockId = nil
+    end
+
+    -- Удалить блок
+    if foundBlock.part and foundBlock.part.Parent then
+        FunctionalDispatcher.onRemove(foundBlock.part, foundBlock.typeId, blockId)
+        BlockHealth.cleanupBlock(foundBlock.part)
+        local parent = foundBlock.part.Parent
+        if parent and parent:IsA("Model") and parent.Name:find("Block_") then
+            parent:Destroy()
+        else
+            foundBlock.part:Destroy()
+        end
+    end
+
+    castle.blocks[blockId] = nil
+    castle.blockCount -= 1
+
+    EventBus.fire("BlockRemoved", player, foundBlock.position)
+    broadcastSync(castle)
+
+    print("[BuildingManager] " .. player.Name .. " dismantled " .. foundBlock.typeId
+        .. " at " .. tostring(foundBlock.position) .. " (100% refund)")
+    return true
+end
+
+function BuildingManager.dismantleHeart(player)
+    local ownerId = player.UserId
+    local castle = castles[ownerId]
+    if not castle then
+        return false, "Нет замка"
+    end
+
+    if player.UserId ~= castle.ownerId then
+        return false, "Только владелец может разобрать Сердце замка"
+    end
+
+    if castle.blockCount > 0 then
+        return false, "Сначала разберите все блоки замка"
+    end
+
+    CastleHeartManager.destroyHeart(castle)
+
+    if castle.folder and castle.folder.Parent then
+        castle.folder:Destroy()
+    end
+
+    CastleBorder.removeClaim(ownerId)
+    castles[ownerId] = nil
+
+    EventBus.fire("CastleDestroyed", player)
+    broadcastSync({ ownerId = ownerId, centerPos = Vector3.zero, blockCount = 0, heartLevel = 0 })
+
+    print("[BuildingManager] " .. player.Name .. " dismantled Castle Heart")
+    return true
+end
+
 function BuildingManager.onHeartDestroyedByDamage(ownerId, heartEntity, attacker)
     local castle = castles[ownerId]
     if not castle then return end

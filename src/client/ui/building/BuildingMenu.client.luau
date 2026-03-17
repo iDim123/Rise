@@ -137,7 +137,7 @@ end
 local gridY = tabsY + BC.TAB_H + 6
 local gridFrame = Instance.new("ScrollingFrame")
 gridFrame.Name = "BlockGrid"
-gridFrame.Size = UDim2.new(1, -PAD * 2, 1, -(gridY + BC.BUTTON_H + PAD + 6))
+gridFrame.Size = UDim2.new(1, -PAD * 2, 1, -(gridY + PAD))
 gridFrame.Position = UDim2.new(0, PAD, 0, gridY)
 gridFrame.BackgroundTransparency = 1
 gridFrame.ScrollBarThickness = 4
@@ -239,22 +239,6 @@ function buildBlockGrid()
     end
 end
 
--- ═══ Кнопки внизу ═══
-local bottomBtnY = -BC.BUTTON_H - 6
-
-local deleteModeBtn = Instance.new("TextButton")
-deleteModeBtn.Size = UDim2.new(1, -PAD * 2, 0, BC.BUTTON_H)
-deleteModeBtn.Position = UDim2.new(0, PAD, 1, bottomBtnY)
-deleteModeBtn.BackgroundColor3 = BC.btnRed
-deleteModeBtn.Text = "Режим удаления (X)"
-deleteModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-deleteModeBtn.Font = Enum.Font.GothamBold
-deleteModeBtn.TextSize = 13
-deleteModeBtn.BorderSizePixel = 0
-deleteModeBtn.Parent = window
-Instance.new("UICorner", deleteModeBtn).CornerRadius = UDim.new(0, BC.SMALL_RADIUS)
-
-
 local function closeBuildingMenu()
     if not window.Visible then return end
     window.Visible = false
@@ -284,21 +268,6 @@ heartBtn.MouseButton1Click:Connect(function()
     closeBuildingMenu()
 end)
 
-
-deleteModeBtn.MouseButton1Click:Connect(function()
-    if BuildingPlacer.isDeleteMode() then
-        BuildingPlacer.stopDeleteMode()
-        deleteModeBtn.Text = "Режим удаления (X)"
-        deleteModeBtn.BackgroundColor3 = BC.btnRed
-    else
-        BuildingPlacer.startDeleteMode()
-        deleteModeBtn.Text = "Выход из удаления (X)"
-        deleteModeBtn.BackgroundColor3 = BC.btnGreen
-    end
-end)
-
-
-
 -- ═══ Горячие клавиши ═══
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -308,22 +277,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             closeBuildingMenu()
         else
             openBuildingMenu()
-        end
-        return
-    end
-
-    if input.KeyCode == BC.KEY_DELETE_MODE then
-        if not window.Visible and not BuildingPlacer.isDeleteMode() then
-            return
-        end
-        if BuildingPlacer.isDeleteMode() then
-            BuildingPlacer.stopDeleteMode()
-            deleteModeBtn.Text = "Режим удаления (X)"
-            deleteModeBtn.BackgroundColor3 = BC.btnRed
-        else
-            BuildingPlacer.startDeleteMode()
-            deleteModeBtn.Text = "Выход из удаления (X)"
-            deleteModeBtn.BackgroundColor3 = BC.btnGreen
         end
         return
     end
