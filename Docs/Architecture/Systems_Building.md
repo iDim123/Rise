@@ -22,6 +22,8 @@
 | DoorHandler.luau | Двери: initDoor, interact (открыть/закрыть с анимацией), cleanup |
 | ChestHandler.luau | Сундуки: onCreate, interact (открыть UI), onDestroy (дроп содержимого), deposit/take/sort |
 | StationHandler.luau | Универсальный обработчик станций (Sawmill, Crusher, ...): onCreate, interact, onDestroy, Heartbeat крафт-цикл, deposit/take/toggle, сериализация |
+| CraftStationHandler.luau | Крафтовые станции (Workbench): слоты, очередь крафта, heartbeat, многопользовательский доступ, сериализация |
+| CoffinHandler.luau | Гроб: привязка респавна, лимит от уровня Castle Heart, уведомления |
 
 ### Remote-оркестратор (`server/building/BuildingServer.server.luau`)
 
@@ -32,7 +34,10 @@
 | Permissions | SetBuildPermission, AddBuildAlly, RemoveBuildAlly |
 | Interact | InteractBlock → FunctionalDispatcher.interact() |
 | Станции | StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose |
-| Запросы | GetBuildings (RemoteFunction), GetCastleHeartInfo (RemoteFunction) |
+| Запросы | GetBuildings (RemoteFunction), GetCastleHeartInfo (RemoteFunction)  + CanDismantleBlock|
+| CraftStation | CraftStationDeposit, CraftStationTakeItem, CraftStationCraft, CraftStationClose |
+| Разбор | DismantleBlock → BuildingManager.dismantleBlock() |
+
 
 Rate-limit 0.3с на мутирующие операции. Cleanup при PlayerRemoving и PlayerCleanup EventBus.
 
@@ -40,10 +45,10 @@ Rate-limit 0.3с на мутирующие операции. Cleanup при Play
 
 | Модуль | Назначение |
 |---|---|
-| BuildingMenu.client.luau | UI строительства (клавиша B): категории блоков, кнопка Castle Heart, режим удаления |
-| BuildingPlacer.luau | Ghost-preview блока: snap-to-grid, валидация, edge-snap для стен, delete mode, isActive() |
-| StationUI.client.luau | Универсальный UI станций: рецепты (2 колонки с toggle), input/output слоты (4×2) с drag-and-drop, progress bar с клиентской интерполяцией, Take All |
-| BlockInteract.client.luau | Сканирование ближайших функциональных блоков (кроме Chest — обрабатывается ContainerUI), billboard-подсказка [F], отправка InteractBlock |
+| BuildingMenu.client.luau | UI строительства (клавиша B): категории блоков, кнопка Castle Heart. Без режима удаления (заменён на ПКМ-разбор) |
+| BuildingPlacer.luau | Ghost-preview блока: snap-to-grid, валидация, edge-snap для стен, isActive(). Без delete mode |
+| CraftStationUI.client.luau | UI крафтовых станций (Workbench): рецепты 2 колонки, контейнер, прогресс-бар, очередь, tooltip |
+| BlockInteract.client.luau | Сканирование функциональных блоков, billboard [F], InteractBlock, ПКМ-зажатие 1с — разбор блока (Dismantle) с предварительной серверной проверкой |
 
 ### Связанные клиентские модули
 
@@ -84,8 +89,7 @@ Castle Heart состоит из платформы (Slate, 8×2×8), пьеде
 |---|---|---|
 | Foundation | Фундамент | 1 |
 | Wall | Стены | 2 |
-| Roof | Крыша | 3 |
-| Functional | Интерьер | 4 |
+| Functional | Интерьер | 3 |
 
 ### PlacementRule
 
@@ -104,8 +108,6 @@ Castle Heart состоит из платформы (Slate, 8×2×8), пьеде
 | stone_wall | Wall | 8×8×2 | Slate | 400 | 8 stone | — |
 | wooden_wall | Wall | 8×8×2 | WoodPlanks | 250 | 4 plank | — |
 | stone_pillar | Wall | 2×8×2 | Slate | 600 | 6 stone | — |
-| wooden_roof | Roof | 8×1×8 | WoodPlanks | 200 | 4 plank | IsShelter |
-| stone_roof | Roof | 8×1×8 | Slate | 400 | 8 stone | IsShelter |
 | wooden_door | Functional | 8×8×1 | Wood | 150 | 3 plank | Door |
 | castle_chest | Functional | 4×4×4 | WoodPlanks | 100 | 6 plank + 2 stone | Chest |
 | workbench | Functional | 6×4×4 | WoodPlanks | 150 | 8 plank + 4 stone | Workbench |
@@ -113,6 +115,9 @@ Castle Heart состоит из платформы (Slate, 8×2×8), пьеде
 | coffin | Functional | 4×2×8 | Wood | 200 | 10 plank + 20 blood_essence | Coffin |
 | sawmill | Functional | 16×4×8 | WoodPlanks | 200 | 12 plank + 8 stone | Station (Sawmill) |
 | crusher | Functional | 16×4×8 | Slate | 200 | 20 stone + 4 plank | Station (Crusher) |
+| stone_wall_doorway | Wall | 8×8×2 | Slate | 350 | 6 stone | Doorway (Model: 2 колонны + перемычка, проём 4×5) |
+| wooden_wall_doorway | Wall | 8×8×2 | WoodPlanks | 200 | 3 plank | Doorway |
+| workbench | Functional | 6×4×4 | WoodPlanks | 150 | 8 plank + 4 stone | CraftStation (Workbench) |
 
 ---
 
@@ -127,9 +132,21 @@ Castle Heart состоит из платформы (Slate, 8×2×8), пьеде
 | Door | DoorHandler | Открытие/закрытие двери |
 | Chest | ChestHandler | Контейнер хранения (→ ContainerUI) |
 | Station | StationHandler | Перерабатывающая станция (→ StationUI) |
-| Workbench | — | Зарезервировано |
-| BloodAltar | — | Зарезервировано |
-| Coffin | — | Точка респавна (обрабатывается BuildingManager) |
+| CraftStation | CraftStationHandler | Крафтовая станция (→ CraftStationUI) |
+| Coffin | CoffinHandler | Точка респавна (привязка через F) |
+| Doorway | — (заглушка) | Стена с дверным проёмом, не интерактивна |
+
+### Укрытие от солнца
+
+DayNightManager.isInShelter() проверяет два условия: (1) raycast вниз — игрок стоит на фундаменте или Castle Heart; (2) raycast к солнцу — любой объект (дерево, скала, строение) блокирует солнечный луч. Если хотя бы одно условие выполнено, дебафф sunlight_exposure не применяется (с учётом ShelterGracePeriod 3с). Блоки крыши убраны из конфигурации.
+
+### Разбор блоков (Dismantle)
+
+Зажатие ПКМ на блоке замка (1 секунда) разбирает блок с возвратом 100% ресурсов. Красная подсветка и прогресс-бар показывают процесс. Перед началом клиент вызывает CanDismantleBlock (RemoteFunction) для мгновенной проверки: прав доступа, наличия предметов в контейнере/станции, и для Castle Heart — что все блоки уже удалены. Дальность: DISMANTLE_RANGE = 50 studs.
+
+### Гроб (CoffinHandler)
+
+Игрок привязывается к гробу нажатием F. Одна привязка на игрока. При смерти игрок респавнится перед привязанным гробом (HealthManager → CoffinHandler.getRespawnPosition). При разрушении гроба привязка снимается, игроку приходит уведомление. Лимит гробов определяется уровнем Castle Heart (MaxCoffins).
 
 ### Двери (DoorHandler)
 
@@ -268,11 +285,11 @@ WindowManager интеграция: `push("StationUI", closeFn)` при откр
 | Functional | Текст |
 |---|---|
 | Door | [F] Открыть / Закрыть |
-| Chest | (исключён — ContainerUI) |
+| Chest | [F] Открыть сундук |
 | Station | [F] Открыть станцию |
-| Workbench | [F] Верстак |
+| CraftStation | [F] Открыть станцию |
 | BloodAltar | [F] Алтарь крови |
-| Coffin | [F] Гроб |
+| Coffin | [F] Привязаться к гробу |
 
 ---
 
@@ -308,7 +325,7 @@ CastleBorder управляет правами:
 
 ## Экономика
 
-Размещение блока расходует материалы (`Cost` в BlockTypes). Удаление возвращает `RemoveRefundRate` (50%) стоимости. Сетка: GridSize = 8 studs.
+Размещение блока расходует материалы (`Cost` в BlockTypes). Удаление через урон не возвращает ресурсы. Разбор (ПКМ зажатие) возвращает 100% стоимости. Сетка: GridSize = 8 studs.
 
 ---
 

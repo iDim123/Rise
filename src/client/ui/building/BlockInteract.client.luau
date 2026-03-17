@@ -12,7 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
-
+local NotifyModule = require(script.Parent.Parent:WaitForChild("NotifyModule"))
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local mouse = player:GetMouse()

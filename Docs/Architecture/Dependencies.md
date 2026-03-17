@@ -11,7 +11,10 @@
 
 Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager, BuildingManager
 
-PlayerLifecycle.server.luau └── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager, BossManager, ServantManager, HealthManager, StatsManager, EventBus
+PlayerLifecycle.server.luau
+└── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager,
+             BossManager, ServantManager, HealthManager, StatsManager, EventBus,
+             BuildingManager, CoffinHandler
 
 BuildingServer.server.luau └── require: BuildingManager, CastleBorder, FunctionalDispatcher, Remotes, EventBus
 
@@ -20,11 +23,27 @@ BuildingServer.server.luau └── require: BuildingManager, CastleBorder, Fun
 
 BuildingManager ├── Config (BuildingConfig) ├── Remotes ├── EventBus ├── BuildingValidator ├── BlockHealth ├── CastleBorder ├── CastleHeartManager ├── FunctionalDispatcher ├── InventoryManager (lazy) └── InventorySync (lazy)
 
-FunctionalDispatcher ├── Config ├── DoorHandler ├── ChestHandler └── StationHandler
+FunctionalDispatcher
+├── Config
+├── DoorHandler
+├── ChestHandler
+├── StationHandler
+├── CraftStationHandler
+└── CoffinHandler
 
-StationHandler ├── Config (StationConfig, CraftConfig, Items) ├── Remotes ├── CastleBorder ├── LootManager (lazy) ├── InventoryManager (lazy) └── InventorySync (lazy)
+CraftStationHandler
+├── Config (StationConfig, CraftConfig, Items)
+├── Remotes
+├── CastleBorder
+├── LootManager (lazy)
+├── InventoryManager (lazy)
+└── InventorySync (lazy)
 
-ChestHandler ├── Config ├── Remotes ├── CastleBorder ├── LootManager (lazy) ├── InventoryManager (lazy) └── InventorySync (lazy)
+CoffinHandler
+├── Config
+├── Remotes
+├── CastleBorder
+└── HealthManager
 
 BuildingSerializer ├── Config └── vec3 helpers (standalone)
 
@@ -244,10 +263,21 @@ StationUI.client.luau
 ├── DragManager (из character/)
 └── RunService
 
+CraftStationUI.client.luau
+├── Config
+├── Remotes
+├── UIConstants (из character/)
+├── ItemTooltip (из tooltip/)
+├── WindowManager
+├── DragManager (из character/)
+└── RunService
+
 BlockInteract.client.luau
 ├── Config
 ├── Remotes
+├── NotifyModule
 └── RunService
+
 UI — Способности (client/ui/abilities/)
 AbilitiesBar.client.luau
 ├── Config

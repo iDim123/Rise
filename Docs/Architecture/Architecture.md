@@ -118,16 +118,18 @@ src/
 │   │   │   ├── ServantManager.luau
 │   │   │   └── ServantEquipment.luau
 │   │   └── building/               # Строительная система (→ Systems_Building.md)
-│   │       ├── BuildingManager.luau       # CRUD замков, блоков, экономика
-│   │       ├── BuildingValidator.luau     # Валидация размещения
-│   │       ├── BuildingSerializer.luau    # Сериализация DataStore (блоки, контейнеры, станции)
-│   │       ├── CastleBorder.luau          # Claim-территория, коллизии, права
-│   │       ├── CastleHeartManager.luau    # Визуал Castle Heart (орб, свет)
-│   │       ├── BlockHealth.luau           # HP блоков, урон, разрушение
-│   │       ├── FunctionalDispatcher.luau  # Маршрутизатор: Door, Chest, Station → хендлеры
-│   │       ├── DoorHandler.luau           # Двери: открытие/закрытие
-│   │       ├── ChestHandler.luau          # Сундуки: слоты, deposit, take
-│   │       └── StationHandler.luau        # Универсальный обработчик станций (Sawmill, Crusher, ...)
+│   │       ├── BuildingManager.luau
+│   │       ├── BuildingValidator.luau
+│   │       ├── BuildingSerializer.luau
+│   │       ├── CastleBorder.luau
+│   │       ├── CastleHeartManager.luau
+│   │       ├── BlockHealth.luau
+│   │       ├── FunctionalDispatcher.luau
+│   │       ├── DoorHandler.luau
+│   │       ├── ChestHandler.luau
+│   │       ├── StationHandler.luau
+│   │       ├── CraftStationHandler.luau
+│   │       └── CoffinHandler.luau
 │   ├── combat/                     # Боевые модули (→ Systems_Combat.md)
 │   │   ├── CombatManager.server.luau  # + BeamUpdate handler
 │   │   ├── WeaponUtil.luau
@@ -201,11 +203,13 @@ src/
         ├── ContainerUI.client.luau
         ├── ContainerAnimator.client.luau
         ├── WindowManager.luau              # Стек окон: push/remove, Escape-закрытие
-        ├── building/                        # Строительный UI (→ Systems_Building.md)
-        │   ├── BuildingMenu.client.luau     # UI строительства (B): категории, Castle Heart, delete mode
-        │   ├── BuildingPlacer.luau          # Ghost-preview, snap-to-grid, валидация, isActive()
-        │   ├── StationUI.client.luau        # Универсальный UI станций (Sawmill, Crusher, ...)
-        │   └── BlockInteract.client.luau    # Подсказка [F] и InteractBlock для функц. блоков
+        ├── building/
+        │   ├── BuildingMenu.client.luau
+        │   ├── BuildingPlacer.luau
+        │   ├── BuildingConstants.luau
+        │   ├── StationUI.client.luau
+        │   ├── CraftStationUI.client.luau
+        │   └── BlockInteract.client.luau
         ├── abilities/                       # Панель способностей (секционная архитектура)
         │   ├── AbilitiesBar.client.luau     # Оркестратор: собирает секции
         │   ├── AbilitiesConstants.luau      # Константы стилей
@@ -327,7 +331,7 @@ src/
 
 ### Система строительства (v1.9)
 
-Замки размещаются через Castle Heart (claim-территория с уровнями). Блоки категоризированы: Foundation, Wall, Roof, Functional. Функциональные блоки маршрутизируются через FunctionalDispatcher: Door (открытие/закрытие), Chest (слоты хранилища), Station (универсальные перерабатывающие станции). Станции определяются полем `Functional = "Station"` + `FunctionalData.StationType` в BuildingConfig. StationHandler обслуживает все типы станций (Sawmill, Crusher) через единый код — рецепты фильтруются по `recipe.Station == stationType`. Крафт-цикл привязан к RunService.Heartbeat. Права доступа управляются через CastleBorder (союзники, кооперативная стройка). Сериализация: BuildingSerializer сохраняет блоки + контейнеры + станции в DataStore. BuildingMenu (клавиша B) управляет размещением блоков через BuildingPlacer (ghost-preview, snap-to-grid). StationUI поддерживает полноценный drag-and-drop между слотами станции и инвентарём.
+Замки размещаются через Castle Heart (claim-территория с уровнями). Блоки категоризированы: Foundation, Wall, Functional. Функциональные блоки маршрутизируются через FunctionalDispatcher: Door (открытие/закрытие), Chest (слоты хранилища), Station (универсальные перерабатывающие станции). Станции определяются полем `Functional = "Station"` + `FunctionalData.StationType` в BuildingConfig. StationHandler обслуживает все типы станций (Sawmill, Crusher) через единый код — рецепты фильтруются по `recipe.Station == stationType`. Крафт-цикл привязан к RunService.Heartbeat. Права доступа управляются через CastleBorder (союзники, кооперативная стройка). Сериализация: BuildingSerializer сохраняет блоки + контейнеры + станции в DataStore. BuildingMenu (клавиша B) управляет размещением блоков через BuildingPlacer (ghost-preview, snap-to-grid). StationUI поддерживает полноценный drag-and-drop между слотами станции и инвентарём.
 
 ### DataStore (v1.7+)
 
@@ -356,6 +360,7 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | F | Выпить кровь / подобрать лут / добить босса / взаимодействие с блоком |
 | T | Захватить врага / захватить босса |
 | ПКМ (зажатие) | Вращение камеры |
+| ПКМ (зажатие на блоке) | Разбор блока замка (1с, 100% возврат) |
 | ПКМ на слоте инвентаря | Экипировать / использовать / deposit в станцию или сундук |
 | ПКМ на слоте станции | Забрать предмет в инвентарь |
 | ЛКМ на слоте станции | Начать drag (перетаскивание) |

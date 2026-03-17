@@ -144,6 +144,10 @@ Damage modifier ограничен ±100%, минимальный урон — 1
 
 ## Система смерти
 
+### Респавн
+
+При нажатии кнопки «Возродиться» клиент отправляет `PlayerRespawn` remote. Сервер (HealthManager) проверяет привязку к гробу через `CoffinHandler.getRespawnPosition(userId)`. Если привязка есть — персонаж телепортируется к позиции перед гробом после загрузки. Если нет — стандартный респавн.
+
 ### Серверная логика
 
 При HP = 0 `HealthManager.die()` выполняет следующее:
@@ -228,6 +232,8 @@ Damage modifier ограничен ±100%, минимальный урон — 1
 | BossEssence | BossPlayerData |
 | UnlockedTechs | BossPlayerData |
 | Servants | ServantManager |
+| Magic (SpellPoints, Learned, Equipped, ClaimedRewards) | SpellProgressManager |
+| Castle (CenterPos, Claim, BloodEssence, Blocks, Containers, Stations) | BuildingManager |
 
 ### Жизненный цикл
 

@@ -31,6 +31,7 @@
 | 805 | ServantWindowGui | ServantWindow |
 | 810 | AbilitiesBarGui | AbilitiesBar |
 | 815 | StationGui | StationUI (перерабатывающие станции) |
+| 817 | CraftStationGui | CraftStationUI (крафтовые станции) |
 | 820 | ContainerGui | ContainerUI |
 | 850 | CaptureGui | CaptureUI |
 | 900 | AbilityTooltipGui | AbilityTooltip |
@@ -98,6 +99,8 @@ HP bar, XP bar и круг уровня активного слуги. Расп�
 | Боссы | Фиолетовый | Боссы |
 | Игроки | Синий | Другие игроки |
 | Ресурсы | Жёлтый | Ресурсные ноды |
+| Свой замок | Золотой | Castle Heart своего замка |
+| Чужие замки | Фиолетовый | Castle Heart других игроков |
 
 Dot pool для производительности — переиспользование UI элементов вместо создания новых.
 
@@ -203,7 +206,13 @@ UI для контейнеров (сундуки). Сетка слотов. `Con
 
 Файл: `building/BlockInteract.client.luau`
 
-Сканирует ближайшие функциональные блоки (исключая Chest — обрабатывается ContainerUI) каждые 0.15с. При обнаружении показывает Billboard-подсказку ([F] Открыть станцию, [F] Открыть / Закрыть и т.д.). Нажатие F → `InteractBlock:FireServer(blockId)`.
+Две функции: (1) Сканирует ближайшие функциональные блоки каждые 0.15с, показывает Billboard-подсказку [F], нажатие F → InteractBlock. (2) ПКМ зажатие 1с на блоке замка → разбор (Dismantle): красная подсветка (Highlight), прогресс-бар (Billboard), предварительная проверка CanDismantleBlock, затем DismantleBlock remote. Дальность разбора: 50 studs.
+
+### CraftStationUI
+
+Файл: `building/CraftStationUI.client.luau`
+
+UI крафтовых станций (Workbench и будущие). DisplayOrder 817. Рецепты в 2 колонки, контейнер-слоты (1 ряд), tooltip с подсчётом ресурсов (контейнер + инвентарь), прогресс-бар текущего крафта, badge очереди. При открытии автоматически открывает CharacterWindow. WindowManager интеграция.
 
 ### WindowManager
 
@@ -293,7 +302,7 @@ Tooltip способностей. Отдельный ScreenGui с DisplayOrder 9
 
 Файл: `MenuBar.luau` + `MenuBarInit.client.luau`
 
-Иконки меню в правом нижнем углу. Открывают окна (Boss Journal и т.д.).
+Иконки меню в правом нижнем углу. Кнопки: Персонаж (C), Слуга (V), Строительство (B), Журнал (J). Каждая кнопка с callback для toggle соответствующего окна.
 
 ---
 

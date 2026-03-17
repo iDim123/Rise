@@ -211,3 +211,22 @@
 | GetSpellData | Client → Server | spellProgressData | Полные данные прогресса магии |
 | GetBuildings | Client → Server | blocksArray | Блоки замка игрока |
 | GetCastleHeartInfo | Client → Server | heartInfoTable | Данные Castle Heart (уровень, HP, BloodEssence, права, союзники) |
+| CanDismantleBlock | Client → Server | (ok: bool, err: string?) | Проверка возможности разбора блока |
+
+### Крафтовые станции (v1.9)
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| CraftStationOpened | Server → Client | payload: { StationId, StationType, StationName, Slots, Recipes, Crafting, QueueCount } | Крафтовая станция открыта |
+| CraftStationUpdate | Server → Client | payload: { StationId, Slots, Crafting, QueueCount } | Обновление состояния |
+| CraftStationClosed | Server → Client | stationId: string | Станция закрыта сервером |
+| CraftStationDeposit | Client → Server | stationId: string, inventorySlotIndex: number | Положить предмет в станцию |
+| CraftStationTakeItem | Client → Server | stationId: string, slotIndex: number | Забрать предмет из станции |
+| CraftStationCraft | Client → Server | stationId: string, recipeId: string | Поставить рецепт в очередь |
+| CraftStationClose | Client → Server | stationId: string | Закрыть UI |
+
+### Разбор блоков (v1.9)
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| DismantleBlock | Client → Server | blockId: string | Разобрать блок (или "__CASTLE_HEART__") |
