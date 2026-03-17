@@ -498,7 +498,7 @@ function StationHandler.depositToInput(player, stationId, inventorySlotIndex)
 
     local deposited = amount - remaining
     if deposited > 0 then
-        InventoryManager.removeItemBySlot(player, inventorySlotIndex, deposited)
+        InventoryManager.removeItem(player, inventorySlotIndex, deposited)
         local InventorySync = require(modules:WaitForChild("InventorySync"))
         InventorySync.sendFullUpdate(player)
         notifyViewers(data)
