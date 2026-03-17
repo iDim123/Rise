@@ -31,7 +31,7 @@
 | Блоки | PlaceBlock, RemoveBlock |
 | Permissions | SetBuildPermission, AddBuildAlly, RemoveBuildAlly |
 | Interact | InteractBlock → FunctionalDispatcher.interact() |
-| Станции | StationDeposit, StationTakeItem, StationTakeAll, StationToggleRecipe, StationClose |
+| Станции | StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose |
 | Запросы | GetBuildings (RemoteFunction), GetCastleHeartInfo (RemoteFunction) |
 
 Rate-limit 0.3с на мутирующие операции. Cleanup при PlayerRemoving и PlayerCleanup EventBus.
@@ -40,7 +40,9 @@ Rate-limit 0.3с на мутирующие операции. Cleanup при Play
 
 | Модуль | Назначение |
 |---|---|
-| StationUI.client.luau | Универсальный UI станций: рецепты (2 колонки с toggle), input/output слоты (4×2), progress bar, Take All |
+| BuildingMenu.client.luau | UI строительства (клавиша B): категории блоков, кнопка Castle Heart, режим удаления |
+| BuildingPlacer.luau | Ghost-preview блока: snap-to-grid, валидация, edge-snap для стен, delete mode, isActive() |
+| StationUI.client.luau | Универсальный UI станций: рецепты (2 колонки с toggle), input/output слоты (4×2) с drag-and-drop, progress bar с клиентской интерполяцией, Take All |
 | BlockInteract.client.luau | Сканирование ближайших функциональных блоков (кроме Chest — обрабатывается ContainerUI), billboard-подсказка [F], отправка InteractBlock |
 
 ### Связанные клиентские модули
@@ -49,6 +51,8 @@ Rate-limit 0.3с на мутирующие операции. Cleanup при Play
 |---|---|
 | WindowManager.luau | Стек окон: StationUI использует push/remove для управления Escape-закрытием |
 | SlotBehavior.luau | ПКМ на слоте инвентаря → deposit в открытую станцию (приоритет 1) или сундук (приоритет 2) |
+| DragManager.luau | Расширен для station drag: source ("inventory", "stationInput", "stationOutput"), extraData ({stationId}), DragLayer ScreenGui (DisplayOrder 1000) |
+| InventoryGrid.luau | Обработка завершения drag из station source → вызов StationTakeInput / StationTakeItem |
 | ContainerUI.client.luau | UI сундуков (отдельный от StationUI) |
 | CharacterWindow.client.luau | Автоматически открывается/закрывается при open/close станции через BindableEvent ToggleCharacterWindow |
 
@@ -137,6 +141,26 @@ Interact переключает состояние открыто/закрыто
 
 ---
 
+## BuildingMenu и BuildingPlacer
+
+### BuildingMenu (клавиша B)
+
+Файл: `client/ui/building/BuildingMenu.client.luau`
+
+UI для размещения блоков и Castle Heart. Категории: Foundation, Wall, Roof, Functional. Каждая категория содержит список блоков со стоимостью. Кнопка «Поставить Сердце замка» — запускает BuildingPlacer в режиме Castle Heart. Режим удаления (Delete Mode) — позволяет удалять блоки кликом.
+
+При закрытии меню (`closeBuildingMenu`) проверяется `BuildingPlacer.isActive()` — если placer активен (игрок размещает блок), cleanup не вызывается, чтобы не уничтожить ghost-preview.
+
+### BuildingPlacer
+
+Файл: `client/ui/building/BuildingPlacer.luau`
+
+Ghost-preview блока, следующий за курсором с привязкой к сетке (GridSize = 8). Валидация размещения (цвет ghost: зелёный — можно, красный — нельзя). Edge-snap для стен на фундаментах. Delete mode для удаления блоков.
+
+API: `startPlacing(blockTypeId)` — начать размещение блока. `startPlacingHeart()` — начать размещение Castle Heart. `stopPlacing()` — отменить. `cleanup()` — полная очистка. `isActive()` — возвращает true если ghost-модель существует (используется BuildingMenu для безопасного закрытия).
+
+---
+
 ## Перерабатывающие станции
 
 ### Концепция
@@ -196,6 +220,7 @@ API StationHandler:
 | interact(player, part, blockData, castle) | Открыть UI для игрока (StationOpened remote) |
 | onDestroy(part, blockId) | Дропнуть содержимое, уведомить viewers, очистить |
 | depositToInput(player, stationId, slotIndex) | Переложить из инвентаря в input станции |
+| takeFromInput(player, stationId, slotIndex) | Забрать из input в инвентарь |
 | takeFromOutput(player, stationId, slotIndex) | Забрать из output в инвентарь |
 | takeAllOutput(player, stationId) | Забрать всё из output |
 | toggleRecipe(player, stationId, recipeId) | Вкл/выкл рецепт. Если отключён текущий крафт — отменить и вернуть ингредиенты |
@@ -217,10 +242,14 @@ ScreenGui "StationGui", DisplayOrder 815. Расположен справа (RIG
 |---|---|
 | Заголовок | Название станции из payload.StationName, кнопка закрытия |
 | Рецепты | ScrollingFrame, 2 колонки. Каждый рецепт: toggle (вкл/выкл), иконка результата, название |
-| Progress Bar | Текущий крафт: название, elapsed/duration |
-| Input (Вход) | 4×2 слотов — сюда кладутся ингредиенты (ПКМ из инвентаря) |
-| Output (Выход) | 4×2 слотов — отсюда забирается результат (клик) |
+| Progress Bar | Текущий крафт: название, elapsed/duration. Клиентская интерполяция через RenderStepped (os.clock) |
+| Input (Вход) | 4×2 слотов. ЛКМ — начать drag (source="stationInput"), ПКМ — забрать в инвентарь (StationTakeInput). Drop target для drag из инвентаря (StationDeposit) |
+| Output (Выход) | 4×2 слотов. ЛКМ — начать drag (source="stationOutput"), ПКМ — забрать в инвентарь (StationTakeItem) |
 | Забрать всё | Кнопка: забирает весь output в инвентарь |
+
+Слоты станции ведут себя аналогично слотам инвентаря: ЛКМ начинает drag с ghost-элементом, ПКМ мгновенно забирает предмет. При drag из инвентаря на input-слот — deposit. Hover-подсветка (зелёная) при drag над input-слотами.
+
+Progress bar обновляется каждый кадр через RenderStepped: при получении StationUpdate запоминается серверный Elapsed и локальный os.clock(), затем elapsed интерполируется как `startElapsed + (now - startTime)`.
 
 При открытии станции автоматически открывается окно персонажа (CharacterWindow) через BindableEvent. При закрытии — закрывается тоже.
 

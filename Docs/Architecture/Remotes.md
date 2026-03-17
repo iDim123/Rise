@@ -176,6 +176,7 @@
 | StationClosed | Server → Client | stationId: string | Станция закрыта сервером |
 | StationDeposit | Client → Server | stationId: string, inventorySlotIndex: number | Положить предмет из инвентаря в input станции |
 | StationTakeItem | Client → Server | stationId: string, slotIndex: number | Забрать предмет из output |
+| StationTakeInput | Client → Server | stationId: string, slotIndex: number | Забрать предмет из input обратно в инвентарь |
 | StationTakeAll | Client → Server | stationId: string | Забрать весь output |
 | StationToggleRecipe | Client → Server | stationId: string, recipeId: string | Вкл/выкл рецепт |
 | StationClose | Client → Server | stationId: string | Закрыть UI станции |

@@ -11,6 +11,7 @@ local UC = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("
 local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
 local DragManager = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("DragManager"))
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -51,15 +52,18 @@ local TEXT_COLOR = UC.textColor
 local TOGGLE_ON = Color3.fromRGB(50, 180, 50)
 local TOGGLE_OFF = Color3.fromRGB(180, 50, 50)
 local PROGRESS_BG = Color3.fromRGB(30, 30, 40)
-local PROGRESS_FILL = Color3.fromRGB(80, 200, 80)
+local PROGRESS_FILL = Color3.fromRGB(204, 38, 40)
 local GOLD_COLOR = Color3.fromRGB(220, 190, 80)
 local LABEL_DIM = Color3.fromRGB(150, 150, 170)
 local PROGRESS_H = 22
 
-local RIGHT_MARGIN = 260
+local RIGHT_MARGIN = 40
 local TOP_OFFSET = 40
 
 local DROP_HIGHLIGHT = Color3.fromRGB(80, 140, 80)
+
+local craftStartTime = 0
+local craftStartElapsed = 0
 
 -- ═══ ScreenGui ═══
 local screenGui = Instance.new("ScreenGui")
@@ -556,7 +560,9 @@ end
 
 local function updateProgress()
     if currentCrafting and currentCrafting.Duration and currentCrafting.Duration > 0 then
-        local ratio = math.clamp((currentCrafting.Elapsed or 0) / currentCrafting.Duration, 0, 1)
+        local now = os.clock()
+        local elapsed = craftStartElapsed + (now - craftStartTime)
+        local ratio = math.clamp(elapsed / currentCrafting.Duration, 0, 1)
         progressFill.Size = UDim2.new(ratio, 0, 1, 0)
         local recipeName = currentCrafting.RecipeId
         for _, r in currentRecipes do
@@ -565,9 +571,9 @@ local function updateProgress()
                 break
             end
         end
-        local elapsed = math.floor((currentCrafting.Elapsed or 0) * 10) / 10
+        local dispElapsed = math.floor(elapsed * 10) / 10
         local duration = math.floor(currentCrafting.Duration * 10) / 10
-        progressLabel.Text = recipeName .. "  " .. elapsed .. "s / " .. duration .. "s"
+        progressLabel.Text = recipeName .. "  " .. dispElapsed .. "s / " .. duration .. "s"
     else
         progressFill.Size = UDim2.new(0, 0, 1, 0)
         progressLabel.Text = "Ожидание..."
@@ -639,6 +645,10 @@ local function openStation(payload)
         closeStation()
     end)
 
+    if currentCrafting then
+        craftStartElapsed = currentCrafting.Elapsed or 0
+        craftStartTime = os.clock()
+    end
     syncState()
 end
 
@@ -655,6 +665,10 @@ Remotes.StationUpdate.OnClientEvent:Connect(function(payload)
     currentOutputSlots = payload.OutputSlots or currentOutputSlots
     currentRecipeToggles = payload.RecipeToggles or currentRecipeToggles
     currentCrafting = payload.Crafting
+    if currentCrafting then
+        craftStartElapsed = currentCrafting.Elapsed or 0
+        craftStartTime = os.clock()
+    end
     refreshAll()
 end)
 
@@ -678,5 +692,12 @@ end)
 btnTakeAll.MouseButton1Click:Connect(function()
     if currentStationId then
         Remotes.StationTakeAll:FireServer(currentStationId)
+    end
+end)
+
+local RunService = game:GetService("RunService")
+RunService.RenderStepped:Connect(function()
+    if isOpen and currentCrafting then
+        updateProgress()
     end
 end)

@@ -32,7 +32,240 @@
 
 ## Структура файлов
 
-src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Коллектор: require всех config/* модулей │ ├── Remotes.luau # Единый реестр RemoteEvent/RemoteFunction │ ├── LevelColorUtil.luau # Цвет уровня по разнице │ ├── EnemyUtil.luau # getHead() для headless моделей │ └── config/ │ ├── PlayerConfig.luau │ ├── EnemyConfig.luau │ ├── WeaponConfig.luau # Коллектор: собирает weapons/* подмодули │ ├── ProjectileConfig.luau # Снаряды: arrow, power_arrow, rain_arrow, shadowbolt, chaos_bolt, void_orb, chaos_barrage_bolt │ ├── SpellConfig.luau # Коллектор: собирает spells/* подмодули + SpellSlots │ ├── weapons/ │ │ ├── SwordConfig.luau │ │ ├── AxeConfig.luau │ │ └── BowConfig.luau │ ├── spells/ # Школы магии (v1.7 Phase 5) │ │ ├── BloodSchool.luau # Blood: школа, пассивка Leech, тир-бонусы, заклинания │ │ └── ChaosSchool.luau # Chaos: школа, пассивка Ignite, тир-бонусы, заклинания │ ├── ItemConfig.luau # Коллектор: собирает items/* подмодули + ItemTypes │ ├── items/ │ │ ├── WeaponItems.luau │ │ ├── ArmorItems.luau │ │ ├── AccessoryItems.luau │ │ ├── ConsumableItems.luau │ │ └── ResourceItems.luau # Blood Essence, Wood, Stone, Rugged Hide, Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick │ ├── BuffConfig.luau │ ├── BloodConfig.luau │ ├── InventoryConfig.luau │ ├── CraftConfig.luau # Рецепты: ручной крафт + станции (Station field) │ ├── ResourceConfig.luau │ ├── LootConfig.luau │ ├── ServantConfig.luau │ ├── StatsConfig.luau │ ├── BossConfig.luau │ ├── BuildingConfig.luau # Строительство: BlockTypes, CastleHeart, Permissions │ ├── StationConfig.luau # Перерабатывающие станции: Sawmill, Crusher │ └── DayNightConfig.luau │ ├── server/ # ServerScriptService │ ├── Main.server.luau # Точка входа: загружает модули для EventBus подписок │ ├── PlayerLifecycle.server.luau # PlayerAdded/Removing, CharacterAdded, BindToClose │ ├── building/ │ │ └── BuildingServer.server.luau # Remote-оркестратор: Castle Heart, блоки, Permissions, InteractBlock, Station remotes │ ├── modules/ │ │ ├── EventBus.luau │ │ ├── HealthManager.luau │ │ ├── BloodManager.luau │ │ ├── InventoryManager.luau │ │ ├── InventorySync.luau │ │ ├── LootManager.luau │ │ ├── LevelManager.luau │ │ ├── EnemySpawner.luau │ │ ├── BuffManager.luau │ │ ├── AbilityManager.luau # Способности Q/E (→ Systems_Combat.md) │ │ ├── CastManager.luau # Каст-система (→ Systems_Combat.md) │ │ ├── ResourceManager.luau │ │ ├── StatsManager.luau │ │ ├── DataService.luau │ │ ├── SpellProgressManager.luau # Spell Points, изучение, экипировка, тировые бонусы │ │ ├── SpellCastManager.luau # Кастование заклинаний, charges, channelling │ │ ├── LeechHandler.luau # Blood пассивка: heal on hit/kill │ │ ├── IgniteHandler.luau # Chaos пассивка: DoT, explosion, chain │ │ ├── spellEffects/ # Обработчики эффектов заклинаний │ │ │ ├── ProjectileEffect.luau │ │ │ ├── MultiProjectileEffect.luau │ │ │ ├── ChannelledProjectileEffect.luau │ │ │ ├── TargetAreaProjectileEffect.luau │ │ │ ├── AoEDamageEffect.luau │ │ │ ├── AoEHealEffect.luau │ │ │ ├── AoEBuffEffect.luau │ │ │ ├── AoEApplyPassiveEffect.luau │ │ │ ├── BeamEffect.luau │ │ │ ├── BlockEffect.luau │ │ │ ├── FrontalBlockEffect.luau │ │ │ ├── ImmaterialEffect.luau │ │ │ ├── HealCasterEffect.luau │ │ │ └── PullEffect.luau │ │ ├── boss/ │ │ │ ├── BossManager.luau │ │ │ ├── BossPlayerData.luau │ │ │ └── BossInteraction.luau │ │ ├── servant/ │ │ │ ├── ServantManager.luau │ │ │ └── ServantEquipment.luau │ │ └── building/ # Строительная система (→ Systems_Building.md) │ │ ├── BuildingManager.luau # CRUD замков, блоков, экономика │ │ ├── BuildingValidator.luau # Валидация размещения │ │ ├── BuildingSerializer.luau # Сериализация DataStore (блоки, контейнеры, станции) │ │ ├── CastleBorder.luau # Claim-территория, коллизии, права │ │ ├── CastleHeartManager.luau # Визуал Castle Heart (орб, свет) │ │ ├── BlockHealth.luau # HP блоков, урон, разрушение │ │ ├── FunctionalDispatcher.luau # Маршрутизатор: Door, Chest, Station → хендлеры │ │ ├── DoorHandler.luau # Двери: открытие/закрытие │ │ ├── ChestHandler.luau # Сундуки: слоты, deposit, take │ │ └── StationHandler.luau # Универсальный обработчик станций (Sawmill, Crusher, ...) │ ├── combat/ # Боевые модули (→ Systems_Combat.md) │ │ ├── CombatManager.server.luau # + BeamUpdate handler │ │ ├── WeaponUtil.luau │ │ ├── DamageCalc.luau │ │ ├── TargetFinder.luau │ │ ├── ResourceHit.luau │ │ ├── MeleeHandler.luau │ │ ├── RangedHandler.luau │ │ └── ProjectileManager.luau │ ├── blood/ │ │ └── BloodServer.server.luau │ ├── debug/ │ │ └── DebugCommands.server.luau # + /spellpoint │ ├── enemy/ │ │ ├── EnemyAI.server.luau │ │ ├── EnemyBehaviors.luau │ │ ├── EnemyTargeting.luau │ │ ├── EnemyStateManager.luau │ │ ├── EnemyManager.server.luau │ │ ├── BossServer.server.luau │ │ ├── BossBehaviors.luau │ │ └── BossAbilities.luau │ ├── inventory/ │ │ ├── InventoryServer.server.luau │ │ ├── WeaponHandler.luau │ │ ├── CraftHandler.luau │ │ └── UseItemHandler.luau │ ├── loot/ │ │ └── LootServer.server.luau │ ├── resource/ │ │ └── ResourceSpawner.server.luau │ └── servant/ │ ├── ServantServer.server.luau │ └── ServantAI.server.luau │ └── client/ # StarterPlayerScripts ├── camera/ │ └── IsometricCamera.client.luau ├── combat/ # (→ Systems_Combat.md) │ ├── CombatInput.client.luau │ ├── MeleeInput.luau │ ├── RangedInput.luau │ ├── ProjectileVisuals.client.luau │ ├── DamageNumbers.client.luau │ ├── BeamVisual.client.luau # Визуализация Beam заклинаний │ └── SpellVFX.client.luau # VFX для всех spell эффектов ├── debug/ │ └── DebugKeys.client.luau ├── input/ │ └── MouseLook.client.luau └── ui/ # (→ Systems_UI.md) ├── BloodPoolUI.client.luau ├── EnemyLabels.client.luau ├── BuffBar.client.luau ├── PlayerHPBlock.client.luau ├── ServantHPBlock.client.luau ├── TargetInfo.client.luau ├── EnemyHPBar.client.luau ├── ResourceNumbers.client.luau ├── CaptureUI.client.luau ├── CastBar.client.luau ├── CoreGuiSetup.client.luau ├── LootUI.client.luau ├── DeathScreen.client.luau ├── DayNightHUD.client.luau ├── Minimap.client.luau ├── MenuBar.luau ├── MenuBarInit.client.luau ├── NotifyModule.luau ├── NotifyListener.client.luau ├── ContainerUI.client.luau ├── ContainerAnimator.client.luau ├── WindowManager.luau # Стек окон: push/remove, Escape-закрытие ├── building/ # Строительный UI (→ Systems_Building.md) │ ├── StationUI.client.luau # Универсальный UI станций (Sawmill, Crusher, ...) │ └── BlockInteract.client.luau # Подсказка [F] и InteractBlock для функц. блоков ├── abilities/ # Панель способностей (секционная архитектура) │ ├── AbilitiesBar.client.luau # Оркестратор: собирает секции │ ├── AbilitiesConstants.luau # Константы стилей │ ├── SlotFactory.luau # Фабрика UI-слотов │ ├── MouseUtil.luau # getMouseWorldPosition │ ├── AbilityTooltip.luau │ ├── AbilityCooldowns.luau │ ├── WeaponSection.luau # LMB, Q, E, Space │ ├── SpellSection.luau # R, G (Basic заклинания) │ ├── UltimateSection.luau # Z (Ultimate заклинания) │ ├── ClassSection.luau # X (зарезервировано) │ └── SpellAimSender.luau # Отправка позиции курсора при касте ├── journal/ # Журнал (табы: Bosses, Spellbook) │ ├── JournalInit.client.luau # Точка входа │ ├── JournalWindow.luau # Общее окно с табами │ ├── JournalConstants.luau # Общие константы │ ├── bosses/ # Журнал боссов │ │ ├── BossesPage.luau │ │ ├── BossCard.luau │ │ ├── BossTooltip.luau │ │ └── ActTabs.luau │ └── spellbook/ # Книга заклинаний │ ├── SpellbookPage.luau │ ├── SpellbookConstants.luau │ ├── SchoolTabs.luau │ ├── SchoolInfoPanel.luau │ ├── TierProgressBar.luau │ ├── SpellGrid.luau │ ├── SpellCard.luau │ ├── SpellDetailPanel.luau │ ├── SpellDetailBuilder.luau │ ├── SpellDetailLearn.luau │ ├── SpellDetailEquip.luau │ └── SpellSlotBar.luau ├── servant/ │ ├── ServantWindow.client.luau │ ├── ServantCollection.luau │ ├── ServantStatsPanel.luau │ ├── ServantEquipPanel.luau │ └── ServantActionBar.luau └── character/ ├── CharacterWindow.client.luau ├── UIConstants.luau ├── SlotFactory.luau ├── SlotBehavior.luau ├── DragManager.luau ├── EquipmentPanel.luau ├── CraftPanel.luau ├── InventoryGrid.luau ├── ActionBarHUD.luau ├── CooldownManager.luau ├── AttributesPanel.luau ├── BloodPoolPanel.luau └── tooltip/ ├── init.luau ├── TooltipConstants.luau ├── TooltipHeader.luau ├── TooltipAttributes.luau ├── TooltipDescription.luau └── TooltipFooter.luau
+src/
+├── shared/                         # ReplicatedStorage
+│   ├── Config.luau                 # Коллектор: require всех config/* модулей
+│   ├── Remotes.luau                # Единый реестр RemoteEvent/RemoteFunction
+│   ├── LevelColorUtil.luau         # Цвет уровня по разнице
+│   ├── EnemyUtil.luau              # getHead() для headless моделей
+│   └── config/
+│       ├── PlayerConfig.luau
+│       ├── EnemyConfig.luau
+│       ├── WeaponConfig.luau       # Коллектор: собирает weapons/* подмодули
+│       ├── ProjectileConfig.luau   # Снаряды: arrow, power_arrow, rain_arrow, shadowbolt, chaos_bolt, void_orb, chaos_barrage_bolt
+│       ├── SpellConfig.luau        # Коллектор: собирает spells/* подмодули + SpellSlots
+│       ├── weapons/
+│       │   ├── SwordConfig.luau
+│       │   ├── AxeConfig.luau
+│       │   └── BowConfig.luau
+│       ├── spells/                 # Школы магии (v1.7 Phase 5)
+│       │   ├── BloodSchool.luau    # Blood: школа, пассивка Leech, тир-бонусы, заклинания
+│       │   └── ChaosSchool.luau    # Chaos: школа, пассивка Ignite, тир-бонусы, заклинания
+│       ├── ItemConfig.luau         # Коллектор: собирает items/* подмодули + ItemTypes
+│       ├── items/
+│       │   ├── WeaponItems.luau
+│       │   ├── ArmorItems.luau
+│       │   ├── AccessoryItems.luau
+│       │   ├── ConsumableItems.luau
+│       │   └── ResourceItems.luau  # Blood Essence, Wood, Stone, Rugged Hide, Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick
+│       ├── BuffConfig.luau
+│       ├── BloodConfig.luau
+│       ├── InventoryConfig.luau
+│       ├── CraftConfig.luau        # Рецепты: ручной крафт + станции (Station field)
+│       ├── ResourceConfig.luau
+│       ├── LootConfig.luau
+│       ├── ServantConfig.luau
+│       ├── StatsConfig.luau
+│       ├── BossConfig.luau
+│       ├── BuildingConfig.luau     # Строительство: BlockTypes, CastleHeart, Permissions
+│       ├── StationConfig.luau      # Перерабатывающие станции: Sawmill, Crusher
+│       └── DayNightConfig.luau
+│
+├── server/                         # ServerScriptService
+│   ├── Main.server.luau            # Точка входа: загружает модули для EventBus подписок
+│   ├── PlayerLifecycle.server.luau # PlayerAdded/Removing, CharacterAdded, BindToClose
+│   ├── building/
+│   │   └── BuildingServer.server.luau  # Remote-оркестратор: Castle Heart, блоки, Permissions, InteractBlock, Station remotes
+│   ├── modules/
+│   │   ├── EventBus.luau
+│   │   ├── HealthManager.luau
+│   │   ├── BloodManager.luau
+│   │   ├── InventoryManager.luau
+│   │   ├── InventorySync.luau
+│   │   ├── LootManager.luau
+│   │   ├── LevelManager.luau
+│   │   ├── EnemySpawner.luau
+│   │   ├── BuffManager.luau
+│   │   ├── AbilityManager.luau     # Способности Q/E (→ Systems_Combat.md)
+│   │   ├── CastManager.luau        # Каст-система (→ Systems_Combat.md)
+│   │   ├── ResourceManager.luau
+│   │   ├── StatsManager.luau
+│   │   ├── DataService.luau
+│   │   ├── SpellProgressManager.luau # Spell Points, изучение, экипировка, тировые бонусы
+│   │   ├── SpellCastManager.luau   # Кастование заклинаний, charges, channelling
+│   │   ├── LeechHandler.luau       # Blood пассивка: heal on hit/kill
+│   │   ├── IgniteHandler.luau      # Chaos пассивка: DoT, explosion, chain
+│   │   ├── spellEffects/           # Обработчики эффектов заклинаний
+│   │   │   ├── ProjectileEffect.luau
+│   │   │   ├── MultiProjectileEffect.luau
+│   │   │   ├── ChannelledProjectileEffect.luau
+│   │   │   ├── TargetAreaProjectileEffect.luau
+│   │   │   ├── AoEDamageEffect.luau
+│   │   │   ├── AoEHealEffect.luau
+│   │   │   ├── AoEBuffEffect.luau
+│   │   │   ├── AoEApplyPassiveEffect.luau
+│   │   │   ├── BeamEffect.luau
+│   │   │   ├── BlockEffect.luau
+│   │   │   ├── FrontalBlockEffect.luau
+│   │   │   ├── ImmaterialEffect.luau
+│   │   │   ├── HealCasterEffect.luau
+│   │   │   └── PullEffect.luau
+│   │   ├── boss/
+│   │   │   ├── BossManager.luau
+│   │   │   ├── BossPlayerData.luau
+│   │   │   └── BossInteraction.luau
+│   │   ├── servant/
+│   │   │   ├── ServantManager.luau
+│   │   │   └── ServantEquipment.luau
+│   │   └── building/               # Строительная система (→ Systems_Building.md)
+│   │       ├── BuildingManager.luau       # CRUD замков, блоков, экономика
+│   │       ├── BuildingValidator.luau     # Валидация размещения
+│   │       ├── BuildingSerializer.luau    # Сериализация DataStore (блоки, контейнеры, станции)
+│   │       ├── CastleBorder.luau          # Claim-территория, коллизии, права
+│   │       ├── CastleHeartManager.luau    # Визуал Castle Heart (орб, свет)
+│   │       ├── BlockHealth.luau           # HP блоков, урон, разрушение
+│   │       ├── FunctionalDispatcher.luau  # Маршрутизатор: Door, Chest, Station → хендлеры
+│   │       ├── DoorHandler.luau           # Двери: открытие/закрытие
+│   │       ├── ChestHandler.luau          # Сундуки: слоты, deposit, take
+│   │       └── StationHandler.luau        # Универсальный обработчик станций (Sawmill, Crusher, ...)
+│   ├── combat/                     # Боевые модули (→ Systems_Combat.md)
+│   │   ├── CombatManager.server.luau  # + BeamUpdate handler
+│   │   ├── WeaponUtil.luau
+│   │   ├── DamageCalc.luau
+│   │   ├── TargetFinder.luau
+│   │   ├── ResourceHit.luau
+│   │   ├── MeleeHandler.luau
+│   │   ├── RangedHandler.luau
+│   │   └── ProjectileManager.luau
+│   ├── blood/
+│   │   └── BloodServer.server.luau
+│   ├── debug/
+│   │   └── DebugCommands.server.luau  # + /spellpoint
+│   ├── enemy/
+│   │   ├── EnemyAI.server.luau
+│   │   ├── EnemyBehaviors.luau
+│   │   ├── EnemyTargeting.luau
+│   │   ├── EnemyStateManager.luau
+│   │   ├── EnemyManager.server.luau
+│   │   ├── BossServer.server.luau
+│   │   ├── BossBehaviors.luau
+│   │   └── BossAbilities.luau
+│   ├── inventory/
+│   │   ├── InventoryServer.server.luau
+│   │   ├── WeaponHandler.luau
+│   │   ├── CraftHandler.luau
+│   │   └── UseItemHandler.luau
+│   ├── loot/
+│   │   └── LootServer.server.luau
+│   ├── resource/
+│   │   └── ResourceSpawner.server.luau
+│   └── servant/
+│       ├── ServantServer.server.luau
+│       └── ServantAI.server.luau
+│
+└── client/                         # StarterPlayerScripts
+    ├── camera/
+    │   └── IsometricCamera.client.luau
+    ├── combat/                     # (→ Systems_Combat.md)
+    │   ├── CombatInput.client.luau
+    │   ├── MeleeInput.luau
+    │   ├── RangedInput.luau
+    │   ├── ProjectileVisuals.client.luau
+    │   ├── DamageNumbers.client.luau
+    │   ├── BeamVisual.client.luau     # Визуализация Beam заклинаний
+    │   └── SpellVFX.client.luau       # VFX для всех spell эффектов
+    ├── debug/
+    │   └── DebugKeys.client.luau
+    ├── input/
+    │   └── MouseLook.client.luau
+    └── ui/                         # (→ Systems_UI.md)
+        ├── BloodPoolUI.client.luau
+        ├── EnemyLabels.client.luau
+        ├── BuffBar.client.luau
+        ├── PlayerHPBlock.client.luau
+        ├── ServantHPBlock.client.luau
+        ├── TargetInfo.client.luau
+        ├── EnemyHPBar.client.luau
+        ├── ResourceNumbers.client.luau
+        ├── CaptureUI.client.luau
+        ├── CastBar.client.luau
+        ├── CoreGuiSetup.client.luau
+        ├── LootUI.client.luau
+        ├── DeathScreen.client.luau
+        ├── DayNightHUD.client.luau
+        ├── Minimap.client.luau
+        ├── MenuBar.luau
+        ├── MenuBarInit.client.luau
+        ├── NotifyModule.luau
+        ├── NotifyListener.client.luau
+        ├── ContainerUI.client.luau
+        ├── ContainerAnimator.client.luau
+        ├── WindowManager.luau              # Стек окон: push/remove, Escape-закрытие
+        ├── building/                        # Строительный UI (→ Systems_Building.md)
+        │   ├── BuildingMenu.client.luau     # UI строительства (B): категории, Castle Heart, delete mode
+        │   ├── BuildingPlacer.luau          # Ghost-preview, snap-to-grid, валидация, isActive()
+        │   ├── StationUI.client.luau        # Универсальный UI станций (Sawmill, Crusher, ...)
+        │   └── BlockInteract.client.luau    # Подсказка [F] и InteractBlock для функц. блоков
+        ├── abilities/                       # Панель способностей (секционная архитектура)
+        │   ├── AbilitiesBar.client.luau     # Оркестратор: собирает секции
+        │   ├── AbilitiesConstants.luau      # Константы стилей
+        │   ├── SlotFactory.luau             # Фабрика UI-слотов
+        │   ├── MouseUtil.luau               # getMouseWorldPosition
+        │   ├── AbilityTooltip.luau
+        │   ├── AbilityCooldowns.luau
+        │   ├── WeaponSection.luau           # LMB, Q, E, Space
+        │   ├── SpellSection.luau            # R, G (Basic заклинания)
+        │   ├── UltimateSection.luau         # Z (Ultimate заклинания)
+        │   ├── ClassSection.luau            # X (зарезервировано)
+        │   └── SpellAimSender.luau          # Отправка позиции курсора при касте
+        ├── journal/                         # Журнал (табы: Bosses, Spellbook)
+        │   ├── JournalInit.client.luau      # Точка входа
+        │   ├── JournalWindow.luau           # Общее окно с табами
+        │   ├── JournalConstants.luau        # Общие константы
+        │   ├── bosses/                      # Журнал боссов
+        │   │   ├── BossesPage.luau
+        │   │   ├── BossCard.luau
+        │   │   ├── BossTooltip.luau
+        │   │   └── ActTabs.luau
+        │   └── spellbook/                   # Книга заклинаний
+        │       ├── SpellbookPage.luau
+        │       ├── SpellbookConstants.luau
+        │       ├── SchoolTabs.luau
+        │       ├── SchoolInfoPanel.luau
+        │       ├── TierProgressBar.luau
+        │       ├── SpellGrid.luau
+        │       ├── SpellCard.luau
+        │       ├── SpellDetailPanel.luau
+        │       ├── SpellDetailBuilder.luau
+        │       ├── SpellDetailLearn.luau
+        │       ├── SpellDetailEquip.luau
+        │       └── SpellSlotBar.luau
+        ├── servant/
+        │   ├── ServantWindow.client.luau
+        │   ├── ServantCollection.luau
+        │   ├── ServantStatsPanel.luau
+        │   ├── ServantEquipPanel.luau
+        │   └── ServantActionBar.luau
+        └── character/
+            ├── CharacterWindow.client.luau
+            ├── UIConstants.luau
+            ├── SlotFactory.luau
+            ├── SlotBehavior.luau
+            ├── DragManager.luau
+            ├── EquipmentPanel.luau
+            ├── CraftPanel.luau
+            ├── InventoryGrid.luau
+            ├── ActionBarHUD.luau
+            ├── CooldownManager.luau
+            ├── AttributesPanel.luau
+            ├── BloodPoolPanel.luau
+            └── tooltip/
+                ├── init.luau
+                ├── TooltipConstants.luau
+                ├── TooltipHeader.luau
+                ├── TooltipAttributes.luau
+                ├── TooltipDescription.luau
+                └── TooltipFooter.luau
 
 
 ---
@@ -94,7 +327,7 @@ src/ ├── shared/ # ReplicatedStorage │ ├── Config.luau # Колл�
 
 ### Система строительства (v1.9)
 
-Замки размещаются через Castle Heart (claim-территория с уровнями). Блоки категоризированы: Foundation, Wall, Roof, Functional. Функциональные блоки маршрутизируются через FunctionalDispatcher: Door (открытие/закрытие), Chest (слоты хранилища), Station (универсальные перерабатывающие станции). Станции определяются полем `Functional = "Station"` + `FunctionalData.StationType` в BuildingConfig. StationHandler обслуживает все типы станций (Sawmill, Crusher) через единый код — рецепты фильтруются по `recipe.Station == stationType`. Крафт-цикл привязан к RunService.Heartbeat. Права доступа управляются через CastleBorder (союзники, кооперативная стройка). Сериализация: BuildingSerializer сохраняет блоки + контейнеры + станции в DataStore.
+Замки размещаются через Castle Heart (claim-территория с уровнями). Блоки категоризированы: Foundation, Wall, Roof, Functional. Функциональные блоки маршрутизируются через FunctionalDispatcher: Door (открытие/закрытие), Chest (слоты хранилища), Station (универсальные перерабатывающие станции). Станции определяются полем `Functional = "Station"` + `FunctionalData.StationType` в BuildingConfig. StationHandler обслуживает все типы станций (Sawmill, Crusher) через единый код — рецепты фильтруются по `recipe.Station == stationType`. Крафт-цикл привязан к RunService.Heartbeat. Права доступа управляются через CastleBorder (союзники, кооперативная стройка). Сериализация: BuildingSerializer сохраняет блоки + контейнеры + станции в DataStore. BuildingMenu (клавиша B) управляет размещением блоков через BuildingPlacer (ghost-preview, snap-to-grid). StationUI поддерживает полноценный drag-and-drop между слотами станции и инвентарём.
 
 ### DataStore (v1.7+)
 
@@ -108,6 +341,7 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 
 | Клавиша | Действие |
 |---|---|
+| B | Меню строительства (BuildingMenu) |
 | C | Окно персонажа |
 | V | Окно слуг |
 | J | Журнал (Bosses / Spellbook) |
@@ -122,7 +356,9 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | F | Выпить кровь / подобрать лут / добить босса / взаимодействие с блоком |
 | T | Захватить врага / захватить босса |
 | ПКМ (зажатие) | Вращение камеры |
-| ПКМ на слоте | Экипировать / использовать / deposit в станцию или сундук |
+| ПКМ на слоте инвентаря | Экипировать / использовать / deposit в станцию или сундук |
+| ПКМ на слоте станции | Забрать предмет в инвентарь |
+| ЛКМ на слоте станции | Начать drag (перетаскивание) |
 | Колесо мыши | Зум камеры / зум миникарты |
 | Drag за UI | Выбросить предмет |
 | ~ или F2 | Консоль отладки (Studio) |
@@ -150,4 +386,4 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | 1.6 | develop_1.6 | Stats (20 статов), Blood Tiers, Boss System, Minimap, Death System, DataStore, Debug |
 | 1.7 | develop_1.7 | Рефакторинг: ItemConfig → items/, BossManager → boss/, ServantManager → servant/, WeaponConfig → weapons/, боевая система → combat/ (CombatManager, DamageCalc, TargetFinder, MeleeHandler, RangedHandler, ProjectileManager), дальний бой (Bow, снаряды, каст). **Система магии**: SpellConfig (Blood/Chaos школы), SpellProgressManager (spell points, тиры), SpellCastManager (каст, charges, channelling, SpellAim), 14 модульных spellEffects, LeechHandler/IgniteHandler пассивки, Beam система (BeamEffect + BeamVisual), SpellVFX (клиентские эффекты), Spellbook UI (Journal интеграция, 12 модулей), AbilitiesBar секционная архитектура (Weapon/Spell/Ultimate/Class секции), DataService + Magic данные |
 | 1.8 | develop_1.8 | **Архитектурный аудит и фиксы**: DataService: SetAsync → UpdateAsync + version guard; SAVE_ENABLED по RunService:IsStudio(); BindToClose race condition fix (thread tracking + 25s timeout); HealthManager GC + cleanup(); EnemyAI activation distance (100 studs) + batch processing; EventBus.off(); SpellAim rate-limit; tick() → os.clock() (все серверные файлы); CharacterUtil shared module; PlayerCleanup EventBus event; LootManager periodic cleanup; TargetFinder spatial hash grid (CELL_SIZE=50, обновление 0.2с); Game Overview document; Roadmap 1.9 |
-| 1.9 | develop_1.9 | **Система строительства замков**: BuildingManager (CRUD блоков, Castle Heart с уровнями, claim-территория, HP блоков, экономика), BuildingConfig (BlockTypes: фундаменты, стены, крыши, двери, сундуки, станции), BuildingSerializer (DataStore), CastleBorder (claim, коллизии, права, союзники), CastleHeartManager (визуал орба), BlockHealth (разрушение), FunctionalDispatcher (Door/Chest/Station). **Перерабатывающие станции**: StationHandler (универсальный — Sawmill, Crusher), StationConfig, рецепты с полем Station в CraftConfig. **Клиент**: StationUI (универсальный UI станций), BlockInteract (подсказка F), WindowManager (стек окон, Escape), SlotBehavior (ПКМ deposit в станцию/сундук). **Новые ресурсы**: Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick. BuildingServer.server.luau — remote-оркестратор строительства. **Station Remotes**: StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeAll, StationToggleRecipe, StationClose |
+| 1.9 | develop_1.9 | **Система строительства замков**: BuildingManager (CRUD блоков, Castle Heart с уровнями, claim-территория, HP блоков, экономика), BuildingConfig (BlockTypes: фундаменты, стены, крыши, двери, сундуки, станции), BuildingSerializer (DataStore), CastleBorder (claim, коллизии, права, союзники), CastleHeartManager (визуал орба), BlockHealth (разрушение), FunctionalDispatcher (Door/Chest/Station). **Перерабатывающие станции**: StationHandler (универсальный — Sawmill, Crusher), StationConfig, рецепты с полем Station в CraftConfig. **Клиент**: BuildingMenu (клавиша B, категории, Castle Heart), BuildingPlacer (ghost-preview, snap-to-grid, isActive()), StationUI (универсальный UI станций, drag-and-drop input/output, клиентская интерполяция progress bar), BlockInteract (подсказка F), WindowManager (стек окон, Escape), SlotBehavior (ПКМ deposit в станцию/сундук), DragManager (расширен: source/extraData, DragLayer ScreenGui). **Новые ресурсы**: Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick. BuildingServer.server.luau — remote-оркестратор строительства. **Station Remotes**: StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose |
