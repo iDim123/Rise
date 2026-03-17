@@ -83,6 +83,7 @@ local currentSlots = {}
 local currentRecipes = {}
 local currentCrafting = nil -- { RecipeId, Elapsed, Duration }
 local currentQueueCounts = {}
+local cachedInventorySlots = {}
 
 local craftStartTime = 0
 local craftStartElapsed = 0
@@ -692,17 +693,11 @@ local function updateTooltip(recipe)
         end
     end
 
-    -- Запрашиваем данные инвентаря из CharacterGui
-    local invData = nil
-    pcall(function()
-        invData = Remotes.GetInventory:InvokeServer()
-    end)
-    if invData and invData.slots then
-        for _, slot in invData.slots do
-            if slot and slot ~= false then
-                local id = slot.Id or slot.ItemId
-                itemCounts[id] = (itemCounts[id] or 0) + (slot.Amount or 1)
-            end
+    -- Инвентарь из кеша
+    for _, slot in cachedInventorySlots do
+        if slot and slot ~= false then
+            local id = slot.Id or slot.ItemId
+            itemCounts[id] = (itemCounts[id] or 0) + (slot.Amount or 1)
         end
     end
 
@@ -820,6 +815,13 @@ local function openStation(payload)
     currentCrafting = payload.Crafting
     currentQueueCounts = payload.QueueCounts or {}
 
+    task.spawn(function()
+        local data = Remotes.GetInventory:InvokeServer()
+        if data and data.slots then
+            cachedInventorySlots = data.slots
+        end
+    end)
+
     titleLabel.Text = payload.StationName or payload.StationType or "Крафтовая станция"
 
     if currentCrafting then
@@ -843,6 +845,21 @@ local function openStation(payload)
     syncState()
 end
 
+Remotes.UpdateInventory.OnClientEvent:Connect(function(data)
+    if data and data.slots then
+        cachedInventorySlots = data.slots
+        -- Если tooltip открыт — обновляем
+        if tooltip and tooltip.Visible and isOpen then
+            -- Найти какой рецепт сейчас показан и обновить
+            for _, entry in recipeButtons do
+                if entry.frame.BackgroundColor3 == RECIPE_HOVER then
+                    updateTooltip(entry.recipe)
+                    break
+                end
+            end
+        end
+    end
+end)
 -- ═══ Remotes ═══
 Remotes.CraftStationOpened.OnClientEvent:Connect(function(payload)
     openStation(payload)
