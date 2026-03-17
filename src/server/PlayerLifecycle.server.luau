@@ -67,13 +67,13 @@ local function onPlayerAdded(player)
         InventoryManager.addItemFromConfig(player, "debug_servant_egg", 10)
         InventoryManager.addItemFromConfig(player, "Axe", 1)
         InventoryManager.addItemFromConfig(player, "debug_buff_potion", 10)
-        InventoryManager.addItemFromConfig(player, "rugged_hide", 900)
+        InventoryManager.addItemFromConfig(player, "rugged_hide", 500)
         InventoryManager.addItemFromConfig(player, "small_bag", 1)
         InventoryManager.addItemFromConfig(player, "blood_vial_warrior", 5)
         InventoryManager.addItemFromConfig(player, "blood_vial_creature", 5)
-        InventoryManager.addItemFromConfig(player, "stone", 900)
-        InventoryManager.addItemFromConfig(player, "wooden_plank", 900)
-        InventoryManager.addItemFromConfig(player, "wood", 900)
+        InventoryManager.addItemFromConfig(player, "stone", 500)
+        InventoryManager.addItemFromConfig(player, "wooden_plank", 50)
+        InventoryManager.addItemFromConfig(player, "wood", 50)
     end
 
     -- 3. CharacterAdded

@@ -16,7 +16,7 @@ return {
         Type = "Resource",
         ItemLevel = 0,
         Stackable = true,
-        MaxStack = 99
+        MaxStack = 500
     },
     stone = {
         Name = "Stone",
@@ -25,7 +25,7 @@ return {
         Type = "Resource",
         ItemLevel = 0,
         Stackable = true,
-        MaxStack = 99
+        MaxStack = 500
     },
     stone_brick = {
         Name = "Кирпич",

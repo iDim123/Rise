@@ -10,11 +10,12 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local UC = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("UIConstants"))
 local ItemTooltip = require(script.Parent.Parent:WaitForChild("tooltip"))
 local WindowManager = require(script.Parent.Parent:WaitForChild("WindowManager"))
+local DragManager = require(script.Parent.Parent:WaitForChild("character"):WaitForChild("DragManager"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ═══ Константы (без изменений из SawmillUI) ═══
+-- ═══ Константы ═══
 local SLOT_SIZE = UC.slotSize
 local PADDING = UC.padding
 local HEADER_H = UC.headerH
@@ -57,6 +58,8 @@ local PROGRESS_H = 22
 
 local RIGHT_MARGIN = 260
 local TOP_OFFSET = 40
+
+local DROP_HIGHLIGHT = Color3.fromRGB(80, 140, 80)
 
 -- ═══ ScreenGui ═══
 local screenGui = Instance.new("ScreenGui")
@@ -103,7 +106,7 @@ mainFrame.Parent = screenGui
 
 Instance.new("UICorner", mainFrame).CornerRadius = CORNER_R
 local mainStroke = Instance.new("UIStroke", mainFrame)
-mainStroke.Color = SLOT_BORDER;
+mainStroke.Color = SLOT_BORDER
 mainStroke.Thickness = 1
 
 local titleLabel = Instance.new("TextLabel")
@@ -121,11 +124,11 @@ local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
 closeBtn.Position = UDim2.new(1, -34, 0, 4)
 closeBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
-closeBtn.Text = "X";
+closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold;
+closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 16
-closeBtn.BorderSizePixel = 0;
+closeBtn.BorderSizePixel = 0
 closeBtn.Parent = mainFrame
 Instance.new("UICorner", closeBtn).CornerRadius = SMALL_R
 
@@ -135,7 +138,7 @@ recipeSectionLabel.Size = UDim2.new(1, -WINDOW_PAD_X * 2, 0, 18)
 recipeSectionLabel.Position = UDim2.new(0, WINDOW_PAD_X, 0, HEADER_H + 4)
 recipeSectionLabel.BackgroundTransparency = 1
 recipeSectionLabel.TextColor3 = LABEL_DIM
-recipeSectionLabel.TextSize = 12;
+recipeSectionLabel.TextSize = 12
 recipeSectionLabel.Font = Enum.Font.Gotham
 recipeSectionLabel.Text = "Рецепты"
 recipeSectionLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -147,18 +150,18 @@ local recipeColW = math.floor((recipeAreaW - RECIPE_PAD) / RECIPE_COLS)
 
 local recipeFrame = Instance.new("ScrollingFrame")
 recipeFrame.Name = "RecipeFrame"
-recipeFrame.BackgroundColor3 = PANEL_BG;
+recipeFrame.BackgroundColor3 = PANEL_BG
 recipeFrame.BorderSizePixel = 0
 recipeFrame.ScrollBarThickness = 3
 recipeFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 130)
-recipeFrame.ClipsDescendants = true;
+recipeFrame.ClipsDescendants = true
 recipeFrame.Parent = mainFrame
 Instance.new("UICorner", recipeFrame).CornerRadius = UDim.new(0, 6)
 
 -- ═══ Progress bar ═══
 local progressFrame = Instance.new("Frame")
 progressFrame.Name = "ProgressBar"
-progressFrame.BackgroundColor3 = PROGRESS_BG;
+progressFrame.BackgroundColor3 = PROGRESS_BG
 progressFrame.BorderSizePixel = 0
 progressFrame.Parent = mainFrame
 Instance.new("UICorner", progressFrame).CornerRadius = UDim.new(0, 4)
@@ -166,54 +169,54 @@ Instance.new("UICorner", progressFrame).CornerRadius = UDim.new(0, 4)
 local progressFill = Instance.new("Frame")
 progressFill.Name = "Fill"
 progressFill.Size = UDim2.new(0, 0, 1, 0)
-progressFill.BackgroundColor3 = PROGRESS_FILL;
+progressFill.BackgroundColor3 = PROGRESS_FILL
 progressFill.BorderSizePixel = 0
 progressFill.Parent = progressFrame
 Instance.new("UICorner", progressFill).CornerRadius = UDim.new(0, 4)
 
 local progressLabel = Instance.new("TextLabel")
 progressLabel.Size = UDim2.new(1, 0, 1, 0)
-progressLabel.BackgroundTransparency = 1;
+progressLabel.BackgroundTransparency = 1
 progressLabel.TextColor3 = TEXT_COLOR
-progressLabel.TextSize = 11;
+progressLabel.TextSize = 11
 progressLabel.Font = Enum.Font.GothamBold
-progressLabel.Text = "";
+progressLabel.Text = ""
 progressLabel.ZIndex = 2
 progressLabel.Parent = progressFrame
 
 -- ═══ IO sections ═══
 local inputLabel = Instance.new("TextLabel")
-inputLabel.Name = "InputLabel";
+inputLabel.Name = "InputLabel"
 inputLabel.BackgroundTransparency = 1
-inputLabel.TextColor3 = GOLD_COLOR;
+inputLabel.TextColor3 = GOLD_COLOR
 inputLabel.TextSize = 12
-inputLabel.Font = Enum.Font.GothamBold;
+inputLabel.Font = Enum.Font.GothamBold
 inputLabel.Text = "Вход"
-inputLabel.TextXAlignment = Enum.TextXAlignment.Left;
+inputLabel.TextXAlignment = Enum.TextXAlignment.Left
 inputLabel.Parent = mainFrame
 
 local inputFrame = Instance.new("Frame")
 inputFrame.Name = "InputFrame"
 inputFrame.Size = UDim2.new(0, IO_GRID_W, 0, IO_GRID_H)
-inputFrame.BackgroundColor3 = PANEL_BG;
+inputFrame.BackgroundColor3 = PANEL_BG
 inputFrame.BorderSizePixel = 0
 inputFrame.Parent = mainFrame
 Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 6)
 
 local outputLabel = Instance.new("TextLabel")
-outputLabel.Name = "OutputLabel";
+outputLabel.Name = "OutputLabel"
 outputLabel.BackgroundTransparency = 1
-outputLabel.TextColor3 = GOLD_COLOR;
+outputLabel.TextColor3 = GOLD_COLOR
 outputLabel.TextSize = 12
-outputLabel.Font = Enum.Font.GothamBold;
+outputLabel.Font = Enum.Font.GothamBold
 outputLabel.Text = "Выход"
-outputLabel.TextXAlignment = Enum.TextXAlignment.Left;
+outputLabel.TextXAlignment = Enum.TextXAlignment.Left
 outputLabel.Parent = mainFrame
 
 local outputFrame = Instance.new("Frame")
 outputFrame.Name = "OutputFrame"
 outputFrame.Size = UDim2.new(0, IO_GRID_W, 0, IO_GRID_H)
-outputFrame.BackgroundColor3 = PANEL_BG;
+outputFrame.BackgroundColor3 = PANEL_BG
 outputFrame.BorderSizePixel = 0
 outputFrame.Parent = mainFrame
 Instance.new("UICorner", outputFrame).CornerRadius = UDim.new(0, 6)
@@ -223,9 +226,9 @@ btnTakeAll.Size = UDim2.new(0, IO_GRID_W, 0, 24)
 btnTakeAll.BackgroundColor3 = Color3.fromRGB(50, 130, 50)
 btnTakeAll.Text = "Забрать всё"
 btnTakeAll.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnTakeAll.Font = Enum.Font.GothamBold;
+btnTakeAll.Font = Enum.Font.GothamBold
 btnTakeAll.TextSize = 12
-btnTakeAll.BorderSizePixel = 0;
+btnTakeAll.BorderSizePixel = 0
 btnTakeAll.Parent = mainFrame
 Instance.new("UICorner", btnTakeAll).CornerRadius = SMALL_R
 
@@ -266,13 +269,13 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
     btn.Size = UDim2.new(0, SLOT_SIZE, 0, SLOT_SIZE)
     btn.Position = UDim2.new(0, PADDING + col * (SLOT_SIZE + PADDING), 0, PADDING + row * (SLOT_SIZE + PADDING))
     btn.BackgroundColor3 = (slot and slot ~= false) and SLOT_FILLED or SLOT_BG
-    btn.BorderSizePixel = 0;
-    btn.Text = "";
+    btn.BorderSizePixel = 0
+    btn.Text = ""
     btn.AutoButtonColor = false
     btn.Parent = parent
     Instance.new("UICorner", btn).CornerRadius = SMALL_R
     local stroke = Instance.new("UIStroke", btn)
-    stroke.Color = SLOT_BORDER;
+    stroke.Color = SLOT_BORDER
     stroke.Thickness = 1
 
     if slot and slot ~= false then
@@ -281,17 +284,17 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
             local img = Instance.new("ImageLabel")
             img.Size = UDim2.new(0, 36, 0, 36)
             img.Position = UDim2.new(0.5, -18, 0, 2)
-            img.BackgroundTransparency = 1;
+            img.BackgroundTransparency = 1
             img.Image = itemDef.Icon
-            img.ScaleType = Enum.ScaleType.Fit;
+            img.ScaleType = Enum.ScaleType.Fit
             img.Parent = btn
         else
             local txt = Instance.new("TextLabel")
             txt.Size = UDim2.new(1, -4, 0, 36)
             txt.Position = UDim2.new(0, 2, 0, 2)
-            txt.BackgroundTransparency = 1;
+            txt.BackgroundTransparency = 1
             txt.TextColor3 = TEXT_COLOR
-            txt.TextSize = 8;
+            txt.TextSize = 8
             txt.Font = Enum.Font.GothamBold
             txt.TextWrapped = true
             txt.Text = itemDef and itemDef.Name or slot.ItemId
@@ -303,9 +306,9 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
             amtLabel.Position = UDim2.new(0, 2, 1, -16)
             amtLabel.BackgroundTransparency = 1
             amtLabel.Text = tostring(slot.Amount)
-            amtLabel.TextColor3 = TEXT_COLOR;
+            amtLabel.TextColor3 = TEXT_COLOR
             amtLabel.Font = Enum.Font.GothamBold
-            amtLabel.TextSize = 12;
+            amtLabel.TextSize = 12
             amtLabel.TextXAlignment = Enum.TextXAlignment.Right
             amtLabel.Parent = btn
         end
@@ -328,7 +331,22 @@ local function buildSlot(parent, slots, slotIndex, col, row, onClick)
     return btn
 end
 
+-- ═══ Unregister old drop targets ═══
+local function unregisterInputDropTargets()
+    for _, btn in inputSlotButtons do
+        DragManager.unregisterDropTarget(btn)
+    end
+end
+
+local function unregisterOutputDropTargets()
+    for _, btn in outputSlotButtons do
+        DragManager.unregisterDropTarget(btn)
+    end
+end
+
+-- ═══ Rebuild input slots with drag-and-drop support ═══
 local function rebuildInputSlots()
+    unregisterInputDropTargets()
     for _, btn in inputSlotButtons do
         btn:Destroy()
     end
@@ -336,11 +354,37 @@ local function rebuildInputSlots()
     for i = 1, 8 do
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
-        inputSlotButtons[i] = buildSlot(inputFrame, currentInputSlots, i, col, row, nil)
+        local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, nil)
+
+        -- Drag hover визуал
+        btn.MouseEnter:Connect(function()
+            if DragManager.isDragging() then
+                btn.BackgroundColor3 = DROP_HIGHLIGHT
+            end
+        end)
+        btn.MouseLeave:Connect(function()
+            if DragManager.isDragging() then
+                local slot = currentInputSlots[i]
+                btn.BackgroundColor3 = (slot and slot ~= false) and SLOT_FILLED or SLOT_BG
+            end
+        end)
+
+        -- Регистрируем как drop target
+        DragManager.registerDropTarget(btn, function(dragData)
+            if not dragData then
+                return
+            end
+            if currentStationId then
+                Remotes.StationDeposit:FireServer(currentStationId, dragData.slotIndex)
+            end
+        end)
+
+        inputSlotButtons[i] = btn
     end
 end
 
 local function rebuildOutputSlots()
+    unregisterOutputDropTargets()
     for _, btn in outputSlotButtons do
         btn:Destroy()
     end
@@ -378,7 +422,7 @@ local function buildRecipeList()
         recipeRow.Size = UDim2.new(0, recipeColW - RECIPE_PAD, 0, RECIPE_ROW_H)
         recipeRow.Position = UDim2.new(0, xPos, 0, yPos)
         recipeRow.BackgroundColor3 = Color3.fromRGB(45, 45, 62)
-        recipeRow.BorderSizePixel = 0;
+        recipeRow.BorderSizePixel = 0
         recipeRow.ClipsDescendants = true
         recipeRow.Parent = recipeFrame
         Instance.new("UICorner", recipeRow).CornerRadius = SMALL_R
@@ -386,7 +430,7 @@ local function buildRecipeList()
         local toggleBtn = Instance.new("TextButton")
         toggleBtn.Size = UDim2.new(0, TOGGLE_SIZE, 0, TOGGLE_SIZE)
         toggleBtn.Position = UDim2.new(0, 4, 0.5, -TOGGLE_SIZE / 2)
-        toggleBtn.Text = "";
+        toggleBtn.Text = ""
         toggleBtn.BorderSizePixel = 0
         toggleBtn.Parent = recipeRow
         Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0.5, 0)
@@ -403,7 +447,7 @@ local function buildRecipeList()
         iconFrame.Size = UDim2.new(0, 32, 0, 32)
         iconFrame.Position = UDim2.new(0, TOGGLE_SIZE + 10, 0.5, -16)
         iconFrame.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-        iconFrame.BorderSizePixel = 0;
+        iconFrame.BorderSizePixel = 0
         iconFrame.Parent = recipeRow
         Instance.new("UICorner", iconFrame).CornerRadius = SMALL_R
 
@@ -414,18 +458,18 @@ local function buildRecipeList()
                 local img = Instance.new("ImageLabel")
                 img.Size = UDim2.new(0.8, 0, 0.8, 0)
                 img.Position = UDim2.new(0.1, 0, 0.1, 0)
-                img.BackgroundTransparency = 1;
+                img.BackgroundTransparency = 1
                 img.Image = resultDef.Icon
-                img.ScaleType = Enum.ScaleType.Fit;
+                img.ScaleType = Enum.ScaleType.Fit
                 img.Parent = iconFrame
             else
                 local txt = Instance.new("TextLabel")
                 txt.Size = UDim2.new(1, -4, 1, -4)
                 txt.Position = UDim2.new(0, 2, 0, 2)
-                txt.BackgroundTransparency = 1;
+                txt.BackgroundTransparency = 1
                 txt.TextColor3 = TEXT_COLOR
-                txt.TextSize = 7;
-                txt.Font = Enum.Font.GothamBold;
+                txt.TextSize = 7
+                txt.Font = Enum.Font.GothamBold
                 txt.TextWrapped = true
                 txt.Text = resultDef and resultDef.Name or firstResult.ItemId
                 txt.Parent = iconFrame
@@ -435,13 +479,13 @@ local function buildRecipeList()
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1, -(TOGGLE_SIZE + 10 + 32 + 10 + 4), 0, RECIPE_ROW_H)
         nameLabel.Position = UDim2.new(0, TOGGLE_SIZE + 10 + 32 + 6, 0, 0)
-        nameLabel.BackgroundTransparency = 1;
+        nameLabel.BackgroundTransparency = 1
         nameLabel.TextColor3 = TEXT_COLOR
-        nameLabel.TextSize = 11;
+        nameLabel.TextSize = 11
         nameLabel.Font = Enum.Font.GothamBold
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-        nameLabel.Text = recipe.Name;
+        nameLabel.Text = recipe.Name
         nameLabel.Parent = recipeRow
 
         recipeButtons[idx] = {
@@ -470,7 +514,7 @@ local function updateProgress()
         local recipeName = currentCrafting.RecipeId
         for _, r in currentRecipes do
             if r.Id == currentCrafting.RecipeId then
-                recipeName = r.Name;
+                recipeName = r.Name
                 break
             end
         end
@@ -492,12 +536,12 @@ end
 
 -- ═══ Public state for SlotBehavior (RMB deposit) ═══
 local stationState = Instance.new("BoolValue")
-stationState.Name = "StationOpen";
+stationState.Name = "StationOpen"
 stationState.Value = false
 stationState.Parent = screenGui
 
 local stationIdValue = Instance.new("StringValue")
-stationIdValue.Name = "StationOpenId";
+stationIdValue.Name = "StationOpenId"
 stationIdValue.Value = ""
 stationIdValue.Parent = screenGui
 
@@ -508,6 +552,10 @@ end
 
 -- ═══ Open / Close ═══
 local function closeStation()
+    -- Снять регистрацию drop targets
+    unregisterInputDropTargets()
+    unregisterOutputDropTargets()
+
     if currentStationId then
         Remotes.StationClose:FireServer(currentStationId)
     end
@@ -565,9 +613,11 @@ end)
 
 Remotes.StationClosed.OnClientEvent:Connect(function(stationId)
     if currentStationId == stationId then
-        currentStationId = nil;
+        unregisterInputDropTargets()
+        unregisterOutputDropTargets()
+        currentStationId = nil
         currentStationType = nil
-        isOpen = false;
+        isOpen = false
         mainFrame.Visible = false
         WindowManager.remove("StationUI")
         syncState()
