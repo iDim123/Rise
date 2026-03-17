@@ -1,13 +1,11 @@
---[[
-    FunctionalDispatcher.luau
-    Маршрутизатор для функциональных блоков замка.
-]] local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local DoorHandler = require(script.Parent:WaitForChild("DoorHandler"))
 local ChestHandler = require(script.Parent:WaitForChild("ChestHandler"))
 local StationHandler = require(script.Parent:WaitForChild("StationHandler"))
 local CraftStationHandler = require(script.Parent:WaitForChild("CraftStationHandler"))
+local CoffinHandler = require(script.Parent:WaitForChild("CoffinHandler"))
 
 local FunctionalDispatcher = {}
 
@@ -26,6 +24,8 @@ function FunctionalDispatcher.onPlace(part, typeId, blockId, castle)
         StationHandler.onCreate(part, typeId, blockId, castle)
     elseif fn == "CraftStation" then
         CraftStationHandler.onCreate(part, typeId, blockId, castle)
+    elseif fn == "Coffin" then
+        CoffinHandler.onCreate(part, typeId, blockId, castle)
     end
 end
 
@@ -44,6 +44,8 @@ function FunctionalDispatcher.onRemove(part, typeId, blockId)
         StationHandler.onDestroy(part, blockId)
     elseif fn == "CraftStation" then
         CraftStationHandler.onDestroy(part, blockId)
+    elseif fn == "Coffin" then
+        CoffinHandler.onDestroy(part, blockId)
     end
 end
 
@@ -62,6 +64,8 @@ function FunctionalDispatcher.interact(player, part, typeId, castle, blockData)
         return StationHandler.interact(player, part, blockData, castle)
     elseif fn == "CraftStation" then
         return CraftStationHandler.interact(player, part, blockData, castle)
+    elseif fn == "Coffin" then
+        return CoffinHandler.interact(player, part, blockData, castle)
     end
 
     return false, "Неизвестный тип: " .. tostring(fn)
@@ -77,6 +81,10 @@ end
 
 function FunctionalDispatcher.getCraftStationHandler()
     return CraftStationHandler
+end
+
+function FunctionalDispatcher.getCoffinHandler()
+    return CoffinHandler
 end
 
 return FunctionalDispatcher

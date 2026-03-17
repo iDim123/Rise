@@ -1,6 +1,6 @@
 # Checklist v1.9 — Castle Building
 
-> Актуальный чеклист прогресса. Обновлён: 2026-03-16.
+> Актуальный чеклист прогресса. Обновлён: 2026-03-17.
 > Справочник: `Docs/Roadmap_1.9.md`
 
 ---
@@ -47,13 +47,13 @@
 - [x] 2.2 ChestHandler — onCreate, interact, onDestroy (дроп лута), сериализация, restoreContainer
 - [x] 2.3 ContainerConfig — castle_chest (Persistent=true, Slots=12) реализован через ChestHandler напрямую
 - [x] 2.4 ContainerUI — сканирование workspace.Castles, tooltip, ПКМ-перекладывание, кнопки disabled при пустом
-- [ ] 2.5 WorkbenchHandler — onInteract → OpenCraftStation с hasWorkbench=true
+- [x] 2.5 CraftStation система (Workbench) — универсальная архитектура крафтовых станций
 - [ ] 2.6 BloodAltarHandler — onInteract → OpenBloodAltar, blood_essence → Quality%
 - [ ] 2.7 CoffinHandler — onCreate → coffinPos, onDestroy → nil, лимит MaxCoffins
 - [ ] 2.8 HealthManager — respawnAtCoffin: CharacterAdded:Wait, WaitForChild timeout 5с
-- [x] 2.9 InteractBlock remote — FunctionalDispatcher маршрутизация (Door, Chest готовы; Workbench/Altar/Coffin — заглушки)
+- [x] 2.9 InteractBlock remote — FunctionalDispatcher маршрутизация (Door, Chest, Station, CraftStation готовы; Altar/Coffin — заглушки)
 - [ ] 2.10 Укрытие от солнца — DayNightManager.isInShelter() с крышей замка (IsShelter)
-- [x] 2.11 BuildingManager destroyCastle — ChestHandler.dropAllLoot каскадный дроп
+- [x] 2.11 BuildingManager destroyCastle — ChestHandler.dropAllLoot + CraftStationHandler.dropAllLoot каскадный дроп
 
 ---
 
@@ -81,7 +81,36 @@
 - [x] ContainerUI — fix: повторное открытие замкового сундука (ContainerEmpty + isCasting reset)
 - [x] DepositItem remote — перекладывание предметов из инвентаря в сундук (ПКМ в CharacterWindow)
 - [x] MenuBar — добавлены кнопки CharacterWindow (C) и ServantWindow (V)
-- [x] WindowManager интеграция — CharacterWindow, ContainerUI, ServantWindow, BuildingMenu, CastleHeartUI, JournalWindow
+- [x] WindowManager интеграция — CharacterWindow, ContainerUI, ServantWindow, BuildingMenu, CastleHeartUI, JournalWindow, CraftStationUI
+
+### Processing Stations (Sawmill, Crusher)
+
+- [x] StationHandler — универсальный обработчик (input/output, автокрафт, heartbeat, viewers, сериализация)
+- [x] StationUI — drag-and-drop input/output, прогресс-бар с клиентской интерполяцией (RenderStepped)
+- [x] StationConfig — Sawmill, Crusher (InputSlots=8, OutputSlots=8)
+- [x] Station remotes — StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose
+- [x] SlotBehavior — ПКМ deposit приоритет: CraftStation > Station > Chest > Default
+
+### CraftStation система (Workbench, масштабируемая)
+
+- [x] CraftStationHandler — серверный контейнер (N слотов), очередь крафта, heartbeat, ресурсы из контейнера → инвентарь, результат в контейнер, дроп при разрушении, многопользовательский доступ, сериализация
+- [x] CraftStationUI — рецепты в 2 колонки (как CraftPanel), контейнер (1 ряд), tooltip с подсчётом ресурсов (контейнер + инвентарь), прогресс-бар в рецепте, очередь (badge), авто-открытие CharacterWindow
+- [x] StationConfig.CraftStations — Workbench (Slots=9)
+- [x] BuildingConfig — workbench: `Functional = "CraftStation"`, `FunctionalData.StationType = "Workbench"`
+- [x] CraftConfig — рецепты с `Station = "Workbench"`
+- [x] FunctionalDispatcher — маршрут `CraftStation → CraftStationHandler`
+- [x] CraftStation remotes — CraftStationOpened, CraftStationUpdate, CraftStationClosed, CraftStationDeposit, CraftStationTakeItem, CraftStationCraft, CraftStationClose
+- [x] InventoryGrid — обработка drag source `"craftStationSlot"`
+
+### DragManager
+
+- [x] Расширение API — source, extraData, getSource(), DragLayer ScreenGui (DisplayOrder 1000)
+- [x] Fix — GuiInset компенсация в tryDrop (mousePos смещение на ~36px)
+
+### BuildingMenu / BuildingPlacer
+
+- [x] Fix — closeBuildingMenu() не вызывает cleanup при активном placer
+- [x] BuildingPlacer.isActive() — проверка ghostModel
 
 ### Сохранение
 
@@ -96,11 +125,10 @@
 
 ## Сводка: что осталось сделать
 
-### Phase 2 (4 задачи):
+### Phase 2 (3 задачи):
 
 | # | Задача | Сложность | Зависимости |
 |---|---|---|---|
-| 2.5 | WorkbenchHandler | Medium | FunctionalDispatcher, CraftHandler, OpenCraftStation remote |
 | 2.6 | BloodAltarHandler | Medium | FunctionalDispatcher, BloodManager(?), OpenBloodAltar remote |
 | 2.7 + 2.8 | CoffinHandler + respawnAtCoffin | Medium | FunctionalDispatcher, HealthManager, BuildingManager.getCoffinPos |
 | 2.10 | Укрытие от солнца | Low | DayNightManager, BlockTypes.IsShelter |
@@ -114,4 +142,12 @@
 | 3.4 | DataStore stress test | High |
 | 3.5 + 3.6 | Visual polish + регрессия | High |
 
-### Итого: ~8 задач до релиза v1.9
+### Масштабирование CraftStation
+
+Добавление новой крафтовой станции (Forge, Alchemy Lab, ...):
+1. `StationConfig.CraftStations.Forge = { Name = "Кузница", Slots = 9 }`
+2. `BuildingConfig: forge = { Functional = "CraftStation", FunctionalData = { StationType = "Forge" } }`
+3. `CraftConfig: рецепты с Station = "Forge"`
+4. Ноль изменений в коде — подхватывается автоматически.
+
+### Итого: ~7 задач до релиза v1.9

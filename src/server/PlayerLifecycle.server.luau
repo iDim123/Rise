@@ -106,6 +106,9 @@ local function onPlayerRemoving(player)
     -- ПОСЛЕ save, чтобы collect успел сериализовать данные
     BuildingManager.cleanup(player)
 
+    local CoffinHandler = require(modules:WaitForChild("building"):WaitForChild("CoffinHandler"))
+    CoffinHandler.cleanupPlayer(player.UserId)
+    
     if player.Character then
         HealthManager.cleanup(player.Character)
     end

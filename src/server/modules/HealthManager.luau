@@ -235,7 +235,28 @@ Remotes.PlayerRespawn.OnServerEvent:Connect(function(player)
         return
     end
 
+    -- Проверяем привязку к гробу
+    local coffinPos = nil
+    local ok, result = pcall(function()
+        local building = require(modules:WaitForChild("building"):WaitForChild("CoffinHandler"))
+        return building.getRespawnPosition(player.UserId)
+    end)
+    if ok and result then
+        coffinPos = result
+    end
+
     player:LoadCharacter()
+
+    -- Телепорт к гробу после респавна
+    if coffinPos then
+        task.spawn(function()
+            local newChar = player.Character or player.CharacterAdded:Wait()
+            local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
+            if hrp then
+                hrp.CFrame = CFrame.new(coffinPos)
+            end
+        end)
+    end
 end)
 
 return HealthManager

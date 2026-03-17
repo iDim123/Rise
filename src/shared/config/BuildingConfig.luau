@@ -335,7 +335,7 @@
 
             coffin = {
                 Name = "Гроб",
-                Description = "Точка респавна. Лимит зависит от уровня сердца.",
+                Description = "Точка респавна. Привяжитесь нажатием F.",
                 Category = "Functional",
                 Size = Vector3.new(4, 2, 8),
                 Material = Enum.Material.Wood,
