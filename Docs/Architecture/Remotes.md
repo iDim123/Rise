@@ -130,17 +130,55 @@
 | Notify | Server → Client | message: string, type: string | Toast-уведомление |
 | DebugCommand | Client → Server | commandString: string | Отладочная команда (только Studio) |
 
----
+### День/ночь
 
-## RemoteFunctions
-
-| Имя | Направление | Возвращает | Описание |
+| Имя | Направление | Данные | Описание |
 |---|---|---|---|
-| GetInventory | Client → Server | { slots, equipment, activeWeaponSlot, unlockedSlots } | Полные данные инвентаря |
-| GetServants | Client → Server | { captured, activeId } | Данные слуг |
-| GetBossData | Client → Server | bossesTable | Данные боссов для журнала |
-| GetPlayerStats | Client → Server | statsTable | Все статы игрока |
-| GetSpellData | Client → Server | spellProgressData | Полные данные прогресса магии |
+| DayNightSync | Server → Client | timeData | Синхронизация цикла дня/ночи |
+
+### Контейнеры (сундуки)
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| ContainerOpen | Client → Server | containerId: string | Запрос открытия контейнера |
+| ContainerClose | Client → Server | containerId: string | Закрытие контейнера |
+| ContainerTakeItem | Client → Server | containerId: string, slotIndex: number | Забрать предмет из слота |
+| ContainerTakeAll | Client → Server | containerId: string | Забрать всё |
+| ContainerSort | Client → Server | containerId: string | Сортировка |
+| ContainerDepositItem | Client → Server | containerId: string, slotIndex: number | Положить предмет из инвентаря |
+| ContainerOpened | Server → Client | payload: table | Контейнер открыт (слоты, данные) |
+| ContainerUpdate | Server → Client | payload: table | Обновление слотов контейнера |
+| ContainerClosed | Server → Client | containerId: string | Контейнер закрыт |
+
+### Строительство замков (v1.9)
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| PlaceCastleHeart | Client → Server | position: Vector3 | Разместить Castle Heart |
+| UpgradeCastleHeart | Client → Server | — | Улучшить Castle Heart |
+| DestroyCastle | Client → Server | — | Уничтожить замок |
+| CastleHeartInfo | Server → Client | info: table | Данные Castle Heart (уровень, HP, BloodEssence, права) |
+| PlaceBlock | Client → Server | blockTypeId: string, position: Vector3, rotation: number | Разместить блок |
+| RemoveBlock | Client → Server | blockId: string | Удалить блок |
+| BuildingSync | Server → Client | syncData | Синхронизация блоков замка |
+| SetBuildPermission | Client → Server | permissionKey: string, value: bool | Установить право доступа |
+| AddBuildAlly | Client → Server | allyUserId: number | Добавить союзника |
+| RemoveBuildAlly | Client → Server | allyUserId: number | Удалить союзника |
+| InteractBlock | Client → Server | blockId: string | Взаимодействие с функциональным блоком (F) |
+| StructureDamageEvent | Server → Client | structureData | Визуализация урона по блоку |
+
+### Перерабатывающие станции (v1.9)
+
+| Имя | Направление | Данные | Описание |
+|---|---|---|---|
+| StationOpened | Server → Client | payload: { StationId, StationType, StationName, InputSlots, OutputSlots, RecipeToggles, Recipes, Crafting } | Станция открыта — передать всё состояние |
+| StationUpdate | Server → Client | payload: { StationId, StationType, InputSlots, OutputSlots, RecipeToggles, Crafting } | Обновление состояния станции (при крафте, deposit, take) |
+| StationClosed | Server → Client | stationId: string | Станция закрыта сервером |
+| StationDeposit | Client → Server | stationId: string, inventorySlotIndex: number | Положить предмет из инвентаря в input станции |
+| StationTakeItem | Client → Server | stationId: string, slotIndex: number | Забрать предмет из output |
+| StationTakeAll | Client → Server | stationId: string | Забрать весь output |
+| StationToggleRecipe | Client → Server | stationId: string, recipeId: string | Вкл/выкл рецепт |
+| StationClose | Client → Server | stationId: string | Закрыть UI станции |
 
 ### Система магии
 
@@ -158,3 +196,17 @@
 | BeamEnd | Server → Client | casterId: number | Конец Beam заклинания |
 | SpellEffect | Server → Client | effectType: string, position: Vector3, data: table | VFX заклинания (School, radius, targets и т.д.) |
 | UpdateSpellData | Server → Client | spellData: table | Обновление прогресса магии |
+
+---
+
+## RemoteFunctions
+
+| Имя | Направление | Возвращает | Описание |
+|---|---|---|---|
+| GetInventory | Client → Server | { slots, equipment, activeWeaponSlot, unlockedSlots } | Полные данные инвентаря |
+| GetServants | Client → Server | { captured, activeId } | Данные слуг |
+| GetBossData | Client → Server | bossesTable | Данные боссов для журнала |
+| GetPlayerStats | Client → Server | statsTable | Все статы игрока |
+| GetSpellData | Client → Server | spellProgressData | Полные данные прогресса магии |
+| GetBuildings | Client → Server | blocksArray | Блоки замка игрока |
+| GetCastleHeartInfo | Client → Server | heartInfoTable | Данные Castle Heart (уровень, HP, BloodEssence, права, союзники) |

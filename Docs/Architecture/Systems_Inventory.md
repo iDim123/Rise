@@ -27,9 +27,9 @@
 | InventoryGrid.luau | Сетка инвентаря: слоты, drag-and-drop, контекстное меню |
 | EquipmentPanel.luau | Левая и правая панели экипировки |
 | ActionBarHUD.luau | Нижняя панель 1-8 (слоты из инвентаря) |
-| CraftPanel.luau | Панель крафта: список рецептов, прогресс |
+| CraftPanel.luau | Панель крафта: список рецептов, прогресс (фильтрует станционные рецепты) |
 | SlotFactory.luau | Создание UI-слотов |
-| SlotBehavior.luau | Поведение слотов: клик, ПКМ, drag |
+| SlotBehavior.luau | Поведение слотов: клик, ПКМ, drag, deposit в станцию/сундук |
 | DragManager.luau | Drag-and-drop: ghost-элемент, drop targets |
 | CooldownManager.luau | Визуальный cooldown (шторка + таймер) |
 | UIConstants.luau | Layout, размеры, цвета |
@@ -61,7 +61,8 @@
     UseEffect = { Type = "Heal", Amount = 50 },
     BagData = { ExtraRows = 1 }
 }
-Copy
+
+
 Экипировка
 Два столбца слотов экипировки:
 
@@ -74,14 +75,7 @@ Hands	Bag
 Экипировка предмета: EquipItem:FireServer(slotIndex) → сервер проверяет тип, EquipSlot, перемещает предмет из инвентаря в экипировку. Снятие: UnequipItem:FireServer(equipSlotId) → возвращает в первый свободный слот.
 
 Активное оружие
-activeWeaponSlot — номер слота ActionBar (1–8) с выбранным оружием. Переключение: клавиши 1–8 или SetActiveWeapon:FireServer(slotIndex). При смене:
-
-InventoryManager обновляет activeWeaponSlot
-WeaponHandler удаляет текущий Tool с персонажа
-WeaponHandler клонирует шаблон из ServerStorage.weapons и ставит на персонажа
-Если шаблон не найден — создаётся fallback Tool (невидимый, с Handle)
-InventorySync.sendFullUpdate обновляет клиент
-При swapSlots activeWeaponSlot перемещается вместе с оружием.
+activeWeaponSlot — номер слота ActionBar (1–8) с выбранным оружием. Переключение: клавиши 1–8 или SetActiveWeapon:FireServer(slotIndex). При смене: InventoryManager обновляет activeWeaponSlot, WeaponHandler удаляет текущий Tool с персонажа, WeaponHandler клонирует шаблон из ServerStorage.weapons и ставит на персонажа. Если шаблон не найден — создаётся fallback Tool (невидимый, с Handle). InventorySync.sendFullUpdate обновляет клиент. При swapSlots activeWeaponSlot перемещается вместе с оружием.
 
 Предметы
 Определение
@@ -93,14 +87,14 @@ WeaponItems.luau	Sword of Light, Iron Axe, Hunting Bow
 ArmorItems.luau	Hide Helmet, Hide Chest, Hide Legs, Hide Boots, Hide Gloves
 AccessoryItems.luau	Cloak, Amulet, Ring
 ConsumableItems.luau	Health Potion, Blood Vial, Servant Egg
-ResourceItems.luau	Wood, Stone, Rugged Hide, Blood Essence
+ResourceItems.luau	Blood Essence, Wood, Stone, Rugged Hide, Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick
 Типы предметов (Config.ItemTypes)
 Type	Stackable	Действия
 Weapon	Нет	Экипировка в ActionBar, SetActiveWeapon
 Armor	Нет	Экипировка в слот (Head/Chest/Legs/Feet/Hands)
 Accessory	Нет	Экипировка в слот (Cloak/Amulet/Ring1/Ring2)
 Consumable	Да	Использование (ПКМ или UseItem remote)
-Resource	Да	Материал для крафта
+Resource	Да	Материал для крафта и строительства
 Bag	Нет	Экипировка в слот Bag, разблокирует ряды
 Поля предмета
 Поле	Тип	Обязательное	Описание
@@ -132,20 +126,26 @@ DrinkBloodVial	BloodType, Quality	Установить кровь
 Поле	Описание
 Id	Уникальный идентификатор рецепта
 Name	Отображаемое имя
-ResultId	Id создаваемого предмета
-ResultAmount	Количество
-Materials	{ {Id, Amount}, ... } — требуемые материалы
-RequiresTech	Требуемая технология босса (опционально)
+Description	Описание рецепта
+Icon	rbxassetid://
+Result	{ ItemId, Amount } — результат крафта (одиночный)
+Results	{ {ItemId, Amount}, ... } — мульти-результат (для станций; если задан, Result игнорируется)
+Ingredients	{ {ItemId, Amount}, ... } — требуемые материалы
 CraftTime	Время крафта в секундах
+RequiresTech	Требуемая технология босса (опционально)
+Station	Тип станции: "Sawmill", "Crusher" и т.д. Если nil — ручной крафт
+Станционные рецепты
+Рецепты с полем Station доступны только в соответствующей станции и не отображаются в ручном крафте (CraftPanel). CraftPanel фильтрует: if recipe.Station and recipe.Station ~= "Hand" then continue end. Станционные рецепты обрабатываются StationHandler на сервере, а не CraftHandler.
+
 Технологии
 Некоторые рецепты требуют разблокированную технологию (RequiresTech). Технологии разблокируются при первом убийстве босса и сохраняются в DataStore.
 
 Клиент (CraftPanel)
-CraftPanel.luau отображает список доступных рецептов, необходимые материалы (зелёный — достаточно, красный — нет), кнопку крафта и прогресс-бар. Заблокированные рецепты (RequiresTech) показываются затемнёнными.
+CraftPanel.luau отображает список доступных ручных рецептов, необходимые материалы (зелёный — достаточно, красный — нет), кнопку крафта и прогресс-бар. Заблокированные рецепты (RequiresTech) показываются затемнёнными. Станционные рецепты скрыты.
 
 Remotes
 Remote	Направление	Описание
-CraftItem	Client → Server	Запрос крафта
+CraftItem	Client → Server	Запрос ручного крафта
 CraftQueueUpdate	Server → Client	Обновление прогресса
 Сумки (Bags)
 Сумка — предмет типа Bag с BagData = { ExtraRows = N }. При экипировке в слот Bag разблокируются N дополнительных рядов (по 8 слотов). Максимум: 5 рядов × 8 = 40 слотов.
@@ -155,7 +155,8 @@ CraftQueueUpdate	Server → Client	Обновление прогресса
 Синхронизация
 Любое изменение инвентаря вызывает InventorySync.sendFullUpdate(player). Формат данных:
 
-Copy{
+
+{
     slots = { [1] = false, [2] = { Id = "wood", Amount = 5, ... }, ... },
     equipment = { Head = false, Chest = { Id = "hide_chest", ... }, ... },
     activeWeaponSlot = 3,
@@ -169,16 +170,22 @@ Drag-and-Drop
 DragManager управляет перетаскиванием предметов между слотами.
 
 Поток
-Зажатие ЛКМ на слоте → DragManager.startDrag(slotIndex, itemData)
-Ghost-элемент следует за курсором
-Отпускание на другом слоте → SwapSlots:FireServer(from, to)
-Отпускание на экипировке → EquipItem:FireServer(slotIndex)
-Отпускание за пределами UI → DropItem:FireServer(slotIndex) (rate-limit 0.3с)
+Зажатие ЛКМ на слоте → DragManager.startDrag(slotIndex, itemData). Ghost-элемент следует за курсором. Отпускание на другом слоте → SwapSlots:FireServer(from, to). Отпускание на экипировке → EquipItem:FireServer(slotIndex). Отпускание за пределами UI → DropItem:FireServer(slotIndex) (rate-limit 0.3с).
+
 Drop targets
 Цель	Действие
 Слот инвентаря	SwapSlots (обмен предметами)
 Слот экипировки	EquipItem (авто-экипировка)
 За пределами UI	DropItem (выброс на землю)
+SlotBehavior — ПКМ приоритеты
+При ПКМ на слоте инвентаря SlotBehavior проверяет приоритеты:
+
+Приоритет	Условие	Действие
+1	StationGui.StationOpen == true	StationDeposit:FireServer(stationId, slotIndex)
+2	ContainerUI.ContainerOpen == true	ContainerDepositItem:FireServer(containerId, slotIndex)
+3	Предмет с EquipSlot	EquipItem:FireServer(slotIndex)
+3	Consumable	UseItem:FireServer(slotIndex) (с cooldown)
+3	Weapon	SetActiveWeapon:FireServer(slotIndex)
 Tooltip
 Модульная система в character/tooltip/. ItemTooltip.init(gui) создаёт ScreenGui с DisplayOrder 999.
 
@@ -192,16 +199,21 @@ TooltipDescription.luau	Описание предмета
 TooltipFooter.luau	Подсказка действия (ПКМ — использовать, и т.д.)
 InventoryManager API
 Метод	Описание
-init(player, data)	Инициализация из DataStore
-addItem(player, itemId, amount) → bool	Добавить предмет (стакинг)
+create(player)	Создание инвентаря (24/40 слотов, equipment, activeWeaponSlot)
+getInventory(player) → table	Полная структура инвентаря
+addItem(player, itemData) → bool, slotIndex	Добавить предмет (стакинг в существующие, затем новый слот)
 addItemFromConfig(player, itemId, amount) → bool	Добавить предмет по Id из Config.Items
-removeItem(player, slotIndex, amount) → bool	Удалить предмет/уменьшить стак
-swapSlots(player, from, to)	Обмен слотов
+removeItem(player, slotIndex, amount) → bool	Удалить предмет/уменьшить стак по индексу слота
+removeItemById(player, itemId, amount) → bool	Удалить указанное количество по Id (из нескольких стаков)
+countItem(player, itemId) → number	Подсчёт количества предмета во всём инвентаре
+swapSlots(player, from, to) → bool	Обмен слотов (с проверкой locked)
 equipItem(player, slotIndex) → bool	Экипировать предмет
 unequipItem(player, equipSlotId) → bool	Снять экипировку
-setActiveWeapon(player, slotIndex)	Выбрать активное оружие
-getSlot(player, index) → item or false	Получить содержимое слота
+setActiveWeapon(player, slotIndex) → bool	Выбрать активное оружие
+getSlots(player) → table	Получить все слоты
 getEquipment(player) → table	Получить экипировку
 getActiveWeaponSlot(player) → number	Номер слота активного оружия
 getUnlockedSlots(player) → number	Количество разблокированных слотов
-collect(player) → table	Собрать данные для DataStore
+recalcUnlockedSlots(player)	Пересчёт разблокированных слотов (после смены сумки)
+getItemsInLockedSlots(player) → table	Извлечь предметы из заблокированных слотов
+remove(player)	Удалить инвентарь игрока из памяти

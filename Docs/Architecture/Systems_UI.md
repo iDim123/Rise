@@ -15,6 +15,7 @@
 | 1 | PlayerHUD | PlayerHPBlock, ServantHPBlock |
 | 5 | BloodPoolGui | BloodPoolUI |
 | 10 | EnemyHPBarGui | EnemyHPBar (Billboard) |
+| 12 | BlockInteractUI | BlockInteract (Billboard-подсказка [F]) |
 | 15 | EnemyLabelsGui | EnemyLabels (Billboard) |
 | 20 | CastBarUI | CastBar |
 | 30 | BuffBarGui | BuffBar |
@@ -29,10 +30,11 @@
 | 800 | CharacterWindowGui | CharacterWindow |
 | 805 | ServantWindowGui | ServantWindow |
 | 810 | AbilitiesBarGui | AbilitiesBar |
+| 815 | StationGui | StationUI (перерабатывающие станции) |
 | 820 | ContainerGui | ContainerUI |
 | 850 | CaptureGui | CaptureUI |
 | 900 | AbilityTooltipGui | AbilityTooltip |
-| 950 | BossJournalGui | BossJournal |
+| 950 | JournalGui | JournalWindow (Bosses + Spellbook) |
 | 999 | ItemTooltipGui | ItemTooltip |
 
 ---
@@ -69,9 +71,7 @@ HP bar, XP bar и круг уровня активного слуги. Расп�
 
 8 слотов способностей внизу экрана: LMB, Q, E, Space, R, T, Z, X. Иконки привязаны к текущему оружию. Обновляется event-driven при смене Tool (ChildAdded/ChildRemoved). Нажатие Q/E/... отправляет `UseAbility` remote.
 
-Зависимости:
-- `AbilityTooltip.luau` — tooltip с описанием, уроном, cooldown (отдельный ScreenGui, DisplayOrder 900)
-- `AbilityCooldowns.luau` — визуальный cooldown: шторка сверху вниз + число секунд
+Зависимости: `AbilityTooltip.luau` — tooltip с описанием, уроном, cooldown (отдельный ScreenGui, DisplayOrder 900). `AbilityCooldowns.luau` — визуальный cooldown: шторка сверху вниз + число секунд.
 
 ### ActionBarHUD
 
@@ -146,20 +146,13 @@ Dot pool для производительности — переиспольз�
 | Инвентарь | InventoryGrid.luau | Сетка слотов, drag-and-drop |
 | Экипировка (левая) | EquipmentPanel.luau | Head, Chest, Legs, Feet, Hands |
 | Экипировка (правая) | EquipmentPanel.luau | Cloak, Amulet, Ring1, Ring2, Bag |
-| Крафт | CraftPanel.luau | Рецепты, материалы, прогресс |
+| Крафт | CraftPanel.luau | Рецепты (только ручные), материалы, прогресс |
 | Атрибуты | AttributesPanel.luau | Таблица 20 статов |
 | Кровь | BloodPoolPanel.luau | Тип, качество, бонусы |
 
-Вспомогательные модули:
-- `UIConstants.luau` — размеры, цвета, layout
-- `SlotFactory.luau` — создание UI-слотов
-- `SlotBehavior.luau` — клик, ПКМ, drag поведение
-- `DragManager.luau` — drag-and-drop ghost-элемент
-- `CooldownManager.luau` — визуальный cooldown (RenderStepped)
+Вспомогательные модули: `UIConstants.luau` — размеры, цвета, layout. `SlotFactory.luau` — создание UI-слотов. `SlotBehavior.luau` — клик, ПКМ (deposit в станцию/сундук), drag поведение. `DragManager.luau` — drag-and-drop ghost-элемент. `CooldownManager.luau` — визуальный cooldown (RenderStepped).
 
-Внешнее управление: BindableEvent "ToggleCharacterWindow" в ScreenGui "CharacterGui".
-Fire(true) — открыть, Fire(false) — закрыть, Fire() — toggle.
-Используется: ContainerUI (открывает инвентарь при открытии сундука).
+Внешнее управление: BindableEvent "ToggleCharacterWindow" в ScreenGui "CharacterGui". Fire(true) — открыть, Fire(false) — закрыть, Fire() — toggle. Используется: ContainerUI (открывает инвентарь при открытии сундука), StationUI (открывает при открытии станции).
 
 ### ServantWindow
 
@@ -174,26 +167,49 @@ Fire(true) — открыть, Fire(false) — закрыть, Fire() — toggle
 | Экипировка | ServantEquipPanel.luau | Слоты экипировки слуги |
 | Команды | ServantActionBar.luau | Призвать, отозвать, режим, команды |
 
-### BossJournal
+### StationUI
 
-Файл: `boss/BossJournal.luau`
+Файл: `building/StationUI.client.luau`
 
-Журнал боссов (через MenuBar). Полноэкранное окно со скроллом и фильтрацией по актам.
+Универсальный UI перерабатывающих станций (Лесопилка, Дробилка и др.). Название окна берётся из `payload.StationName`. Расположен справа от экрана (RIGHT_MARGIN 260, TOP_OFFSET 40). DisplayOrder 815 — выше AbilitiesBar (810).
 
-| Модуль | Описание |
-|---|---|
-| BossJournalInit.client.luau | Точка входа |
-| BossJournal.luau | Окно, скролл, фильтрация |
-| BossCard.luau | Карточка босса: имя, уровень, эссенция, техники |
-| BossTooltip.luau | Tooltip технологий |
-| BossJournalConstants.luau | Константы и палитра |
-| ActTabs.luau | Табы актов |
+Структура окна: заголовок (название + кнопка X), рецепты (ScrollingFrame, 2 колонки с toggle вкл/выкл и иконкой результата), progress bar (текущий крафт), input-слоты (4×2), output-слоты (4×2), кнопка "Забрать всё".
+
+При открытии автоматически открывает CharacterWindow (через BindableEvent ToggleCharacterWindow). При закрытии — закрывает.
+
+WindowManager интеграция: push("StationUI") при открытии, remove при закрытии. Escape закрывает верхнее окно.
+
+Публичное состояние: BoolValue "StationOpen" и StringValue "StationOpenId" в ScreenGui "StationGui" — используется SlotBehavior для ПКМ deposit.
+
+Remotes: StationOpened (открыть UI), StationUpdate (обновить слоты/крафт), StationClosed (сервер закрыл), StationDeposit, StationTakeItem, StationTakeAll, StationToggleRecipe, StationClose (клиент → сервер).
 
 ### ContainerUI
 
 Файл: `ContainerUI.client.luau`
 
-UI для контейнеров (сундуки, хранилища). Сетка слотов с drag-and-drop. `ContainerAnimator.client.luau` — анимация открытия/закрытия крышки контейнера.
+UI для контейнеров (сундуки). Сетка слотов. `ContainerAnimator.client.luau` — анимация открытия/закрытия крышки контейнера.
+
+### BossJournal / JournalWindow
+
+Файл: `journal/JournalWindow.luau`
+
+Общее окно с табами: **Bosses** и **Spellbook**. Открывается через MenuBar (иконка книги) или горячую клавишу J. Каждый таб — отдельная страница (BossesPage, SpellbookPage) с методами `build`, `onActivate`, `onDeactivate`, `setVisible`.
+
+---
+
+## Строительство
+
+### BlockInteract
+
+Файл: `building/BlockInteract.client.luau`
+
+Сканирует ближайшие функциональные блоки (исключая Chest — обрабатывается ContainerUI) каждые 0.15с. При обнаружении показывает Billboard-подсказку ([F] Открыть станцию, [F] Открыть / Закрыть и т.д.). Нажатие F → `InteractBlock:FireServer(blockId)`.
+
+### WindowManager
+
+Файл: `WindowManager.luau`
+
+Стек окон для управления Escape-закрытием. `push(name, closeFn)` — добавить окно в стек. `remove(name)` — убрать. При Escape вызывается closeFn верхнего окна. Используется StationUI, ContainerUI и другими модальными окнами.
 
 ---
 
@@ -241,7 +257,7 @@ Cast bar захвата врага. Показывается при начале
 
 Файл: `character/tooltip/init.luau`
 
-Модульный tooltip предметов. ScreenGui с DisplayOrder 999 (поверх всех окон). Показывается при наведении на слот инвентаря или экипировки.
+Модульный tooltip предметов. ScreenGui с DisplayOrder 999 (поверх всех окон). Показывается при наведении на слот инвентаря, экипировки, станции или сундука.
 
 | Подмодуль | Описание |
 |---|---|
@@ -256,12 +272,6 @@ Cast bar захвата врага. Показывается при начале
 Файл: `abilities/AbilityTooltip.luau`
 
 Tooltip способностей. Отдельный ScreenGui с DisplayOrder 900. Показывает имя, описание, урон, cooldown, тип урона. Появляется при наведении на слот AbilitiesBar.
-
-### BossTooltip
-
-Файл: `boss/BossTooltip.luau`
-
-Tooltip технологий в Boss Journal. Показывает название технологии и что она разблокирует.
 
 ---
 
@@ -321,7 +331,7 @@ Event-driven через Remotes. Модули подписываются на `R
 
 ### ResetOnSpawn
 
-Все ScreenGui имеют `ResetOnSpawn = false` — UI не пересоздаётся при респавне персонажа
+Все ScreenGui имеют `ResetOnSpawn = false` — UI не пересоздаётся при респавне персонажа.
 
 ---
 
@@ -368,9 +378,3 @@ SpellDetailPanel разбит на подмодули: SpellDetailBuilder (UI-к
 Общие утилиты: AbilitiesConstants (стили), SlotFactory (фабрика слотов), MouseUtil (getMouseWorldPosition), AbilityTooltip, AbilityCooldowns, SpellAimSender.
 
 SpellAimSender автоматически запускается при касте заклинания с CastTime > 0.05 и останавливается при CastComplete или CastCancel.
-
-### ScreenGui (дополнения к DisplayOrder)
-
-| DisplayOrder | ScreenGui | Модуль |
-|---|---|---|
-| 950 | JournalGui | JournalWindow (Bosses + Spellbook) |

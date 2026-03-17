@@ -9,9 +9,30 @@
 
 ### Точки входа
 
-Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager
+Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager, BuildingManager
 
 PlayerLifecycle.server.luau └── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager, BossManager, ServantManager, HealthManager, StatsManager, EventBus
+
+BuildingServer.server.luau └── require: BuildingManager, CastleBorder, FunctionalDispatcher, Remotes, EventBus
+
+
+### Строительные модули (`server/modules/building/`)
+
+BuildingManager ├── Config (BuildingConfig) ├── Remotes ├── EventBus ├── BuildingValidator ├── BlockHealth ├── CastleBorder ├── CastleHeartManager ├── FunctionalDispatcher ├── InventoryManager (lazy) └── InventorySync (lazy)
+
+FunctionalDispatcher ├── Config ├── DoorHandler ├── ChestHandler └── StationHandler
+
+StationHandler ├── Config (StationConfig, CraftConfig, Items) ├── Remotes ├── CastleBorder ├── LootManager (lazy) ├── InventoryManager (lazy) └── InventorySync (lazy)
+
+ChestHandler ├── Config ├── Remotes ├── CastleBorder ├── LootManager (lazy) ├── InventoryManager (lazy) └── InventorySync (lazy)
+
+BuildingSerializer ├── Config └── vec3 helpers (standalone)
+
+CastleBorder ├── Config └── Players
+
+BlockHealth ├── Config ├── EventBus └── Remotes
+
+CastleHeartManager └── Config (BuildingConfig.CastleHeart.Visual)
 
 
 ### Боевые модули (`server/combat/`)
@@ -58,7 +79,7 @@ StatsManager ├── Config ├── Remotes ├── InventoryManager ├�
 
 BloodManager └── Config
 
-DataService ├── Config ├── InventoryManager ├── LevelManager ├── BloodManager ├── BossManager └── ServantManager
+DataService ├── Config ├── InventoryManager ├── LevelManager ├── BloodManager ├── BossManager ├── ServantManager └── BuildingManager
 
 
 ### Боссы (`server/modules/boss/`)
@@ -126,15 +147,19 @@ DamageNumbers.client.luau └── Remotes
 
 ### UI — Персонаж (`client/ui/character/`)
 
-CharacterWindow.client.luau ├── UIConstants ← Config ├── SlotFactory ← UIConstants ├── SlotBehavior ← Config, UIConstants, DragManager, CooldownManager, ItemTooltip ├── DragManager ← UIConstants ├── EquipmentPanel ← Config, UIConstants, SlotFactory, ItemTooltip ├── CraftPanel ← Config, UIConstants, Remotes ├── InventoryGrid ← Config, UIConstants, SlotFactory, SlotBehavior, DragManager, │ CooldownManager, ItemTooltip, ActionBarHUD, Remotes ├── ActionBarHUD ← UIConstants, SlotFactory, SlotBehavior ├── CooldownManager (standalone, RenderStepped) ├── AttributesPanel ← Remotes, Config ├── BloodPoolPanel ← Config └── ItemTooltip (tooltip/)
+CharacterWindow.client.luau ├── UIConstants ← Config ├── SlotFactory ← UIConstants ├── SlotBehavior ← Config, UIConstants, DragManager, CooldownManager, ItemTooltip, Remotes ├── DragManager ← UIConstants ├── EquipmentPanel ← Config, UIConstants, SlotFactory, ItemTooltip ├── CraftPanel ← Config, UIConstants, Remotes ├── InventoryGrid ← Config, UIConstants, SlotFactory, SlotBehavior, DragManager, │ CooldownManager, ItemTooltip, ActionBarHUD, Remotes ├── ActionBarHUD ← UIConstants, SlotFactory, SlotBehavior ├── CooldownManager (standalone, RenderStepped) ├── AttributesPanel ← Remotes, Config ├── BloodPoolPanel ← Config └── ItemTooltip (tooltip/)
 
-ContainerUI.client.luau ← Config, Remotes, CharacterGui.ToggleCharacterWindow (BindableEvent)
+ContainerUI.client.luau ← Config, Remotes, WindowManager, CharacterGui.ToggleCharacterWindow (BindableEvent)
 
-ItemTooltip (client/ui/tooltip/)
-  ← CharacterWindow.client.luau
-  ← SlotBehavior.luau
-  ← EquipmentPanel.luau
-  ← ContainerUI.client.luau       -- NEW
+ItemTooltip (client/ui/tooltip/) ← CharacterWindow.client.luau ← SlotBehavior.luau ← EquipmentPanel.luau ← ContainerUI.client.luau ← StationUI.client.luau
+
+
+### UI — Строительство (`client/ui/building/`)
+
+StationUI.client.luau ├── Config ├── Remotes ├── UIConstants (из character/) ├── ItemTooltip (из tooltip/) └── WindowManager
+
+BlockInteract.client.luau ├── Config ├── Remotes └── RunService
+
 
 ### UI — Способности (`client/ui/abilities/`)
 
@@ -143,13 +168,27 @@ AbilitiesBar.client.luau ├── Config ├── Remotes ├── AbilityToo
 AbilityTooltip (standalone, ScreenGui DisplayOrder 900) AbilityCooldowns (standalone)
 
 
-### UI — Боссы (`client/ui/boss/`)
+### UI — Журнал (`client/ui/journal/`)
 
-BossJournalInit.client.luau └── BossJournal
+JournalInit.client.luau └── JournalWindow
 
-BossJournal ├── Remotes ├── BossCard ├── ActTabs └── BossJournalConstants
+JournalWindow ├── JournalConstants ├── BossesPage └── SpellbookPage
 
-BossCard ├── BossJournalConstants └── BossTooltip
+
+### UI — Боссы (`client/ui/journal/bosses/`)
+
+BossesPage ├── Remotes ├── BossCard ├── ActTabs └── JournalConstants
+
+BossCard ├── JournalConstants └── BossTooltip
+
+
+### UI — Spellbook (`client/ui/journal/spellbook/`)
+
+SpellbookPage ├── SpellConfig ├── Remotes ├── SpellbookConstants ├── SchoolTabs ├── SchoolInfoPanel ├── TierProgressBar ├── SpellGrid ├── SpellDetailPanel └── SpellSlotBar
+
+SpellDetailPanel ├── SpellDetailBuilder ├── SpellDetailLearn └── SpellDetailEquip
+
+SpellGrid ← SpellCard
 
 
 ### UI — Слуги (`client/ui/servant/`)
@@ -159,7 +198,8 @@ ServantWindow.client.luau ├── ServantCollection ├── ServantStatsPane
 
 ### UI — Остальное
 
-PlayerHPBlock.client.luau ← Remotes, UIConstants ServantHPBlock.client.luau ← Remotes, UIConstants BloodPoolUI.client.luau ← Config, Remotes EnemyLabels.client.luau ← Config, EnemyUtil TargetInfo.client.luau ← LevelColorUtil EnemyHPBar.client.luau ← LevelColorUtil, EnemyUtil BuffBar.client.luau ← Remotes, Config ResourceNumbers.client.luau ← Remotes, Config CaptureUI.client.luau ← Config, Remotes CastBar.client.luau ← Remotes DeathScreen.client.luau ← Remotes Minimap.client.luau ← RunService, Players DayNightHUD.client.luau ← Config, Remotes ContainerUI.client.luau ← Config, Remotes ContainerAnimator.client.luau (standalone) IsometricCamera.client.luau (standalone) MouseLook.client.luau (standalone) MenuBar.luau ← BossJournal NotifyModule.luau (standalone) NotifyListener.client.luau ← Remotes, NotifyModule DebugKeys.client.luau ← Remotes CoreGuiSetup.client.luau (standalone) LootUI.client.luau ← Remotes
+PlayerHPBlock.client.luau ← Remotes, UIConstants ServantHPBlock.client.luau ← Remotes, UIConstants BloodPoolUI.client.luau ← Config, Remotes EnemyLabels.client.luau ← Config, EnemyUtil TargetInfo.client.luau ← LevelColorUtil EnemyHPBar.client.luau ← LevelColorUtil, EnemyUtil BuffBar.client.luau ← Remotes, Config ResourceNumbers.client.luau ← Remotes, Config CaptureUI.client.luau ← Config, Remotes CastBar.client.luau ← Remotes DeathScreen.client.luau ← Remotes Minimap.client.luau ← RunService, Players DayNightHUD.client.luau ← Config, Remotes ContainerUI.client.luau ← Config, Remotes, WindowManager ContainerAnimator.client.luau (standalone) IsometricCamera.client.luau (standalone) MouseLook.client.luau (standalone) MenuBar.luau ← JournalWindow WindowManager.luau (standalone) NotifyModule.luau (standalone) NotifyListener.client.luau ← Remotes, NotifyModule DebugKeys.client.luau ← Remotes CoreGuiSetup.client.luau (standalone) LootUI.client.luau ← Remotes
+
 
 ### Магия — серверные модули
 
@@ -182,8 +222,4 @@ UltimateSection ├── SpellConfig ├── Remotes ├── AbilitiesConst
 
 SpellAimSender ├── Remotes └── MouseUtil
 
-SpellbookPage ├── SpellConfig ├── Remotes ├── SpellbookConstants ├── SchoolTabs ├── SchoolInfoPanel ├── TierProgressBar ├── SpellGrid ├── SpellDetailPanel └── SpellSlotBar
-
-SpellDetailPanel ├── SpellDetailBuilder ├── SpellDetailLearn └── SpellDetailEquip
-
-SpellGrid ← SpellCard BeamVisual.client.luau ← Remotes, MouseUtil SpellVFX.client.luau ← Remotes
+BeamVisual.client.luau ← Remotes, MouseUtil SpellVFX.client.luau ← Remotes
