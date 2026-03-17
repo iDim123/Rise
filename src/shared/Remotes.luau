@@ -18,7 +18,7 @@ local events = { -- === Existing ===
 "UpdateSpellData", "SpellAim", "StructureDamageEvent", "PlaceCastleHeart", "UpgradeCastleHeart", "DestroyCastle",
 "CastleHeartInfo", "PlaceBlock", "RemoveBlock", "BuildingSync", "SetBuildPermission", "AddBuildAlly", "RemoveBuildAlly",
 "InteractBlock", "StationOpened", "StationUpdate", "StationClosed", "StationDeposit", "StationTakeItem",
-"StationTakeAll", "StationToggleRecipe", "StationClose"}
+"StationTakeAll", "StationToggleRecipe", "StationClose", "StationTakeInput"}
 
 -- RemoteFunctions
 local functions = { -- === Existing ===

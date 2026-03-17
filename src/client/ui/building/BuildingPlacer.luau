@@ -619,4 +619,8 @@ function BuildingPlacer.cleanup()
     BuildingPlacer.stopDeleteMode()
 end
 
+function BuildingPlacer.isActive()
+    return ghostModel ~= nil
+end
+
 return BuildingPlacer

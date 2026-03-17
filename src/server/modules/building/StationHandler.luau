@@ -525,6 +525,26 @@ function StationHandler.takeFromOutput(player, stationId, slotIndex)
     end
 end
 
+function StationHandler.takeFromInput(player, stationId, slotIndex)
+    local blockId = stationIdToBlock[stationId]
+    local data = blockId and stationData[blockId]
+    if not data then return end
+    if not data.viewers[player.UserId] then return end
+
+    local slot = data.inputSlots[slotIndex]
+    if not slot or slot == false then return end
+
+    local InventoryManager = require(modules:WaitForChild("InventoryManager"))
+    local added = InventoryManager.addItemFromConfig(player, slot.ItemId, slot.Amount)
+
+    if added then
+        data.inputSlots[slotIndex] = false
+        local InventorySync = require(modules:WaitForChild("InventorySync"))
+        InventorySync.sendFullUpdate(player)
+        notifyViewers(data)
+    end
+end
+
 function StationHandler.takeAllOutput(player, stationId)
     local blockId = stationIdToBlock[stationId]
     local data = blockId and stationData[blockId]

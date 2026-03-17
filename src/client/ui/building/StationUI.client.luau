@@ -354,9 +354,13 @@ local function rebuildInputSlots()
     for i = 1, 8 do
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
-        local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, nil)
+        local si = i
+        local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, function()
+            if currentStationId then
+                Remotes.StationTakeInput:FireServer(currentStationId, si)
+            end
+        end)
 
-        -- Drag hover визуал
         btn.MouseEnter:Connect(function()
             if DragManager.isDragging() then
                 btn.BackgroundColor3 = DROP_HIGHLIGHT
@@ -369,7 +373,6 @@ local function rebuildInputSlots()
             end
         end)
 
-        -- Регистрируем как drop target
         DragManager.registerDropTarget(btn, function(dragData)
             if not dragData then
                 return

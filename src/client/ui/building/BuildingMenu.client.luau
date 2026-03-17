@@ -258,7 +258,9 @@ Instance.new("UICorner", deleteModeBtn).CornerRadius = UDim.new(0, BC.SMALL_RADI
 local function closeBuildingMenu()
     if not window.Visible then return end
     window.Visible = false
-    BuildingPlacer.cleanup()
+    if not BuildingPlacer.isActive() then
+        BuildingPlacer.cleanup()
+    end
     WindowManager.remove("BuildingMenu")
 end
 

@@ -59,3 +59,10 @@
 | `/spellpoint Chaos 2 1`  | Добавить 1 Chaos Tier 2 spell point |
 | `/spellpoint Blood ULT 1`| Добавить 1 Blood Ultimate spell point |
 | `/spellpoint Chaos ULT 2`| Добавить 2 Chaos Ultimate spell points |
+
+## Замок
+
+| Команда              | Что делает                          |
+|----------------------|-------------------------------------|
+| `/savecastle`  | savecastle |
+| `/wipecastle`  | wipecastle |
