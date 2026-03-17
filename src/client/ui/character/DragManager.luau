@@ -11,21 +11,41 @@ DragManager.dragOverIndex = nil
 
 local dragGhost = nil
 local screenGui = nil
-local dragData = nil  -- { slotIndex: number, item: table }
+local dragData = nil -- { slotIndex: number, item: table }
 
 function DragManager.init(gui)
     screenGui = gui
 end
 
-function DragManager.startDrag(slotIndex, itemData)
+function DragManager.startDrag(slotIndex, itemData, source, extraData)
     DragManager.dragFrom = slotIndex
-    dragData = { slotIndex = slotIndex, item = itemData }
+    dragData = {
+        slotIndex = slotIndex,
+        item = itemData,
+        source = source or "inventory",
+        extraData = extraData or nil
+    }
     DragManager.createGhost(itemData)
+end
+
+function DragManager.getDragData()
+    return dragData
+end
+
+function DragManager.getSource()
+    return dragData and dragData.source or nil
+end
+
+function DragManager.reset(slotFrames)
+    DragManager.dragFrom = nil
+    DragManager.dragOverIndex = nil
+    dragData = nil
+    DragManager.destroyGhost()
 end
 
 function DragManager.createGhost(itemData)
     DragManager.destroyGhost()
-   
+
     local mousePos = UserInputService:GetMouseLocation()
 
     local ghost = Instance.new("Frame")
@@ -74,7 +94,9 @@ function DragManager.createGhost(itemData)
 end
 
 function DragManager.updateGhostPosition()
-    if not dragGhost then return end
+    if not dragGhost then
+        return
+    end
     local mousePos = UserInputService:GetMouseLocation()
     dragGhost.Position = UDim2.new(0, mousePos.X - UC.slotSize / 2, 0, mousePos.Y - UC.slotSize / 2)
 end
@@ -90,13 +112,6 @@ function DragManager.isDragging()
     return DragManager.dragFrom ~= nil
 end
 
-function DragManager.reset(slotFrames)
-    DragManager.dragFrom = nil
-    DragManager.dragOverIndex = nil
-    dragData = nil
-    DragManager.destroyGhost()
-end
-
 function DragManager.registerDropTarget(slotFrame, callback)
     dropTargets[slotFrame] = callback
 end
@@ -109,17 +124,13 @@ function DragManager.tryDrop(mousePos)
     for slotFrame, callback in dropTargets do
         local absPos = slotFrame.AbsolutePosition
         local absSize = slotFrame.AbsoluteSize
-        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and mousePos.Y <=
+            absPos.Y + absSize.Y then
             callback(DragManager.getDragData())
             return true
         end
     end
     return false
-end
-
-function DragManager.getDragData()
-    return dragData
 end
 
 -- Автообновление позиции призрака

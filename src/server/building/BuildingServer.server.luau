@@ -281,6 +281,16 @@ Remotes.StationTakeInput.OnServerEvent:Connect(function(player, stationId, slotI
     StationHandler.takeFromInput(player, stationId, slotIndex)
 end)
 
+Remotes.StationTakeInput.OnServerEvent:Connect(function(player, stationId, slotIndex)
+    if type(stationId) ~= "string" then
+        return
+    end
+    if type(slotIndex) ~= "number" then
+        return
+    end
+    StationHandler.takeFromInput(player, stationId, slotIndex)
+end)
+
 Remotes.StationTakeAll.OnServerEvent:Connect(function(player, stationId)
     if type(stationId) ~= "string" then
         return

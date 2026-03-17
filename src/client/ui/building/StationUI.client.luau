@@ -355,34 +355,57 @@ local function rebuildInputSlots()
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
         local si = i
-        local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, function()
+        local btn = buildSlot(inputFrame, currentInputSlots, i, col, row, nil)
+
+        -- ЛКМ — начать drag
+        btn.MouseButton1Down:Connect(function()
+            local slot = currentInputSlots[si]
+            if slot and slot ~= false then
+                local itemDef = Config.Items[slot.ItemId]
+                local dragItem = {
+                    Id = slot.ItemId,
+                    Name = itemDef and itemDef.Name or slot.ItemId,
+                    Icon = itemDef and itemDef.Icon or "",
+                    Amount = slot.Amount or 1
+                }
+                DragManager.startDrag(si, dragItem, "stationInput", {
+                    stationId = currentStationId
+                })
+                btn.BackgroundColor3 = UC.slotBgDrag or Color3.fromRGB(80, 80, 100)
+            end
+        end)
+
+        -- ПКМ — забрать в инвентарь
+        btn.MouseButton2Click:Connect(function()
             if currentStationId then
                 Remotes.StationTakeInput:FireServer(currentStationId, si)
             end
         end)
 
+        -- Drag hover
         btn.MouseEnter:Connect(function()
             if DragManager.isDragging() then
                 btn.BackgroundColor3 = DROP_HIGHLIGHT
             end
         end)
         btn.MouseLeave:Connect(function()
-            if DragManager.isDragging() then
-                local slot = currentInputSlots[i]
+            local slot = currentInputSlots[si]
+            if not DragManager.isDragging() or DragManager.dragFrom == si then
                 btn.BackgroundColor3 = (slot and slot ~= false) and SLOT_FILLED or SLOT_BG
             end
         end)
 
-        DragManager.registerDropTarget(btn, function(dragData)
-            if not dragData then
+        -- Drop target (deposit из инвентаря)
+        DragManager.registerDropTarget(btn, function(dd)
+            if not dd then
                 return
             end
-            if currentStationId then
-                Remotes.StationDeposit:FireServer(currentStationId, dragData.slotIndex)
+            if dd.source == "inventory" and currentStationId then
+                Remotes.StationDeposit:FireServer(currentStationId, dd.slotIndex)
             end
         end)
 
-        inputSlotButtons[i] = btn
+        inputSlotButtons[si] = btn
     end
 end
 
@@ -396,11 +419,34 @@ local function rebuildOutputSlots()
         local col = (i - 1) % IO_COLS
         local row = math.floor((i - 1) / IO_COLS)
         local si = i
-        outputSlotButtons[i] = buildSlot(outputFrame, currentOutputSlots, i, col, row, function()
+        local btn = buildSlot(outputFrame, currentOutputSlots, i, col, row, nil)
+
+        -- ЛКМ — начать drag
+        btn.MouseButton1Down:Connect(function()
+            local slot = currentOutputSlots[si]
+            if slot and slot ~= false then
+                local itemDef = Config.Items[slot.ItemId]
+                local dragItem = {
+                    Id = slot.ItemId,
+                    Name = itemDef and itemDef.Name or slot.ItemId,
+                    Icon = itemDef and itemDef.Icon or "",
+                    Amount = slot.Amount or 1
+                }
+                DragManager.startDrag(si, dragItem, "stationOutput", {
+                    stationId = currentStationId
+                })
+                btn.BackgroundColor3 = UC.slotBgDrag or Color3.fromRGB(80, 80, 100)
+            end
+        end)
+
+        -- ПКМ — забрать в инвентарь
+        btn.MouseButton2Click:Connect(function()
             if currentStationId then
                 Remotes.StationTakeItem:FireServer(currentStationId, si)
             end
         end)
+
+        outputSlotButtons[si] = btn
     end
 end
 

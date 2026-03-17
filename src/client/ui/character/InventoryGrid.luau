@@ -39,7 +39,10 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
         SlotBehavior.connect(slot, index, function()
             local data = getCurrentData()
             return data and data.slots and data.slots[index]
-        end, { equipRemote = equipRemote, useItemRemote = useItemRemote })
+        end, {
+            equipRemote = equipRemote,
+            useItemRemote = useItemRemote
+        })
 
         slotFrames[index] = slot
     end
@@ -64,7 +67,10 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             SlotBehavior.connect(slot, index, function()
                 local data = getCurrentData()
                 return data and data.slots and data.slots[index]
-            end, { equipRemote = equipRemote, useItemRemote = useItemRemote })
+            end, {
+                equipRemote = equipRemote,
+                useItemRemote = useItemRemote
+            })
 
             slotFrames[index] = slot
         end
@@ -91,24 +97,45 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
             local mousePos = UserInputService:GetMouseLocation()
             local dragFrom = DragManager.dragFrom
             local overIndex = DragManager.dragOverIndex
+            local dd = DragManager.getDragData()
+            local source = dd and dd.source or "inventory"
+
+            -- Drag из станции → при отпускании на слоте инвентаря забираем предмет
+            if source == "stationInput" or source == "stationOutput" then
+                local dropped = DragManager.tryDrop(mousePos)
+                if not dropped then
+                    -- Отпустили над слотом инвентаря или просто в пустоту — забрать в инвентарь
+                    local extra = dd and dd.extraData
+                    local stId = extra and extra.stationId
+                    if stId then
+                        if source == "stationInput" then
+                            Remotes.StationTakeInput:FireServer(stId, dragFrom)
+                        else
+                            Remotes.StationTakeItem:FireServer(stId, dragFrom)
+                        end
+                    end
+                end
+                DragManager.reset(slotFrames)
+                return
+            end
 
             local dropped = DragManager.tryDrop(mousePos)
 
             if not dropped then
                 if overIndex and overIndex == dragFrom then
                 elseif overIndex and overIndex ~= dragFrom then
-                        if overIndex > currentUnlockedSlots then
-                        else
-                            savedSwapRemote:FireServer(dragFrom, overIndex)
-                        end
+                    if overIndex > currentUnlockedSlots then
+                    else
+                        savedSwapRemote:FireServer(dragFrom, overIndex)
+                    end
                 elseif not overIndex then
 
                     local isOverSlot = false
                     for idx, sf in slotFrames do
                         local absPos = sf.AbsolutePosition
                         local absSize = sf.AbsoluteSize
-                        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-                            and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and
+                            mousePos.Y <= absPos.Y + absSize.Y then
                             isOverSlot = true
                             break
                         end
@@ -119,14 +146,13 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                         for idx, sf in abSlots do
                             local absPos = sf.AbsolutePosition
                             local absSize = sf.AbsoluteSize
-                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and
+                                mousePos.Y <= absPos.Y + absSize.Y then
                                 isOverSlot = true
                                 break
                             end
                         end
                     end
-
 
                     if not isOverSlot then
                         local isOutside = true
@@ -134,8 +160,8 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                         if parentFrame.Visible then
                             local absPos = parentFrame.AbsolutePosition
                             local absSize = parentFrame.AbsoluteSize
-                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and
+                                mousePos.Y <= absPos.Y + absSize.Y then
                                 isOutside = false
                             end
                         end
@@ -145,8 +171,8 @@ function InventoryGrid.build(parent, swapRemote, equipRemote, getCurrentData, us
                             local absPos = abFrame.AbsolutePosition
                             local absSize = abFrame.AbsoluteSize
                             -- Добавляем 30px вниз для bind labels
-                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
-                                and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y + 30 then
+                            if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and
+                                mousePos.Y <= absPos.Y + absSize.Y + 30 then
                                 isOutside = false
                             end
                         end
@@ -168,7 +194,9 @@ function InventoryGrid.refresh(slotsData, activeWeaponSlot, unlockedSlots)
     local maxUnlocked = unlockedSlots or 40
     for i, slotFrame in slotFrames do
         local itemData = slotsData[i]
-        if itemData == false then itemData = nil end
+        if itemData == false then
+            itemData = nil
+        end
 
         if i > maxUnlocked then
             -- Заблокированный слот
@@ -181,7 +209,7 @@ function InventoryGrid.refresh(slotsData, activeWeaponSlot, unlockedSlots)
                 lockIcon.Name = "LockIcon"
                 lockIcon.Size = UDim2.new(1, 0, 1, 0)
                 lockIcon.BackgroundTransparency = 1
-                lockIcon.Text = "⬡"  -- или просто текст
+                lockIcon.Text = "⬡" -- или просто текст
                 lockIcon.TextSize = 20
                 lockIcon.Font = Enum.Font.GothamBold
                 lockIcon.TextColor3 = Color3.fromRGB(60, 60, 75)
@@ -192,21 +220,29 @@ function InventoryGrid.refresh(slotsData, activeWeaponSlot, unlockedSlots)
 
             -- Скрыть содержимое
             local icon = slotFrame:FindFirstChild("Icon")
-            if icon then icon.Visible = false end
+            if icon then
+                icon.Visible = false
+            end
             local nameLabel = slotFrame:FindFirstChild("NameLabel")
-            if nameLabel then nameLabel.Visible = false end
+            if nameLabel then
+                nameLabel.Visible = false
+            end
             local amountLabel = slotFrame:FindFirstChild("Amount")
             if amountLabel then
                 amountLabel.Visible = false
                 amountLabel.Text = ""
             end
             local activeFrame = slotFrame:FindFirstChild("ActiveFrame")
-            if activeFrame then activeFrame.Visible = false end
+            if activeFrame then
+                activeFrame.Visible = false
+            end
         else
             -- Разблокированный слот
             slotFrame.BackgroundTransparency = 0
             local lockIcon = slotFrame:FindFirstChild("LockIcon")
-            if lockIcon then lockIcon.Visible = false end
+            if lockIcon then
+                lockIcon.Visible = false
+            end
 
             SlotFactory.updateSlot(slotFrame, itemData, activeWeaponSlot, i)
         end
