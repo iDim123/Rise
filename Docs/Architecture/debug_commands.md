@@ -64,5 +64,27 @@
 
 | Команда              | Что делает                          |
 |----------------------|-------------------------------------|
-| `/savecastle`  | savecastle |
-| `/wipecastle`  | wipecastle |
+| `/savecastle`  | Принудительно сохранить замок в DataStore |
+| `/wipecastle`  | Удалить замок и сохранить без него |
+
+## Мир (v1.10)
+
+| Команда              | Что делает                          |
+|----------------------|-------------------------------------|
+| `/worldgen`          | Сгенерировать мир с случайным seed   |
+| `/worldgen 42`       | Сгенерировать мир с конкретным seed (воспроизводимость) |
+| `/worldclear`        | Очистить terrain и восстановить ручные объекты |
+| `/worldinfo`         | Показать Mode, Seed, Ready, Map, Chunks, GenTime |
+| `/templates`         | Проверить папки ServerStorage (found/missing) |
+
+## Горячие клавиши (Studio)
+
+| Клавиша | Что делает                          |
+|---------|-------------------------------------|
+| `~`     | Открыть/закрыть консоль отладки      |
+| `L`     | Toggle Fly mode + Noclip (WASD + Space/Shift, 80 studs/s) |
+| `Ctrl+1`| Добавить Blood T1 spell point       |
+| `Ctrl+2`| Добавить Chaos T1 spell point       |
+| `Ctrl+3`| Добавить все spell points (все школы, все тиры) |
+| `Ctrl+4`| Сохранить замок (/savecastle)        |
+| `Ctrl+5`| Удалить замок (/wipecastle)          |

@@ -1,91 +1,262 @@
-# Roadmap v1.10 — Procedural World Generation 
+# Roadmap v1.10 — Procedural World Generation
 
-> Дорожная карта для версии 1.10. Определяет порядок реализации двух крупных систем.
+> Дорожная карта для версии 1.10: процедурная генерация мира.
+> Обновлено: 2026-03-18.
+
+---
+
+## Принцип: не ломать текущий рабочий процесс
+
+Генерация мира **не уничтожает** ручную сцену в Studio. Вместо этого используется
+система **трёх режимов**, которая позволяет переключаться между ручной расстановкой
+и процедурной генерацией одной строкой в конфиге.
+
+---
+
+## Три режима мира (WorldConfig.Mode)
+
+```lua
+-- src/shared/config/WorldConfig.luau
+return {
+    World = {
+        Mode = "Manual", -- ← переключатель режима
+
+        -- "Manual"    — Studio сцена как есть. Ничего не генерируется.
+        --               Используй для работы над моделями, UI, боевой системой.
+        --
+        -- "Generated" — полная генерация из seed. Terrain + враги + ресурсы.
+        --               Studio сцена игнорируется. Для тестирования мира.
+        --
+        -- "Hybrid"    — Terrain генерируется из seed, но объекты (SpawnPoints,
+        --               боссы, ресурсы) берутся из Workspace, если они есть.
+        --               Для постепенного перехода от ручной к процедурной расстановке.
+
+        ...
+    }
+}
+```
+
+### Что происходит в каждом режиме
+
+| Элемент | Manual | Hybrid | Generated |
+|---|---|---|---|
+| **Terrain** | Из Studio (ручной) | Генерируется из seed | Генерируется из seed |
+| **SpawnPoints врагов** | Из Workspace (ручные) | Из Workspace, если есть; иначе генерация | Генерация из BiomeConfig |
+| **Ресурсные ноды** | Из Workspace (ручные) | Из Workspace, если есть; иначе генерация | Генерация из BiomeConfig |
+| **Боссы** | Из Workspace (ручные) | Из Workspace (ручные) | Генерация из BiomeConfig |
+| **Структуры (лагеря)** | Из Workspace (ручные) | Из Workspace (ручные) | Клонирование из Templates |
+| **Модели врагов** | Из Workspace.Enemies | Клонирование из Templates | Клонирование из Templates |
+| **Замки (Building)** | Работает как в v1.9 | Работает как в v1.9 | Работает как в v1.9 |
+| **Игрок спавн** | SpawnLocation в Studio | SpawnLocation / генерация | Генерация (безопасная зона) |
+| **Ручные объекты** | Видимы | Скрыты (hideManualObjects) | Скрыты (hideManualObjects) |
+
+### Правило: `Mode = "Manual"` — дефолт
+
+При обычной работе в Studio **ничего не меняется**. Открыл Studio, нажал Play —
+всё работает как раньше. Генерация включается только явным переключением Mode.
+
+### Скрытие ручных объектов при генерации
+
+При `/worldgen` или `Mode ≠ "Manual"` объекты из Workspace (Trees, Stones, Rigs, Baseplate и т.д.)
+автоматически скрываются (`Parent = nil`) чтобы не проглядывали сквозь terrain.
+Список управляется в WorldConfig:
+
+```lua
+HideOnGenerate = {
+    "Baseplate", "Trees", "Stones", "Resources",
+    "SpawnPoints", "SpawnLocation", "Camping Area",
+    "Containers", "DungeonPack",
+},
+HidePatterns = { "Rig" },  -- ловит Rig, Rig (2), Rig (3)...
+```
+
+При `/worldclear` все скрытые объекты восстанавливаются обратно в Workspace.
+
+---
+
+## Организация ассетов: Templates
+
+Ключевая папка — `ServerStorage/`. Сюда перенесены **шаблоны** моделей,
+которые генератор будет клонировать и расставлять по миру.
+
+```
+ServerStorage/                       ← уже создано в Studio ✅
+├── structures/
+│   └── CampingArea                  -- лагерь (Model)
+├── resources/
+│   ├── StoneNode                    -- камень для добычи
+│   └── WoodNode                     -- дерево для рубки
+├── props/
+│   ├── BeechwoodTree                -- декоративное дерево
+│   ├── PineTree                     -- декоративное дерево
+│   ├── CedarTree                    -- декоративное дерево
+│   ├── Stone                        -- декоративный камень
+│   └── RealisticStone               -- декоративный камень (MeshPart)
+├── bosses/
+│   └── BloodWarrior                 -- босс (Model)
+├── containers/
+│   ├── locked_chest                 -- запертый сундук
+│   └── wooden_chest                 -- деревянный сундук
+├── enemies/
+│   ├── TrainingDummy                -- манекен
+│   ├── Warrior                      -- воин
+│   └── Wolf                         -- волк
+└── weapons/
+    ├── Axe                          -- топор
+    ├── Bow                          -- лук
+    └── Sword                        -- меч
+```
+
+### Рабочий процесс разработчика
+
+```
+1. Создаёшь / правишь модель в Workspace (как обычно)
+2. Проверяешь в Studio (Mode = "Manual") — всё работает
+3. Перемещаешь готовую модель в ServerStorage/<категория>/
+4. Прописываешь в BiomeConfig, какие шаблоны где спавнятся
+5. Переключаешь Mode = "Generated" → Play → смотришь результат
+6. Не нравится → Mode = "Manual" → обратно к ручной сцене
+```
+
+**Важно**: оригиналы в Templates **никогда не удаляются**. Генератор только `Clone()`.
+
+---
+
+## Debug-инструменты
+
+### Команды (консоль `~`)
+
+| Команда | Статус | Описание |
+|---|---|---|
+| `/worldgen` | ✅ Phase 1 | Генерация мира с случайным seed |
+| `/worldgen 42` | ✅ Phase 1 | Генерация с конкретным seed |
+| `/worldclear` | ✅ Phase 1 | Очистить terrain + восстановить ручные объекты |
+| `/worldinfo` | ✅ Phase 0 | Mode, seed, chunks, время генерации |
+| `/templates` | ✅ Phase 0 | Проверка папок ServerStorage |
+| `/biomemap` | ⏳ Phase 2 | Визуализация карты биомов |
+| `/spawnmap` | ⏳ Phase 2 | Маркеры точек спавна |
+| `/teleport <biome>` | ⏳ Phase 2 | Телепорт к центру биома |
+| `/regenbiome <id>` | ⏳ Phase 2 | Пересоздать объекты биома |
+
+### Горячие клавиши (только Studio)
+
+| Клавиша | Статус | Описание |
+|---|---|---|
+| **L** | ✅ Phase 1 | Toggle Fly mode + Noclip (WASD + Space/Shift, 80 studs/s) |
+
+### Типичная сессия отладки
+
+```
+1. Открыть Studio, Play (Mode = "Manual" — обычная сцена)
+2. В чате: /worldgen 42
+   → Ручные объекты скрываются (Trees, Stones, Rigs, Baseplate)
+   → Terrain генерируется за ~5-15 сек (чанки от центра)
+3. L — включить fly + noclip → облетать ландшафт
+4. Не нравится высота → поменять Noise.Scale в WorldConfig
+5. /worldclear → terrain удалён, ручные объекты восстановлены
+6. /worldgen 42 → повторная генерация с новыми параметрами
+7. Repeat
+```
 
 ---
 
 ## Фазы реализации
 
 ```
-Phase 1: World Core          (2-3 недели)
-Phase 2: Biomes & Spawns     (2 недели)
-Phase 3: World Persistence   (1 неделя)
-Phase 4: Integration & Polish (1 неделя)
+Phase 0: Подготовка              (2-3 дня)    ✅ DONE
+Phase 1: World Core              (2-3 недели)  ✅ DONE
+Phase 2: Biomes & Spawns         (2 недели)    ← NEXT
+Phase 3: World Persistence       (1 неделя)
+Phase 4: Integration & Polish    (1 неделя)
 ```
+
+Общее время: **~7-8 недель**.
 
 ---
 
-## Phase 1: World Core — Базовая генерация (develop_1.10_phase1)
+## Phase 0: Подготовка ✅ DONE
 
-Цель: при старте сервера создаётся уникальный ландшафт из seed.
+Инфраструктура, без влияния на текущий проект.
 
-### Задачи
-
-| # | Задача | Сложность | Файлы |
+| # | Задача | Статус | Файлы |
 |---|---|---|---|
-| 1.1 | **WorldConfig.luau** — конфигурация мира | Low | `shared/config/WorldConfig.luau` |
-| 1.2 | **WorldSeed** — генерация / загрузка seed | Low | `server/modules/world/WorldSeed.luau` |
-| 1.3 | **TerrainGenerator** — Perlin noise + Terrain API | High | `server/modules/world/TerrainGenerator.luau` |
-| 1.4 | **ChunkSystem** — разбиение мира на чанки для потокового создания | Medium | `server/modules/world/ChunkSystem.luau` |
-| 1.5 | **WorldManager** — оркестратор: seed → генерация → готовность | Medium | `server/modules/world/WorldManager.luau` |
-| 1.6 | **Интеграция с Main.server** — ожидание завершения генерации перед спавном | Low | `server/Main.server.luau` |
-
-### WorldConfig — параметры
-
-```lua
-return {
-    World = {
-        MapSize = 1024,        -- studs (сторона квадрата)
-        ChunkSize = 64,        -- studs (сторона чанка)
-        SeaLevel = 10,         -- высота воды
-        MaxHeight = 80,        -- максимальная высота
-        TerrainResolution = 4, -- studs на вексель
-        GenerationTimeout = 30,-- секунд макс на генерацию
-
-        Noise = {
-            Scale = 0.005,     -- масштаб основного шума
-            Octaves = 4,       -- количество октав
-            Persistence = 0.5, -- затухание
-            Lacunarity = 2.0,  -- частотный множитель
-        },
-    }
-}
-```
-
-### TerrainGenerator — алгоритм
-
-1. Инициализировать `Random.new(seed)` для воспроизводимости
-2. Для каждого чанка (64×64):
-   - Вычислить heightmap через Perlin noise (math.noise)
-   - Определить материал по высоте: Water → Sand → Grass → Rock → Snow
-   - Вызвать `Terrain:FillBlock()` или `Terrain:WriteVoxels()` для заполнения
-3. Добавить базовый рельеф: равнины, холмы, утёсы
-4. Генерация занимает 5–15 секунд
-
-### Критерии готовности Phase 1
-
-- [ ] Мир генерируется за <15 сек из seed
-- [ ] Одинаковый seed = одинаковый мир
-- [ ] Ландшафт выглядит естественно (холмы, долины, плоские зоны)
-- [ ] Сервер ожидает завершения генерации перед спавном игроков
+| 0.1 | WorldConfig.luau — конфиг с Mode, Noise, TemplatePaths | ✅ | `shared/config/WorldConfig.luau` |
+| 0.2 | Templates в ServerStorage — папки с копиями моделей | ✅ | ServerStorage (Studio) |
+| 0.3 | WorldManager заглушка — skip в Manual | ✅ | `server/modules/world/WorldManager.luau` |
+| 0.4 | Интеграция Main.server — WorldManager.init() | ✅ | `server/Main.server.luau` |
+| 0.5 | Debug-команды — /worldinfo, /templates | ✅ | `server/debug/DebugCommands.server.luau` |
+| 0.6 | Config.luau — WorldConfig авто-загрузка | ✅ | `shared/Config.luau` (итерация children) |
 
 ---
 
-## Phase 2: Biomes & Spawns — Биомы и точки спавна (develop_1.10_phase2)
+## Phase 1: World Core ✅ DONE
 
-Цель: мир разбит на биомы с уникальными врагами и ресурсами.
+Terrain генерируется из seed через `/worldgen`.
+
+| # | Задача | Статус | Файлы |
+|---|---|---|---|
+| 1.1 | WorldSeed — RNG из seed, offsets для noise | ✅ | `server/modules/world/WorldSeed.luau` |
+| 1.2 | TerrainGenerator — 4-octave Perlin, 6 материалов, FillBlock | ✅ | `server/modules/world/TerrainGenerator.luau` |
+| 1.3 | ChunkSystem — 16×16 grid, BFS spiral, task.wait() | ✅ | `server/modules/world/ChunkSystem.luau` |
+| 1.4 | WorldManager — seed→hide→clear→chunks→generate→ready | ✅ | `server/modules/world/WorldManager.luau` |
+| 1.5 | HideManualObjects — скрытие Workspace при генерации | ✅ | WorldManager + WorldConfig.HideOnGenerate |
+| 1.6 | Debug /worldgen, /worldclear | ✅ | `server/debug/DebugCommands.server.luau` |
+| 1.7 | Fly mode (L) + Noclip | ✅ | `client/debug/DebugKeys.client.luau` |
+
+### Реализованные детали
+
+**TerrainGenerator** — материалы по нормализованной высоте (0–1):
+
+| Слой | MaxHeight | Материал |
+|---|---|---|
+| Вода | 0.00 | Water |
+| Пляж | 0.05 | Sand |
+| Равнины | 0.45 | LeafyGrass |
+| Холмы | 0.65 | Grass |
+| Горы | 0.80 | Rock |
+| Вершины | 1.00 | Snow |
+
+**Fly mode** — WASD движение относительно камеры, Space/Shift вверх/вниз.
+Noclip: `CanCollide = false` каждый `Stepped` frame (Roblox сбрасывает).
+Автосброс при смерти персонажа. Только в Studio.
+
+---
+
+## Phase 2: Biomes & Spawns — СЛЕДУЮЩАЯ ФАЗА
+
+> Цель: мир разбит на биомы с уникальными врагами, ресурсами и декором.
+> Срок: **2 недели**.
 
 ### Задачи
 
-| # | Задача | Сложность | Файлы |
-|---|---|---|---|
-| 2.1 | **BiomeMap** — карта биомов на основе noise | Medium | `server/modules/world/BiomeMap.luau` |
-| 2.2 | **BiomeConfig** — конфигурация биомов | Low | `shared/config/BiomeConfig.luau` |
-| 2.3 | **StructureGenerator** — размещение структур (лагеря, руины) | High | `server/modules/world/StructureGenerator.luau` |
-| 2.4 | **SpawnPointGenerator** — автоматическое создание spawn points | Medium | `server/modules/world/SpawnPointGenerator.luau` |
-| 2.5 | **ResourceNodeGenerator** — размещение ресурсных нод | Medium | `server/modules/world/ResourceNodeGenerator.luau` |
-| 2.6 | **Рефакторинг EnemyManager** — спавн из сгенерированных точек | Medium | `server/enemy/EnemyManager.server.luau` |
-| 2.7 | **PlayerSpawnPoint** — выбор стартовой позиции | Low | `server/modules/world/PlayerSpawnPoint.luau` |
+| # | Задача | Сложность | Файлы | Описание |
+|---|---|---|---|---|
+| 2.1 | **BiomeConfig** | Low | `shared/config/BiomeConfig.luau` | Конфигурация биомов: температура, влажность, враги, ресурсы, пропсы, уровни |
+| 2.2 | **BiomeMap** | Medium | `server/modules/world/BiomeMap.luau` | Двойной noise (temperature + moisture) → biomeId для каждого чанка |
+| 2.3 | **PropPlacer** | Medium | `server/modules/world/PropPlacer.luau` | Clone() пропсов из Templates, raycast вниз для Y, плотность из BiomeConfig |
+| 2.4 | **SpawnPointGenerator** | Medium | `server/modules/world/SpawnPointGenerator.luau` | Poisson-disc точки спавна врагов с учётом биома и плотности |
+| 2.5 | **ResourceNodeGenerator** | Medium | `server/modules/world/ResourceNodeGenerator.luau` | Clone() StoneNode/WoodNode из Templates, расстановка по биомам |
+| 2.6 | **StructureGenerator** | High | `server/modules/world/StructureGenerator.luau` | Размещение лагерей, руин и т.д. — расчистка зоны + Clone() из Templates |
+| 2.7 | **PlayerSpawnPoint** | Low | `server/modules/world/PlayerSpawnPoint.luau` | Безопасная зона (центр карты), raycast для Y-позиции |
+| 2.8 | **WorldManager update** | Medium | `server/modules/world/WorldManager.luau` | Интеграция: seed → terrain → biomes → props → spawns → structures → ready |
+| 2.9 | **EnemyManager refactor** | Medium | `server/enemy/EnemyManager.server.luau` | Спавн врагов из сгенерированных SpawnPoints вместо ручных |
+| 2.10 | **Debug-команды** | Low | `server/debug/DebugCommands.server.luau` | /biomemap, /spawnmap, /teleport |
+| 2.11 | **ObjectCleaner** | Low | `server/modules/world/WorldManager.luau` | Удаление сгенерированных объектов при /worldclear (Folder "_Generated") |
+
+### Порядок реализации
+
+```
+Неделя 1:
+  День 1-2:  BiomeConfig + BiomeMap (noise → biome assignment)
+  День 3:    PropPlacer (деревья, камни по биомам)
+  День 4-5:  ResourceNodeGenerator + SpawnPointGenerator
+
+Неделя 2:
+  День 1-2:  StructureGenerator + PlayerSpawnPoint
+  День 3:    WorldManager интеграция (полный pipeline)
+  День 4:    EnemyManager рефакторинг (спавн из точек)
+  День 5:    Debug-команды, тестирование, баланс плотностей
+```
 
 ### BiomeConfig — пример
 
@@ -93,41 +264,102 @@ return {
 return {
     Biomes = {
         DarkForest = {
-            Name = "Тёмный лес",
+            Name = "Dark Forest",
             Temperature = { Min = 0.3, Max = 0.6 },
-            Moisture = { Min = 0.5, Max = 1.0 },
-            Enemies = { "Wolf", "Warrior" },
-            EnemyDensity = 3, -- врагов на чанк
-            Resources = { "Tree", "Rock" },
-            LevelRange = { 1, 6 },
-            BossSpawns = { "BloodWarrior" },
-            Structures = { "camp_small" },
+            Moisture    = { Min = 0.5, Max = 1.0 },
+            TerrainMaterial = Enum.Material.LeafyGrass,
+            Enemies        = { "Wolf", "Warrior" },
+            EnemyDensity   = 3,                         -- на чанк
+            Resources      = { "WoodNode", "StoneNode" },
+            ResourceDensity = 2,
+            Props          = { "PineTree", "BeechwoodTree", "Stone" },
+            PropDensity    = 5,
+            LevelRange     = { 1, 6 },
+            BossSpawns     = { "BloodWarrior" },
+            Structures     = { "CampingArea" },
+        },
+        BloodForest = {
+            Name = "Blood Forest",
+            Temperature = { Min = 0.5, Max = 0.8 },
+            Moisture    = { Min = 0.6, Max = 1.0 },
+            TerrainMaterial = Enum.Material.Grass,
+            Enemies        = { "Warrior" },
+            EnemyDensity   = 4,
+            Resources      = { "WoodNode" },
+            ResourceDensity = 1,
+            Props          = { "CedarTree", "RealisticStone" },
+            PropDensity    = 4,
+            LevelRange     = { 5, 12 },
         },
         Ruins = {
-            Name = "Руины",
+            Name = "Ruins",
             Temperature = { Min = 0.1, Max = 0.4 },
-            Moisture = { Min = 0.0, Max = 0.3 },
-            Enemies = { "Skeleton", "Necromancer" },
-            EnemyDensity = 5,
-            LevelRange = { 5, 18 },
-            BossSpawns = { "SawmillBoss" },
-            Structures = { "blood_altar", "crypt" },
+            Moisture    = { Min = 0.0, Max = 0.3 },
+            TerrainMaterial = Enum.Material.Slate,
+            Enemies        = { "Warrior" },   -- TODO: Skeleton, Necromancer
+            EnemyDensity   = 5,
+            Resources      = { "StoneNode" },
+            ResourceDensity = 3,
+            Props          = { "RealisticStone" },
+            PropDensity    = 2,
+            LevelRange     = { 5, 18 },
+            BossSpawns     = {},               -- TODO: LumberjackChief
+            Structures     = {},               -- TODO: crypt, blood_altar
         },
-    }
+    },
+
+    -- Центр карты — безопасная стартовая зона без врагов
+    SafeZone = {
+        Radius = 64,               -- studs от центра
+        Biome = "DarkForest",      -- визуальный стиль
+        EnemyDensity = 0,
+    },
 }
+```
+
+### BiomeMap — алгоритм
+
+```
+1. Два независимых noise: temperature(x,z) и moisture(x,z)
+   (свои Scale и seed-offset, отличные от terrain heightmap)
+2. Для каждого чанка (cx, cz):
+   a. Сэмплировать temperature и moisture в центре чанка
+   b. Найти ближайший BiomeConfig по (temp, moisture) диапазонам
+   c. Записать biomeId в BiomeMap[cx][cz]
+3. BiomeMap кэшируется — не пересчитывается
+4. Граничные чанки: nearest-match (без интерполяции)
+```
+
+### PropPlacer — алгоритм
+
+```
+1. Для каждого чанка: biome = BiomeMap[cx][cz]
+2. count = biome.PropDensity (± randomness)
+3. Для каждого пропа:
+   a. Случайная позиция (worldX, worldZ) внутри чанка
+   b. height = TerrainGenerator.getHeight(worldX, worldZ)
+   c. Пропустить если height < SeaLevel (вода)
+   d. Случайный шаблон из biome.Props
+   e. model = ServerStorage[props][name]:Clone()
+   f. model:PivotTo(CFrame.new(worldX, height, worldZ) * randomRotation)
+   g. model.Parent = workspace._Generated  (отдельная папка)
 ```
 
 ### Критерии готовности Phase 2
 
-- [ ] 1+ биомов с визуально различным ландшафтом
-- [ ] Враги спавнятся в соответствующих биомах
-- [ ] Ресурсные ноды размещены по биомам
-- [ ] Боссы имеют фиксированные зоны (определяются биомом)
-- [ ] Игрок спавнится в безопасной стартовой зоне
+- [ ] 3+ биомов с визуально различным ландшафтом (разные деревья, камни, материалы)
+- [ ] Props (деревья, камни) расставлены по биомам из Templates
+- [ ] Враги спавнятся в соответствующих биомах (тип + уровень из BiomeConfig)
+- [ ] Ресурсные ноды (WoodNode, StoneNode) работают после Clone()
+- [ ] Боссы размещены в фиксированных зонах по биому
+- [ ] Игрок спавнится в безопасной зоне (центр, без врагов)
+- [ ] `/worldclear` убирает все сгенерированные объекты + восстанавливает ручные
+- [ ] `/biomemap` визуализирует карту биомов
+- [ ] `Mode = "Manual"` — без изменений
 
 ---
 
-## Phase 3: World Persistence — Сохранение мира (develop_1.10_phase3)
+## Phase 3: World Persistence (1 неделя)
 
 Цель: мир сохраняется в DataStore и восстанавливается при возвращении игроков.
 
@@ -146,70 +378,104 @@ return {
 ```
 world_{serverId}_meta     → { seed, version, createdAt, biomeMap_hash }
 world_{serverId}_progress → { bossKills, resourceNodes, discoveredAreas }
-world_{serverId}_buildings → { } -- Phase 4-5
+world_{serverId}_buildings → { } -- уже реализовано в v1.9 (BuildingSerializer)
 player_{userId}           → { ... existing + worldSpawnPos, homePos }
 ```
 
-### Лимиты DataStore
+---
 
-| Ограничение | Лимит | Наше использование |
+## Phase 4: Integration & Polish (1 неделя)
+
+Цель: всё работает вместе, баланс, оптимизация.
+
+| # | Задача | Сложность |
 |---|---|---|
-| Размер ключа | 4 MB | Meta: ~1 KB, Progress: ~50 KB, Buildings: ~500 KB |
-| Запросов/мин | 60 + 10 × players | 4 players = 100 req/min (достаточно) |
-| GetAsync throttle | 5 sec / key | Загрузка при старте: OK |
-
-### Критерии готовности Phase 3
-
-- [ ] Seed сохраняется и восстанавливается
-- [ ] Прогресс боссов привязан к миру
-- [ ] Ресурсные ноды помнят состояние
-- [ ] При выходе всех игроков → полное сохранение мира
-- [ ] При возвращении → мир восстанавливается за <20 сек
+| 4.1 | Баланс биомов (плотность врагов, уровни, ресурсы) | Medium |
+| 4.2 | Chunk streaming — загрузка далёких чанков по мере движения | Medium |
+| 4.3 | Minimap — отображение биомов и POI | Low |
+| 4.4 | Loading screen — прогресс генерации | Low |
+| 4.5 | Нагрузочный тест — 100 врагов, 4 игрока, 500 блоков | Medium |
 
 ---
 
 ## Техническая архитектура (v1.10)
 
-### Новая структура файлов
+### Файловая структура (реализовано + план)
 
 ```
 src/
 ├── shared/
 │   └── config/
-│       ├── WorldConfig.luau   # Phase 1
-│       └── BiomeConfig.luau   # Phase 2
+│       ├── WorldConfig.luau          # ✅ Phase 0 — режимы, noise, HideOnGenerate
+│       └── BiomeConfig.luau          # ⏳ Phase 2 — биомы
 ├── server/
-│   └── modules/
-│       ├── world/
-│       │   ├── WorldManager.luau         # Phase 1 — оркестратор
-│       │   ├── WorldSeed.luau            # Phase 1 — seed управление
-│       │   ├── TerrainGenerator.luau     # Phase 1 — Perlin + Terrain API
-│       │   ├── ChunkSystem.luau          # Phase 1 — чанки
-│       │   ├── BiomeMap.luau             # Phase 2 — карта биомов
-│       │   ├── StructureGenerator.luau   # Phase 2 — структуры
-│       │   ├── SpawnPointGenerator.luau  # Phase 2 — spawn points
-│       │   ├── ResourceNodeGenerator.luau# Phase 2 — ресурсы
-│       │   ├── PlayerSpawnPoint.luau     # Phase 2 — стартовая точка
-│       │   └── WorldSaveManager.luau     # Phase 3 — персистентность
+│   ├── modules/
+│   │   └── world/
+│   │       ├── WorldManager.luau          # ✅ Phase 0+1 — оркестратор + hideManualObjects
+│   │       ├── WorldSeed.luau             # ✅ Phase 1   — seed → RNG + offsets
+│   │       ├── TerrainGenerator.luau      # ✅ Phase 1   — Perlin noise + FillBlock
+│   │       ├── ChunkSystem.luau           # ✅ Phase 1   — BFS spiral, progress
+│   │       ├── BiomeMap.luau              # ⏳ Phase 2   — temperature+moisture → biome
+│   │       ├── PropPlacer.luau            # ⏳ Phase 2   — деревья, камни из Templates
+│   │       ├── SpawnPointGenerator.luau   # ⏳ Phase 2   — Poisson-disc спавн врагов
+│   │       ├── ResourceNodeGenerator.luau # ⏳ Phase 2   — ресурсы из Templates
+│   │       ├── StructureGenerator.luau    # ⏳ Phase 2   — лагеря, руины
+│   │       ├── PlayerSpawnPoint.luau      # ⏳ Phase 2   — безопасная стартовая зона
+│   │       └── WorldSaveManager.luau      # ⏳ Phase 3   — DataStore persistence
+│   └── debug/
+│       └── DebugCommands.server.luau      # ✅ Phase 0+1 — /worldgen, /worldclear, etc.
+├── client/
+│   ├── debug/
+│   │   └── DebugKeys.client.luau          # ✅ Phase 1   — fly (L) + noclip
+│   └── ui/
+│       └── LoadingScreen.client.luau      # ⏳ Phase 4   — прогресс генерации
 ```
 
-### Новые EventBus события
+### Зависимости новых модулей
+
+```
+WorldManager
+├── Config (WorldConfig)
+├── WorldSeed
+├── TerrainGenerator
+├── ChunkSystem
+└── (Phase 2: BiomeMap, PropPlacer, SpawnPointGenerator, ...)
+
+TerrainGenerator
+├── Config (WorldConfig.Noise)
+└── WorldSeed (offsets)
+
+ChunkSystem
+├── Config (WorldConfig.MapSize, ChunkSize)
+└── TerrainGenerator
+
+WorldSeed (standalone — math.random + offsets)
+```
+
+### Новые EventBus события (план)
 
 | Событие | Аргументы | Фаза |
 |---|---|---|
-| WorldReady | seed, biomeMap | Phase 1 |
+| WorldReady | seed, mode, biomeMap | Phase 2 |
 | BiomeEntered | player, biomeId | Phase 2 |
-| BlockPlaced | player, blockType, position | Phase 4 |
-| BlockRemoved | player, position | Phase 4 |
+| WorldSaved | timestamp | Phase 3 |
 
-### Новые Remotes
+---
 
-| Remote | Направление | Фаза |
+## Зависимости от текущего кода
+
+| Система | Изменения в v1.10 | Режим Manual затронут? |
 |---|---|---|
-| WorldReady | Server → Client | Phase 1 |
-| PlaceBlock | Client → Server | Phase 4 |
-| RemoveBlock | Client → Server | Phase 4 |
-| GetBuildings | Client → Server (Function) | Phase 4 |
+| **Main.server** | + WorldManager.init() | Нет (skip в Manual) |
+| **DebugCommands** | + /worldgen, /worldclear, /worldinfo, /templates | Только добавление |
+| **DebugKeys** | + fly mode (L) + noclip | Только добавление |
+| **Config** | + WorldConfig | Авто-загрузка через children |
+| **EnemyManager** | ⏳ Phase 2: спавн из сгенерированных точек | Нет |
+| **ResourceManager** | ⏳ Phase 2: ноды по биомам | Нет |
+| **DataService** | ⏳ Phase 3: новые ключи world_* | Нет |
+| **BuildingManager** | Без изменений | Нет |
+
+**Гарантия**: `Mode = "Manual"` = нулевое влияние на существующий код.
 
 ---
 
@@ -217,29 +483,23 @@ src/
 
 | Риск | Вероятность | Импакт | Митигация |
 |---|---|---|---|
-| Генерация >20 сек | Medium | High | Чанковая генерация, прогресс-бар для игрока |
-| DataStore 4 MB лимит | Low | High | Компрессия, хранить только diff от seed |
-| 500 блоков = лаг | Medium | Medium | Part count мониторинг, LOD для далёких блоков |
-| Биомы выглядят одинаково | Medium | Medium | Разные материалы, props, ambient sounds |
-| Враги спавнятся в стенах | High | Low | Raycast проверка при спавне |
-
----
-
-## Зависимости от текущего кода
-
-| Система | Изменения в v1.10 |
-|---|---|
-| EnemyManager | Спавн из сгенерированных точек вместо хардкод SpawnPoints |
-| EnemySpawner | Без изменений (уже принимает позицию + тип) |
-| ResourceManager | Ноды генерируются по биомам |
-| DataService | Новые ключи: world_meta, world_progress, world_buildings |
-| LootManager | Без изменений |
-| Main.server | Ожидание WorldReady перед спавном врагов |
+| Генерация >20 сек | Medium | High | Чанковая генерация + прогресс-бар + task.wait() |
+| Ручные объекты сквозь terrain | ✅ Решено | — | HideOnGenerate + HidePatterns в WorldConfig |
+| Застревание в terrain при fly | ✅ Решено | — | Noclip (CanCollide=false каждый Stepped) |
+| DataStore 4 MB лимит | Low | High | Хранить только diff от seed |
+| Биомы одинаковые | Medium | Medium | Разные props, материалы, плотности |
+| Враги спавнятся в стенах | High | Low | Raycast вниз при спавне |
+| Clone() моделей не работает | Medium | High | Проверка в /templates |
+| Studio тормозит при генерации | Medium | Medium | task.wait() между чанками |
 
 ---
 
 ## Порядок работы (TL;DR)
 
-1. **Phase 1** (Week 1-3): Terrain из seed → играбельный мир
-2. **Phase 2** (Week 4-5): Биомы → враги и ресурсы в правильных местах
-3. **Phase 3** (Week 6): Сохранение → мир переживает перезапуск
+```
+Phase 0 (3 дня):    ✅ WorldConfig + WorldManager stub + debug команды
+Phase 1 (2-3 нед):  ✅ Terrain из seed + hide objects + fly noclip
+Phase 2 (2 нед):    ← Биомы → деревья, камни, враги, ресурсы по зонам
+Phase 3 (1 нед):       Сохранение → seed + прогресс в DataStore
+Phase 4 (1 нед):       Баланс, chunk streaming, loading screen
+```

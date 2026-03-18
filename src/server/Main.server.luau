@@ -14,6 +14,10 @@ local BuffManager = require(modules:WaitForChild("BuffManager"))
 local BuildingManager = require(modules:WaitForChild("building"):WaitForChild("BuildingManager"))
 BuildingManager.init()
 
+-- v1.10: World generation
+local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+WorldManager.init()
+
 local buffTickAccumulator = 0
 local BUFF_TICK_RATE = 1
 
