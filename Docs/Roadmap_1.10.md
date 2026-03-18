@@ -1,26 +1,6 @@
-# Roadmap v1.9 — Procedural World Generation + Castle Building
+# Roadmap v1.10 — Procedural World Generation 
 
-> Дорожная карта для версии 1.9. Определяет порядок реализации двух крупных систем.
-
----
-
-## Что реализовывать сначала?
-
-### Вердикт: **Генерация мира — первая. Строительство замка — второе.**
-
-### Обоснование
-
-| Фактор | Генерация мира | Строительство замка |
-|---|---|---|
-| **Зависимости** | Ни от чего не зависит | Зависит от мира (нужна карта, куда ставить замок) |
-| **Влияние на всё** | Меняет спавн врагов, ресурсы, боссов, навигацию | Локальная система, не ломает существующее |
-| **Тестирование** | Все остальные системы нужно проверить в новом мире | Можно тестировать на любой карте |
-| **Персистентность** | Seed-based, минимальные данные | Большой объём данных (каждый блок) |
-| **Блокирует** | Весь контент: новых врагов, биомы, боссов | Только замок-функционал |
-| **Сложность** | Высокая (Terrain API, биомы, spawn points) | Средняя (placement, DataStore) |
-| **Риск** | Высокий (может потребовать переделку спавна) | Низкий (изолированная система) |
-
-**Вывод**: Генерация мира — это фундамент. Без неё замок некуда ставить, враги спавнятся в пустоте, а биомы не существуют. Замок можно добавить поверх уже готового мира.
+> Дорожная карта для версии 1.10. Определяет порядок реализации двух крупных систем.
 
 ---
 
@@ -30,16 +10,12 @@
 Phase 1: World Core          (2-3 недели)
 Phase 2: Biomes & Spawns     (2 недели)
 Phase 3: World Persistence   (1 неделя)
-Phase 4: Castle Foundation   (2 недели)
-Phase 5: Castle Interiors    (1-2 недели)
-Phase 6: Integration & Polish (1 неделя)
+Phase 4: Integration & Polish (1 неделя)
 ```
-
-Итого: ~10-12 недель
 
 ---
 
-## Phase 1: World Core — Базовая генерация (develop_1.9_phase1)
+## Phase 1: World Core — Базовая генерация (develop_1.10_phase1)
 
 Цель: при старте сервера создаётся уникальный ландшафт из seed.
 
@@ -95,7 +71,7 @@ return {
 
 ---
 
-## Phase 2: Biomes & Spawns — Биомы и точки спавна (develop_1.9_phase2)
+## Phase 2: Biomes & Spawns — Биомы и точки спавна (develop_1.10_phase2)
 
 Цель: мир разбит на биомы с уникальными врагами и ресурсами.
 
@@ -124,18 +100,8 @@ return {
             EnemyDensity = 3, -- врагов на чанк
             Resources = { "Tree", "Rock" },
             LevelRange = { 1, 6 },
-            Structures = { "camp_small" },
-        },
-        BloodForest = {
-            Name = "Кровавый лес",
-            Temperature = { Min = 0.4, Max = 0.7 },
-            Moisture = { Min = 0.3, Max = 0.6 },
-            Enemies = { "Warrior", "BloodKnight" },
-            EnemyDensity = 4,
-            Resources = { "BloodTree", "Rock" },
-            LevelRange = { 5, 12 },
             BossSpawns = { "BloodWarrior" },
-            Structures = { "blood_altar", "camp_medium" },
+            Structures = { "camp_small" },
         },
         Ruins = {
             Name = "Руины",
@@ -143,18 +109,9 @@ return {
             Moisture = { Min = 0.0, Max = 0.3 },
             Enemies = { "Skeleton", "Necromancer" },
             EnemyDensity = 5,
-            LevelRange = { 10, 18 },
+            LevelRange = { 5, 18 },
             BossSpawns = { "SawmillBoss" },
-            Structures = { "ruin_tower", "crypt" },
-        },
-        Swamp = {
-            Name = "Болото",
-            Temperature = { Min = 0.5, Max = 0.8 },
-            Moisture = { Min = 0.8, Max = 1.0 },
-            Enemies = { "Toad", "SwampKnight" },
-            EnemyDensity = 3,
-            LevelRange = { 14, 20 },
-            Structures = { "swamp_hut" },
+            Structures = { "blood_altar", "crypt" },
         },
     }
 }
@@ -162,7 +119,7 @@ return {
 
 ### Критерии готовности Phase 2
 
-- [ ] 4+ биомов с визуально различным ландшафтом
+- [ ] 1+ биомов с визуально различным ландшафтом
 - [ ] Враги спавнятся в соответствующих биомах
 - [ ] Ресурсные ноды размещены по биомам
 - [ ] Боссы имеют фиксированные зоны (определяются биомом)
@@ -170,7 +127,7 @@ return {
 
 ---
 
-## Phase 3: World Persistence — Сохранение мира (develop_1.9_phase3)
+## Phase 3: World Persistence — Сохранение мира (develop_1.10_phase3)
 
 Цель: мир сохраняется в DataStore и восстанавливается при возвращении игроков.
 
@@ -211,132 +168,7 @@ player_{userId}           → { ... existing + worldSpawnPos, homePos }
 
 ---
 
-## Phase 4: Castle Foundation — Фундамент строительства (develop_1.9_phase4)
-
-Цель: игрок может разместить фундамент замка и строить базовые стены.
-
-### Задачи
-
-| # | Задача | Сложность | Файлы |
-|---|---|---|---|
-| 4.1 | **BuildingConfig** — типы строительных блоков | Low | `shared/config/BuildingConfig.luau` |
-| 4.2 | **BuildingManager** — серверная логика размещения / удаления | High | `server/modules/building/BuildingManager.luau` |
-| 4.3 | **BuildingValidator** — проверки: коллизии, грунт, лимиты | Medium | `server/modules/building/BuildingValidator.luau` |
-| 4.4 | **BuildingPlacer (client)** — ghost preview, snap-to-grid | High | `client/ui/building/BuildingPlacer.luau` |
-| 4.5 | **BuildingUI (client)** — меню строительства | Medium | `client/ui/building/BuildingMenu.client.luau` |
-| 4.6 | **CastleBorder** — границы замка (claim area) | Medium | `server/modules/building/CastleBorder.luau` |
-| 4.7 | **Remotes** — PlaceBlock, RemoveBlock, GetBuildings | Low | (интеграция с Remotes.luau) |
-| 4.8 | **Интеграция с крафтом** — стройматериалы из ресурсов | Low | (интеграция с CraftConfig) |
-
-### BuildingConfig — пример
-
-```lua
-return {
-    Building = {
-        GridSize = 4,          -- studs (snap)
-        MaxBlocks = 500,       -- макс блоков на замок
-        ClaimRadius = 64,      -- studs (территория замка)
-        MaxCastlesPerWorld = 4, -- по одному на игрока
-
-        BlockTypes = {
-            stone_foundation = {
-                Name = "Каменный фундамент",
-                Size = Vector3.new(4, 1, 4),
-                Material = Enum.Material.Slate,
-                Color = Color3.fromRGB(120, 120, 120),
-                HP = 500,
-                Cost = { { Id = "stone", Amount = 10 } },
-                PlacementRule = "Ground", -- только на землю
-            },
-            stone_wall = {
-                Name = "Каменная стена",
-                Size = Vector3.new(4, 4, 1),
-                Material = Enum.Material.Slate,
-                Color = Color3.fromRGB(140, 140, 140),
-                HP = 300,
-                Cost = { { Id = "stone", Amount = 8 } },
-                PlacementRule = "OnFoundation",
-            },
-            wooden_floor = {
-                Name = "Деревянный пол",
-                Size = Vector3.new(4, 0.5, 4),
-                Material = Enum.Material.Wood,
-                Color = Color3.fromRGB(139, 90, 43),
-                HP = 200,
-                Cost = { { Id = "wooden_plank", Amount = 4 } },
-                PlacementRule = "OnFoundation",
-            },
-            wooden_roof = {
-                Name = "Деревянная крыша",
-                Size = Vector3.new(4, 0.5, 4),
-                Material = Enum.Material.Wood,
-                Color = Color3.fromRGB(100, 60, 30),
-                HP = 150,
-                Cost = { { Id = "wooden_plank", Amount = 6 } },
-                PlacementRule = "OnWall",
-            },
-        }
-    }
-}
-```
-
-### Snap-to-grid система
-
-Все блоки размещаются на сетке GridSize (4 studs). Клиент показывает ghost-preview с привязкой к сетке. Зелёный = можно ставить, красный = нельзя (коллизия / нет фундамента / вне зоны).
-
-### Критерии готовности Phase 4
-
-- [ ] Игрок может разместить фундамент на ровной поверхности
-- [ ] Стены ставятся на фундамент
-- [ ] Ghost-preview с snap-to-grid
-- [ ] Расход материалов при строительстве
-- [ ] Удаление блоков (возврат части материалов)
-- [ ] Лимит блоков на замок (500)
-- [ ] Сохранение построек в DataStore
-
----
-
-## Phase 5: Castle Interiors — Интерьер и функционал (develop_1.9_phase5)
-
-Цель: замок имеет функциональные элементы.
-
-### Задачи
-
-| # | Задача | Сложность | Файлы |
-|---|---|---|---|
-| 5.1 | **Дверь** — открытие/закрытие, доступ для команды | Medium | building/DoorBlock.luau |
-| 5.2 | **Сундук** — хранилище предметов (общий для команды) | Medium | building/ChestBlock.luau |
-| 5.3 | **Верстак** — крафт-станция (расширенные рецепты) | Medium | building/WorkbenchBlock.luau |
-| 5.4 | **Кровавый алтарь** — обработка крови, ритуалы | Medium | building/BloodAltarBlock.luau |
-| 5.5 | **Гроб** — точка возрождения (замена стандартного респавна) | Low | building/CoffinBlock.luau |
-| 5.6 | **Укрытие от солнца** — крыша защищает от sunlight_exposure | Low | (интеграция с DayNightManager) |
-
-### Критерии готовности Phase 5
-
-- [ ] 5+ функциональных блоков
-- [ ] Замок защищает от солнца (крыша → нет дебаффа)
-- [ ] Сундук хранит предметы между сессиями
-- [ ] Гроб = точка респавна
-- [ ] Верстак = расширенный крафт
-
----
-
-## Phase 6: Integration & Polish (develop_1.9_phase6)
-
-### Задачи
-
-| # | Задача | Сложность |
-|---|---|---|
-| 6.1 | Баланс биомов, врагов, ресурсов | Medium |
-| 6.2 | Оптимизация: streaming чанков, LOD | Medium |
-| 6.3 | Миникарта: отображение биомов и замка | Low |
-| 6.4 | UI: кнопка строительства (B), категории блоков | Medium |
-| 6.5 | Тестирование 4 игрока: production load test | High |
-| 6.6 | DataStore stress test: 500 блоков + 100 врагов + 4 игрока | High |
-
----
-
-## Техническая архитектура (v1.9)
+## Техническая архитектура (v1.10)
 
 ### Новая структура файлов
 
@@ -344,9 +176,8 @@ return {
 src/
 ├── shared/
 │   └── config/
-│       ├── WorldConfig.luau      # Phase 1
-│       ├── BiomeConfig.luau      # Phase 2
-│       └── BuildingConfig.luau   # Phase 4
+│       ├── WorldConfig.luau   # Phase 1
+│       └── BiomeConfig.luau   # Phase 2
 ├── server/
 │   └── modules/
 │       ├── world/
@@ -360,15 +191,6 @@ src/
 │       │   ├── ResourceNodeGenerator.luau# Phase 2 — ресурсы
 │       │   ├── PlayerSpawnPoint.luau     # Phase 2 — стартовая точка
 │       │   └── WorldSaveManager.luau     # Phase 3 — персистентность
-│       └── building/
-│           ├── BuildingManager.luau      # Phase 4 — размещение
-│           ├── BuildingValidator.luau    # Phase 4 — валидация
-│           └── CastleBorder.luau        # Phase 4 — территория
-├── client/
-│   └── ui/
-│       └── building/
-│           ├── BuildingMenu.client.luau  # Phase 4 — UI
-│           └── BuildingPlacer.luau       # Phase 4 — ghost preview
 ```
 
 ### Новые EventBus события
@@ -405,12 +227,11 @@ src/
 
 ## Зависимости от текущего кода
 
-| Система | Изменения в v1.9 |
+| Система | Изменения в v1.10 |
 |---|---|
 | EnemyManager | Спавн из сгенерированных точек вместо хардкод SpawnPoints |
 | EnemySpawner | Без изменений (уже принимает позицию + тип) |
 | ResourceManager | Ноды генерируются по биомам |
-| DayNightManager | Проверка крыши для sunlight_exposure |
 | DataService | Новые ключи: world_meta, world_progress, world_buildings |
 | LootManager | Без изменений |
 | Main.server | Ожидание WorldReady перед спавном врагов |
@@ -422,6 +243,3 @@ src/
 1. **Phase 1** (Week 1-3): Terrain из seed → играбельный мир
 2. **Phase 2** (Week 4-5): Биомы → враги и ресурсы в правильных местах
 3. **Phase 3** (Week 6): Сохранение → мир переживает перезапуск
-4. **Phase 4** (Week 7-8): Замок → стены и фундамент
-5. **Phase 5** (Week 9-10): Интерьер → сундуки, верстак, гроб
-6. **Phase 6** (Week 11-12): Полировка → баланс, оптимизация, тесты
