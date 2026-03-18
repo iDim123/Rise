@@ -69,7 +69,8 @@ src/
 │       ├── BossConfig.luau
 │       ├── BuildingConfig.luau     # Строительство: BlockTypes, CastleHeart, Permissions
 │       ├── StationConfig.luau      # Перерабатывающие станции: Sawmill, Crusher
-│       └── DayNightConfig.luau
+│       ├── DayNightConfig.luau
+│       └── WorldConfig.luau        # v1.10: режимы мира (Manual/Hybrid/Generated), noise, HideOnGenerate
 │
 ├── server/                         # ServerScriptService
 │   ├── Main.server.luau            # Точка входа: загружает модули для EventBus подписок
@@ -117,6 +118,11 @@ src/
 │   │   ├── servant/
 │   │   │   ├── ServantManager.luau
 │   │   │   └── ServantEquipment.luau
+│   │   ├── world/                  # v1.10 Процедурная генерация мира
+│   │   │   ├── WorldManager.luau       # Оркестратор: seed→hide→terrain→ready
+│   │   │   ├── WorldSeed.luau          # Seed → RNG + noise offsets
+│   │   │   ├── TerrainGenerator.luau   # 4-octave Perlin noise + FillBlock
+│   │   │   └── ChunkSystem.luau        # 16×16 grid, BFS spiral, progress
 │   │   └── building/               # Строительная система (→ Systems_Building.md)
 │   │       ├── BuildingManager.luau
 │   │       ├── BuildingValidator.luau
@@ -312,6 +318,7 @@ src/
 | DayNightConfig | Config.DayNight | Цикл дня/ночи, фазы луны |
 | BuildingConfig | Config.Building | GridSize, CastleHeart (Levels, Visual), BlockTypes, Permissions, BlockCategories |
 | StationConfig | Config.Stations | Sawmill, Crusher — Name, InputSlots, OutputSlots, InteractRange, CraftingColor |
+| WorldConfig | Config.World | v1.10: Mode (Manual/Hybrid/Generated), MapSize, ChunkSize, Noise, TemplatePaths, HideOnGenerate, Debug |
 
 ---
 
@@ -364,6 +371,7 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | ПКМ на слоте инвентаря | Экипировать / использовать / deposit в станцию или сундук |
 | ПКМ на слоте станции | Забрать предмет в инвентарь |
 | ЛКМ на слоте станции | Начать drag (перетаскивание) |
+| L | Toggle Fly mode + Noclip (WASD + Space/Shift, 80 studs/s) — Studio only |
 | Колесо мыши | Зум камеры / зум миникарты |
 | Drag за UI | Выбросить предмет |
 | ~ или F2 | Консоль отладки (Studio) |
@@ -391,4 +399,5 @@ DataService централизует save/load. DATASTORE_NAME = "RisePlayerData
 | 1.6 | develop_1.6 | Stats (20 статов), Blood Tiers, Boss System, Minimap, Death System, DataStore, Debug |
 | 1.7 | develop_1.7 | Рефакторинг: ItemConfig → items/, BossManager → boss/, ServantManager → servant/, WeaponConfig → weapons/, боевая система → combat/ (CombatManager, DamageCalc, TargetFinder, MeleeHandler, RangedHandler, ProjectileManager), дальний бой (Bow, снаряды, каст). **Система магии**: SpellConfig (Blood/Chaos школы), SpellProgressManager (spell points, тиры), SpellCastManager (каст, charges, channelling, SpellAim), 14 модульных spellEffects, LeechHandler/IgniteHandler пассивки, Beam система (BeamEffect + BeamVisual), SpellVFX (клиентские эффекты), Spellbook UI (Journal интеграция, 12 модулей), AbilitiesBar секционная архитектура (Weapon/Spell/Ultimate/Class секции), DataService + Magic данные |
 | 1.8 | develop_1.8 | **Архитектурный аудит и фиксы**: DataService: SetAsync → UpdateAsync + version guard; SAVE_ENABLED по RunService:IsStudio(); BindToClose race condition fix (thread tracking + 25s timeout); HealthManager GC + cleanup(); EnemyAI activation distance (100 studs) + batch processing; EventBus.off(); SpellAim rate-limit; tick() → os.clock() (все серверные файлы); CharacterUtil shared module; PlayerCleanup EventBus event; LootManager periodic cleanup; TargetFinder spatial hash grid (CELL_SIZE=50, обновление 0.2с); Game Overview document; Roadmap 1.9 |
-| 1.9 | develop_1.9 | **Система строительства замков**: BuildingManager (CRUD блоков, Castle Heart с уровнями, claim-территория, HP блоков, экономика), BuildingConfig (BlockTypes: фундаменты, стены, крыши, двери, сундуки, станции), BuildingSerializer (DataStore), CastleBorder (claim, коллизии, права, союзники), CastleHeartManager (визуал орба), BlockHealth (разрушение), FunctionalDispatcher (Door/Chest/Station). **Перерабатывающие станции**: StationHandler (универсальный — Sawmill, Crusher), StationConfig, рецепты с полем Station в CraftConfig. **Клиент**: BuildingMenu (клавиша B, категории, Castle Heart), BuildingPlacer (ghost-preview, snap-to-grid, isActive()), StationUI (универсальный UI станций, drag-and-drop input/output, клиентская интерполяция progress bar), BlockInteract (подсказка F), WindowManager (стек окон, Escape), SlotBehavior (ПКМ deposit в станцию/сундук), DragManager (расширен: source/extraData, DragLayer ScreenGui). **Новые ресурсы**: Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick. BuildingServer.server.luau — remote-оркестратор строительства. **Station Remotes**: StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose |
+| 1.9 | develop_1.10 | **Система строительства замков**: BuildingManager (CRUD блоков, Castle Heart с уровнями, claim-территория, HP блоков, экономика), BuildingConfig (BlockTypes: фундаменты, стены, крыши, двери, сундуки, станции), BuildingSerializer (DataStore), CastleBorder (claim, коллизии, права, союзники), CastleHeartManager (визуал орба), BlockHealth (разрушение), FunctionalDispatcher (Door/Chest/Station). **Перерабатывающие станции**: StationHandler (универсальный — Sawmill, Crusher), StationConfig, рецепты с полем Station в CraftConfig. **Клиент**: BuildingMenu (клавиша B, категории, Castle Heart), BuildingPlacer (ghost-preview, snap-to-grid, isActive()), StationUI (универсальный UI станций, drag-and-drop input/output, клиентская интерполяция progress bar), BlockInteract (подсказка F), WindowManager (стек окон, Escape), SlotBehavior (ПКМ deposit в станцию/сундук), DragManager (расширен: source/extraData, DragLayer ScreenGui). **Новые ресурсы**: Wooden Plank, Sawdust, Blood Plank, Trash, Stone Brick. BuildingServer.server.luau — remote-оркестратор строительства. **Station Remotes**: StationOpened, StationUpdate, StationClosed, StationDeposit, StationTakeItem, StationTakeInput, StationTakeAll, StationToggleRecipe, StationClose |
+| 1.10 | develop_1.10 | **Процедурная генерация мира** (Phase 0+1): WorldConfig (3 режима: Manual/Hybrid/Generated), WorldManager (оркестратор: seed→hide→terrain→ready + hideManualObjects/restoreManualObjects), WorldSeed (seed→RNG+offsets), TerrainGenerator (4-octave Perlin noise, 6 материалов, FillBlock), ChunkSystem (16×16 BFS spiral). HideOnGenerate/HidePatterns — автоскрытие Workspace объектов при генерации. Debug: /worldgen, /worldclear, /worldinfo, /templates. Fly mode (L) + Noclip (CanCollide=false per Stepped). Checklist: Docs/Checklist_1.10.md |
