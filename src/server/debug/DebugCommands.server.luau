@@ -168,6 +168,52 @@ commands["/help"] = function(player, args)
     return "Commands: " .. table.concat(list, ", ")
 end
 
+-- ── World ──
+
+commands["/worldinfo"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    return WorldManager.getInfo()
+end
+
+commands["/templates"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    local found, missing, details = WorldManager.validateTemplates()
+    print("[Debug] ServerStorage templates:")
+    print(details)
+    return string.format("Templates: %d found, %d missing", found, missing)
+end
+
+commands["/worldgen"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    if WorldManager.isGenerating() then
+        return "Generation already in progress!"
+    end
+    local seed = tonumber(args[1]) or nil
+    if not seed then
+        local WorldSeed = require(modules:WaitForChild("world"):WaitForChild("WorldSeed"))
+        seed = WorldSeed.generateRandom()
+    end
+    -- Запуск в отдельном потоке чтобы не блокировать команды
+    task.spawn(function()
+        local success = WorldManager.generate(seed)
+        if success then
+            print("[Debug] World generated! Seed:", seed)
+        else
+            print("[Debug] World generation FAILED")
+        end
+    end)
+    return "Generating world with seed: " .. seed .. " ..."
+end
+
+commands["/worldclear"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    if WorldManager.isGenerating() then
+        return "Cannot clear while generating!"
+    end
+    WorldManager.clear()
+    return "World cleared"
+end
+
 commands["/savecastle"] = function(player, args)
     -- Принудительно включаем сохранение (в Studio оно выключено по умолчанию)
     local wasEnabled = DataService.isSaveEnabled()
