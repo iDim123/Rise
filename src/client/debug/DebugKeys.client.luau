@@ -64,6 +64,8 @@ local flying = false
 local flySpeed = 80
 local bodyVelocity = nil
 local bodyGyro = nil
+local savedCollision: {[BasePart]: boolean} = {} -- исходные CanCollide
+local collisionConn = nil -- RenderStepped connection для принудительного noclip
 
 local function startFly()
 	local char = player.Character
@@ -74,6 +76,28 @@ local function startFly()
 
 	flying = true
 	humanoid.PlatformStand = true
+
+	-- Отключить коллизию всех частей персонажа
+	savedCollision = {}
+	for _, part in char:GetDescendants() do
+		if part:IsA("BasePart") then
+			savedCollision[part] = part.CanCollide
+			part.CanCollide = false
+		end
+	end
+
+	-- Roblox сбрасывает CanCollide каждый кадр для Humanoid-частей,
+	-- поэтому принудительно выключаем каждый RenderStepped
+	collisionConn = RunService.Stepped:Connect(function()
+		if not flying then return end
+		local c = player.Character
+		if not c then return end
+		for _, part in c:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end)
 
 	bodyVelocity = Instance.new("BodyVelocity")
 	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -96,6 +120,21 @@ local function stopFly()
 	local humanoid = char:FindFirstChildOfClass("Humanoid")
 
 	flying = false
+
+	-- Отключить принудительный noclip
+	if collisionConn then
+		collisionConn:Disconnect()
+		collisionConn = nil
+	end
+
+	-- Восстановить CanCollide
+	for part, wasCollide in savedCollision do
+		if part and part.Parent then
+			part.CanCollide = wasCollide
+		end
+	end
+	savedCollision = {}
+
 	if humanoid then
 		humanoid.PlatformStand = false
 	end
