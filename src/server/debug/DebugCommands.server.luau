@@ -168,6 +168,21 @@ commands["/help"] = function(player, args)
     return "Commands: " .. table.concat(list, ", ")
 end
 
+-- ── World ──
+
+commands["/worldinfo"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    return WorldManager.getInfo()
+end
+
+commands["/templates"] = function(player, args)
+    local WorldManager = require(modules:WaitForChild("world"):WaitForChild("WorldManager"))
+    local found, missing, details = WorldManager.validateTemplates()
+    print("[Debug] ServerStorage templates:")
+    print(details)
+    return string.format("Templates: %d found, %d missing", found, missing)
+end
+
 commands["/savecastle"] = function(player, args)
     -- Принудительно включаем сохранение (в Studio оно выключено по умолчанию)
     local wasEnabled = DataService.isSaveEnabled()
