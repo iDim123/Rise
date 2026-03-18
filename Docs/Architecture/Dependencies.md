@@ -9,7 +9,7 @@
 
 ### Точки входа
 
-Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager, BuildingManager
+Main.server.luau └── require: StatsManager, DayNightManager, HealthManager, LootManager, EnemySpawner, LevelManager, BuffManager, BuildingManager, WorldManager
 
 PlayerLifecycle.server.luau
 └── require: DataService, InventoryManager, InventorySync, BloodManager, LevelManager,
@@ -17,6 +17,25 @@ PlayerLifecycle.server.luau
              BuildingManager, CoffinHandler
 
 BuildingServer.server.luau └── require: BuildingManager, CastleBorder, FunctionalDispatcher, Remotes, EventBus
+
+
+### Модули мира (`server/modules/world/`) — v1.10
+
+WorldManager
+├── Config (WorldConfig: Mode, HideOnGenerate, HidePatterns)
+├── WorldSeed
+├── TerrainGenerator
+└── ChunkSystem
+
+TerrainGenerator
+├── Config (WorldConfig.Noise)
+└── WorldSeed (offsets)
+
+ChunkSystem
+├── Config (WorldConfig.MapSize, ChunkSize)
+└── TerrainGenerator
+
+WorldSeed (standalone — math.random + offsets)
 
 
 ### Строительные модули (`server/modules/building/`)
