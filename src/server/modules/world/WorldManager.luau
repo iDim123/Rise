@@ -30,6 +30,91 @@ local state = {
 	generationTime = 0,
 }
 
+-- Скрытые вручную размещённые объекты Workspace.
+-- Ключ = имя объекта, значение = Instance.
+-- При генерации объекты выдёргиваются из Workspace (Parent = nil),
+-- при очистке мира — возвращаются обратно.
+local hiddenObjects: {[string]: Instance} = {}
+
+-- ═══════════════════════════════════════════════════════════
+-- Скрытие / восстановление ручных объектов Workspace
+-- ═══════════════════════════════════════════════════════════
+
+--[[
+	Проверяет, нужно ли скрывать объект по имени.
+	Возвращает true если имя есть в HideOnGenerate или
+	матчится по одному из HidePatterns.
+]]
+local function shouldHide(name: string, worldCfg): boolean
+	-- Точное совпадение
+	local hideList = worldCfg.HideOnGenerate or {}
+	for _, hideName in hideList do
+		if name == hideName then
+			return true
+		end
+	end
+
+	-- Паттерн (содержит подстроку)
+	local patterns = worldCfg.HidePatterns or {}
+	for _, pattern in patterns do
+		if string.find(name, pattern, 1, true) then
+			return true
+		end
+	end
+
+	return false
+end
+
+--[[
+	Скрывает все объекты Workspace которые перечислены
+	в WorldConfig.HideOnGenerate / HidePatterns.
+	Объекты отцепляются от Workspace (Parent = nil),
+	но сохраняются в таблице hiddenObjects для восстановления.
+]]
+local function hideManualObjects()
+	local worldCfg = Config.World or {}
+	local ws = game:GetService("Workspace")
+	local count = 0
+
+	for _, child in ws:GetChildren() do
+		-- Terrain и Camera — системные, не трогать
+		if child:IsA("Terrain") or child:IsA("Camera") then
+			continue
+		end
+
+		if shouldHide(child.Name, worldCfg) then
+			hiddenObjects[child.Name .. "_" .. tostring(count)] = child
+			child.Parent = nil
+			count = count + 1
+		end
+	end
+
+	if count > 0 then
+		print(string.format("[WorldManager] Hidden %d manual Workspace objects", count))
+	end
+end
+
+--[[
+	Восстанавливает ранее скрытые объекты обратно в Workspace.
+]]
+local function restoreManualObjects()
+	local ws = game:GetService("Workspace")
+	local count = 0
+
+	for key, obj in hiddenObjects do
+		if obj then
+			obj.Parent = ws
+			count = count + 1
+		end
+	end
+
+	hiddenObjects = {}
+
+	if count > 0 then
+		print(string.format("[WorldManager] Restored %d manual Workspace objects", count))
+	end
+end
+
 -- ═══════════════════════════════════════════════════════════
 -- Основное API
 -- ═══════════════════════════════════════════════════════════
@@ -77,13 +162,16 @@ function WorldManager.generate(seed: number): boolean
 	WorldSeed.setSeed(seed)
 	state.seed = seed
 
-	-- 2. Очистить предыдущий terrain
+	-- 2. Скрыть ручные объекты Workspace (Trees, Stones, Rigs, etc.)
+	hideManualObjects()
+
+	-- 3. Очистить предыдущий terrain
 	TerrainGenerator.clearTerrain()
 
-	-- 3. Инициализировать чанки
+	-- 4. Инициализировать чанки
 	ChunkSystem.init()
 
-	-- 4. Генерация terrain
+	-- 5. Генерация terrain
 	local totalChunks, totalTime = ChunkSystem.generateAll(function(current, total, elapsed)
 		-- Прогресс callback (будущее: отправка на клиент для loading screen)
 		if current % 16 == 0 or current == total then
@@ -91,7 +179,7 @@ function WorldManager.generate(seed: number): boolean
 		end
 	end)
 
-	-- 5. Готово
+	-- 6. Готово
 	state.generationTime = os.clock() - startTime
 	state.generating = false
 	state.initialized = true
@@ -113,10 +201,14 @@ end
 function WorldManager.clear()
 	TerrainGenerator.clearTerrain()
 	ChunkSystem.reset()
+
+	-- Восстановить скрытые ручные объекты (Baseplate, Trees, etc.)
+	restoreManualObjects()
+
 	state.seed = 0
 	state.generationTime = 0
 	state.initialized = state.mode == "Manual"
-	print("[WorldManager] World cleared")
+	print("[WorldManager] World cleared, manual objects restored")
 end
 
 -- ═══════════════════════════════════════════════════════════
